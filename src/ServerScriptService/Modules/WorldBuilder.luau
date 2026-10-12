@@ -318,6 +318,65 @@ function WorldBuilder.build()
     )
     head.Shape = Enum.PartType.Ball
 
+    local customerBillboard = Instance.new("BillboardGui")
+    customerBillboard.Name = "CustomerNameplate"
+    customerBillboard.Adornee = head
+    customerBillboard.Size = UDim2.fromOffset(150, 38)
+    customerBillboard.StudsOffset = Vector3.new(0, 1.25, 0)
+    customerBillboard.AlwaysOnTop = true
+    customerBillboard.Enabled = false
+    customerBillboard.Parent = head
+    local customerLabel = Instance.new("TextLabel")
+    customerLabel.Size = UDim2.fromScale(1, 1)
+    customerLabel.BackgroundColor3 = COLORS.deepTeal
+    customerLabel.BackgroundTransparency = 0.08
+    customerLabel.Text = "WAITING CUSTOMER"
+    customerLabel.TextColor3 = COLORS.warmWhite
+    customerLabel.Font = Enum.Font.GothamBold
+    customerLabel.TextScaled = true
+    customerLabel.Parent = customerBillboard
+    local customerCorner = Instance.new("UICorner")
+    customerCorner.CornerRadius = UDim.new(0, 8)
+    customerCorner.Parent = customerLabel
+
+    -- Keep the customer out of sight until stocking advances the shift to checkout.
+    for _, item in ipairs(customer:GetDescendants()) do
+        if item:IsA("BasePart") then
+            item.Transparency = 1
+            item.CanCollide = false
+        end
+    end
+
+    local function setCustomerVisible(visible)
+        for _, item in ipairs(customer:GetDescendants()) do
+            if item:IsA("BasePart") then
+                item.Transparency = visible and 0 or 1
+            end
+        end
+        customerBillboard.Enabled = visible
+    end
+
+    local stockedCans = {}
+    local function setStockVisual(count)
+        for _, can in ipairs(stockedCans) do
+            can:Destroy()
+        end
+        stockedCans = {}
+        for index = 1, count do
+            local x = -10 + (index - (count + 1) / 2) * 0.9
+            local can = part(
+                interior,
+                "Stocked Citrus Pop Can",
+                Vector3.new(0.62, 0.8, 0.62),
+                CFrame.new(x, 3.75, -0.54) * CFrame.Angles(0, 0, math.rad(90)),
+                index % 2 == 0 and COLORS.green or COLORS.coral,
+                Enum.Material.Metal
+            )
+            can.Shape = Enum.PartType.Cylinder
+            table.insert(stockedCans, can)
+        end
+    end
+
     local register = prompt(counter, "Serve Customer", "Checkout", "Checkout", 9)
     local stockPrompt = prompt(
         shelf.PrimaryPart or shelf:FindFirstChild("Base"),
@@ -335,9 +394,22 @@ function WorldBuilder.build()
         COLORS.teal
     )
     local closePrompt = prompt(shiftBoard, "Close Shift", "Shift Summary", "CloseShift", 9)
-    local upgradePad =
-        part(exterior, "Upgrade Pad", Vector3.new(5, 0.5, 5), CFrame.new(19, 0.5, 12), COLORS.gold)
+    local upgradePad = part(
+        exterior,
+        "Upgrade Pad",
+        Vector3.new(5.5, 0.5, 5.5),
+        CFrame.new(26, 0.5, 21),
+        COLORS.gold
+    )
     local upgradePrompt = prompt(upgradePad, "Add Shelf Bay ($45)", "Store Upgrade", "Upgrade", 10)
+    label(
+        exterior,
+        "Upgrade Sign",
+        "STORE UPGRADE\n$45",
+        Vector3.new(5, 2.5, 0.4),
+        CFrame.new(26, 3.2, 18.1),
+        COLORS.teal
+    )
 
     -- A single anchored cart root is tweened only while the opening event is active.
     local cart = Instance.new("Model")
@@ -456,18 +528,20 @@ function WorldBuilder.build()
             cartTween = value
         end,
         stockPrompt = stockPrompt,
+        setStockVisual = setStockVisual,
+        setCustomerVisible = setCustomerVisible,
         registerPrompt = register,
         closePrompt = closePrompt,
         upgradePrompt = upgradePrompt,
         addUpgrade = function()
-            local newShelf = createShelf(interior, "Purchased Shelf Bay", -10, -7, 6)
+            local newShelf = createShelf(interior, "Purchased Shelf Bay", -16, -8, 6)
             newShelf:SetAttribute("PlayerPurchased", true)
             local sign = label(
                 interior,
                 "New Department Sign",
                 "MORE TO CHOOSE",
                 Vector3.new(8, 1.2, 0.35),
-                CFrame.new(-10, 7.8, -4.2),
+                CFrame.new(-16, 7.8, -5.2),
                 COLORS.green
             )
             sign:SetAttribute("PlayerPurchased", true)

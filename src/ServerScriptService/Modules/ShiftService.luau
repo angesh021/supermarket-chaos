@@ -127,12 +127,17 @@ function ShiftService.init(event)
         local ok, message = Economy.stockProduct(state)
         if ok then
             world.stockPrompt.Enabled = false
+            world.setStockVisual(state.stock)
+            world.setCustomerVisible(true)
         end
         broadcast(message)
     end)
 
     bind(world.registerPrompt, 12, function()
-        local _, message = Economy.sellProduct(state)
+        local ok, message = Economy.sellProduct(state)
+        if ok then
+            world.setStockVisual(state.stock)
+        end
         broadcast(message)
     end)
 
