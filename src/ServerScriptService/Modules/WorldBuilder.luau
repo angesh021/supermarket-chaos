@@ -395,21 +395,43 @@ function WorldBuilder.build()
     )
     local closePrompt = prompt(shiftBoard, "Close Shift", "Shift Summary", "CloseShift", 9)
     local upgradePad = part(
-        exterior,
+        interior,
         "Upgrade Pad",
-        Vector3.new(5.5, 0.5, 5.5),
-        CFrame.new(26, 0.5, 21),
-        COLORS.gold
+        Vector3.new(5.5, 0.55, 5.5),
+        CFrame.new(17.5, 0.52, 12.5),
+        COLORS.gold,
+        Enum.Material.Neon
     )
     local upgradePrompt = prompt(upgradePad, "Add Shelf Bay ($45)", "Store Upgrade", "Upgrade", 10)
     label(
-        exterior,
+        interior,
         "Upgrade Sign",
-        "STORE UPGRADE\n$45",
-        Vector3.new(5, 2.5, 0.4),
-        CFrame.new(26, 3.2, 18.1),
+        "UPGRADE\n$45",
+        Vector3.new(5, 2.7, 0.4),
+        CFrame.new(17.5, 4.3, 9.4),
         COLORS.teal
     )
+    local upgradeMarker = Instance.new("BillboardGui")
+    upgradeMarker.Name = "UpgradeDirectionMarker"
+    upgradeMarker.Adornee = upgradePad
+    upgradeMarker.Size = UDim2.fromOffset(180, 64)
+    upgradeMarker.StudsOffset = Vector3.new(0, 4.5, 0)
+    upgradeMarker.AlwaysOnTop = true
+    upgradeMarker.MaxDistance = 250
+    upgradeMarker.Enabled = false
+    upgradeMarker.Parent = upgradePad
+    local markerText = Instance.new("TextLabel")
+    markerText.Size = UDim2.fromScale(1, 1)
+    markerText.BackgroundColor3 = COLORS.deepTeal
+    markerText.BackgroundTransparency = 0.05
+    markerText.Text = "UPGRADE  $45"
+    markerText.TextColor3 = COLORS.gold
+    markerText.Font = Enum.Font.GothamBold
+    markerText.TextScaled = true
+    markerText.Parent = upgradeMarker
+    local markerCorner = Instance.new("UICorner")
+    markerCorner.CornerRadius = UDim.new(0, 10)
+    markerCorner.Parent = markerText
 
     -- A single anchored cart root is tweened only while the opening event is active.
     local cart = Instance.new("Model")
@@ -533,6 +555,9 @@ function WorldBuilder.build()
         registerPrompt = register,
         closePrompt = closePrompt,
         upgradePrompt = upgradePrompt,
+        setUpgradeReady = function(ready)
+            upgradeMarker.Enabled = ready
+        end,
         addUpgrade = function()
             local newShelf = createShelf(interior, "Purchased Shelf Bay", -16, -8, 6)
             newShelf:SetAttribute("PlayerPurchased", true)

@@ -16,7 +16,7 @@ local OBJECTIVES = {
     Stock = "Stock three Citrus Pop cans on the marked shelf.",
     Checkout = "Help the waiting customer at the checkout.",
     CloseShift = "Your first sale is done. Close the shift at the shift board.",
-    Upgrade = "Spend $45 on the upgrade pad to add a shelf bay.",
+    Upgrade = "Upgrade: use the gold pad just inside the front entrance. Press E to spend $45.",
     Complete = "First shift complete! Your store has a new shelf bay.",
 }
 
@@ -137,6 +137,7 @@ function ShiftService.init(event)
         local ok, message = Economy.sellProduct(state)
         if ok then
             world.setStockVisual(state.stock)
+            world.registerPrompt.Enabled = false
         end
         broadcast(message)
     end)
@@ -145,6 +146,7 @@ function ShiftService.init(event)
         local ok, message = Economy.closeShift(state)
         if ok then
             world.closePrompt.Enabled = false
+            world.setUpgradeReady(true)
         end
         broadcast(message)
     end)

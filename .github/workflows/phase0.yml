@@ -10,6 +10,35 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Validate Rojo project JSON
-        run: python -c "import json; from pathlib import Path; p=json.loads(Path('default.project.json').read_text()); assert p['name'] == 'SupermarketChaos'; assert p['tree']['$className'] == 'DataModel'"
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          project = json.loads(Path("default.project.json").read_text())
+          assert project["name"] == "SupermarketChaos"
+          assert project["tree"]["$className"] == "DataModel"
+          PY
       - name: Validate documentation index targets
-        run: python -c "from pathlib import Path; docs=Path('docs'); required=['README.md','PROJECT_STATUS.md','BACKLOG.md','requirements/PRODUCT_REQUIREMENTS.md','requirements/TRACEABILITY.md','design/GAME_DESIGN.md','design/FIRST_SESSION.md','design/VISUAL_DESIGN_BIBLE.md','architecture/ARCHITECTURE.md','security/THREAT_MODEL.md','operations/BEGINNER_SETUP.md','operations/QUALITY.md']; missing=[str(docs/p) for p in required if not (docs/p).is_file()]; assert not missing, f'Missing docs: {missing}'"
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          docs = Path("docs")
+          required = [
+              "README.md",
+              "PROJECT_STATUS.md",
+              "BACKLOG.md",
+              "requirements/PRODUCT_REQUIREMENTS.md",
+              "requirements/TRACEABILITY.md",
+              "design/GAME_DESIGN.md",
+              "design/FIRST_SESSION.md",
+              "design/VISUAL_DESIGN_BIBLE.md",
+              "architecture/ARCHITECTURE.md",
+              "security/THREAT_MODEL.md",
+              "operations/BEGINNER_SETUP.md",
+              "operations/QUALITY.md",
+          ]
+          missing = [str(docs / path) for path in required if not (docs / path).is_file()]
+          assert not missing, f"Missing docs: {missing}"
+          PY
