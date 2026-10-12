@@ -2,12 +2,16 @@ local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 
 local Economy = require(script.Parent.Economy)
+local ProfileService = require(script.Parent.ProfileService)
 local WorldBuilder = require(script.Parent.WorldBuilder)
 
 local ShiftService = {}
 
-local state = Economy.newState()
 local interactionTimes = {}
+local state
+local ownerPlayer
+local ownerReady = false
+local ownershipClaimed = false
 local world
 local stateEvent
 
@@ -17,18 +21,32 @@ local OBJECTIVES = {
     Checkout = "Help the waiting customer at the checkout.",
     CloseShift = "Your first sale is done. Close the shift at the shift board.",
     Upgrade = "Upgrade: use the gold pad just inside the front entrance. Press E to spend $45.",
-    Complete = "First shift complete! Your store has a new shelf bay.",
+    Complete = "Shift complete. Visit the shift board to start another shift.",
 }
 
-local function snapshot(message)
+local function snapshot(message, recipient)
+    local current = state or Economy.newState()
+    local isOwner = recipient == ownerPlayer and ownerReady
+    local objective = OBJECTIVES[current.stage] or "Your store is starting up."
+    if not isOwner then
+        if ownerPlayer then
+            objective = "This store belongs to " .. ownerPlayer.DisplayName .. "."
+        elseif ownershipClaimed then
+            objective = "The store owner left. Join a new server to open your store."
+        else
+            objective = "Loading your store profile…"
+        end
+    end
     return {
-        stage = state.stage,
-        objective = OBJECTIVES[state.stage],
-        cash = state.cash,
-        stock = state.stock,
-        sales = state.sales,
+        stage = current.stage,
+        objective = objective,
+        cash = current.cash,
+        stock = current.stock,
+        sales = current.sales,
         message = message or "",
-        upgradePurchased = state.upgradePurchased,
+        upgradePurchased = current.upgradePurchased,
+        isOwner = isOwner,
+        saveStatus = isOwner and ProfileService.getSaveStatus(recipient) or "view only",
     }
 end
 
@@ -36,7 +54,9 @@ local function broadcast(message)
     if not stateEvent then
         return
     end
-    stateEvent:FireAllClients(snapshot(message))
+    for _, player in ipairs(Players:GetPlayers()) do
+        stateEvent:FireClient(player, snapshot(message, player))
+    end
 end
 
 local function atPrompt(player, promptObject, maxDistance)
@@ -60,6 +80,10 @@ end
 local function permitInteraction(player, promptObject, maxDistance)
     if
         not player
+        or player ~= ownerPlayer
+        or not ownerReady
+        or ProfileService.getSaveStatus(player) == "lock lost"
+        or ProfileService.getSaveStatus(player) == "save pending"
         or player.Parent ~= Players
         or not promptObject
         or not promptObject:IsDescendantOf(workspace)
@@ -90,12 +114,19 @@ end
 function ShiftService.init(event)
     stateEvent = event
     world = WorldBuilder.build()
+    world.setStage("Loading")
+    ProfileService.startAutosave(function()
+        broadcast()
+    end)
 
-    -- Roll the opening cart along a short, anchored path until the server accepts a nearby stop.
     local root = world.cartModel.PrimaryPart
     local function startCart()
         if state.stage ~= "Cart" or not root or not root.Parent then
             return
+        end
+        local activeTween = world.cartTween()
+        if activeTween then
+            activeTween:Cancel()
         end
         root.CFrame = CFrame.new(-5, 1.3, 25)
         local tween = TweenService:Create(
@@ -108,7 +139,12 @@ function ShiftService.init(event)
         world.setCartTween(tween)
         tween:Play()
     end
-    startCart()
+
+    local function commit(eventName)
+        ProfileService.saveProgress(ownerPlayer, state, eventName)
+        world.setStage(state.stage)
+        broadcast()
+    end
 
     bind(world.cartPrompt, 12, function()
         local activeTween = world.cartTween()
@@ -118,7 +154,7 @@ function ShiftService.init(event)
         local ok, message = Economy.recoverCart(state)
         if ok then
             root.CFrame = CFrame.new(0, 1.3, 24)
-            world.cartPrompt.Enabled = false
+            commit("cart")
         end
         broadcast(message)
     end)
@@ -126,9 +162,8 @@ function ShiftService.init(event)
     bind(world.stockPrompt, 12, function()
         local ok, message = Economy.stockProduct(state)
         if ok then
-            world.stockPrompt.Enabled = false
             world.setStockVisual(state.stock)
-            world.setCustomerVisible(true)
+            commit("stock")
         end
         broadcast(message)
     end)
@@ -137,7 +172,7 @@ function ShiftService.init(event)
         local ok, message = Economy.sellProduct(state)
         if ok then
             world.setStockVisual(state.stock)
-            world.registerPrompt.Enabled = false
+            commit("sale")
         end
         broadcast(message)
     end)
@@ -145,8 +180,7 @@ function ShiftService.init(event)
     bind(world.closePrompt, 12, function()
         local ok, message = Economy.closeShift(state)
         if ok then
-            world.closePrompt.Enabled = false
-            world.setUpgradeReady(true)
+            commit("shiftClosed")
         end
         broadcast(message)
     end)
@@ -154,31 +188,96 @@ function ShiftService.init(event)
     bind(world.upgradePrompt, 13, function()
         local ok, message = Economy.buyUpgrade(state)
         if ok then
-            world.upgradePrompt.Enabled = false
             world.addUpgrade()
+            commit("upgrade")
         end
         broadcast(message)
     end)
 
-    Players.PlayerAdded:Connect(function(player)
-        task.delay(1, function()
-            if player.Parent == Players then
-                stateEvent:FireClient(player, snapshot("Welcome to the neighborhood store!"))
-            end
-        end)
+    bind(world.restartPrompt, 12, function()
+        local ok, message = Economy.restartShift(state)
+        if ok then
+            world.setStockVisual(0)
+            world.setCustomerVisible(false)
+            world.setStage(state.stage)
+            startCart()
+            commit("restart")
+        end
+        broadcast(message)
     end)
+
+    local function claimStore(player)
+        if ownerPlayer == player then
+            return
+        end
+        if ownerPlayer or ownershipClaimed then
+            stateEvent:FireClient(
+                player,
+                snapshot("You can visit, but this store is owned by another player.", player)
+            )
+            return
+        end
+        ownerPlayer = player
+        ownershipClaimed = true
+        stateEvent:FireClient(player, snapshot("Loading your saved store…", player))
+        task.spawn(function()
+            local profile, status = ProfileService.load(player)
+            if ownerPlayer ~= player or player.Parent ~= Players then
+                ProfileService.release(player)
+                return
+            end
+            if not profile then
+                ownerPlayer = nil
+                ownershipClaimed = false
+                player:Kick(
+                    status or "Your store profile could not be opened safely. Please rejoin."
+                )
+                return
+            end
+            state = Economy.newState(profile)
+            ownerReady = true
+            if state.upgradePurchased then
+                world.addUpgrade()
+            end
+            world.setStockVisual(state.stock)
+            world.setStage(state.stage)
+            if state.stage == "Cart" then
+                startCart()
+            end
+            broadcast(
+                status == "session only" and "Data saving is off; this session will not persist."
+                    or "Store profile loaded."
+            )
+        end)
+    end
+
+    Players.PlayerAdded:Connect(claimStore)
     Players.PlayerRemoving:Connect(function(player)
         interactionTimes[player] = nil
+        if player == ownerPlayer then
+            ProfileService.release(player)
+            ownerReady = false
+            ownerPlayer = nil
+            ownershipClaimed = true
+            local activeTween = world.cartTween()
+            if activeTween then
+                activeTween:Cancel()
+            end
+            world.setStage("OwnerOffline")
+            broadcast("The store owner left. Join a new server to open your store.")
+        end
     end)
 
     for _, player in ipairs(Players:GetPlayers()) do
-        task.delay(1, function()
-            if player.Parent == Players then
-                stateEvent:FireClient(player, snapshot("Welcome to the neighborhood store!"))
-            end
-        end)
+        claimStore(player)
     end
-    broadcast("First Shift: Welcome to Chaos!")
+
+    game:BindToClose(function()
+        if ownerPlayer then
+            ProfileService.release(ownerPlayer)
+        end
+        ProfileService.releaseAll()
+    end)
 end
 
 return ShiftService

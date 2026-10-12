@@ -394,6 +394,7 @@ function WorldBuilder.build()
         COLORS.teal
     )
     local closePrompt = prompt(shiftBoard, "Close Shift", "Shift Summary", "CloseShift", 9)
+    local restartPrompt = prompt(shiftBoard, "Start Next Shift", "Shift Board", "RestartShift", 9)
     local upgradePad = part(
         interior,
         "Upgrade Pad",
@@ -539,6 +540,17 @@ function WorldBuilder.build()
     lighting.OutdoorAmbient = Color3.fromRGB(173, 182, 165)
     workspace.Gravity = 196.2
 
+    local function setStage(stage)
+        cartPrompt.Enabled = stage == "Cart"
+        stockPrompt.Enabled = stage == "Stock"
+        register.Enabled = stage == "Checkout"
+        closePrompt.Enabled = stage == "CloseShift"
+        upgradePrompt.Enabled = stage == "Upgrade"
+        restartPrompt.Enabled = stage == "Complete"
+        upgradeMarker.Enabled = stage == "Upgrade"
+        setCustomerVisible(stage == "Checkout" or stage == "CloseShift")
+    end
+
     return {
         root = world,
         cartPrompt = cartPrompt,
@@ -554,11 +566,16 @@ function WorldBuilder.build()
         setCustomerVisible = setCustomerVisible,
         registerPrompt = register,
         closePrompt = closePrompt,
+        restartPrompt = restartPrompt,
         upgradePrompt = upgradePrompt,
+        setStage = setStage,
         setUpgradeReady = function(ready)
             upgradeMarker.Enabled = ready
         end,
         addUpgrade = function()
+            if interior:FindFirstChild("Purchased Shelf Bay") then
+                return
+            end
             local newShelf = createShelf(interior, "Purchased Shelf Bay", -16, -8, 6)
             newShelf:SetAttribute("PlayerPurchased", true)
             local sign = label(

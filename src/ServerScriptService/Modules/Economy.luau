@@ -7,15 +7,18 @@ Economy.SHIFT_REWARD = 20
 Economy.UPGRADE_COST = 45
 Economy.STARTING_STOCK = 3
 
-function Economy.newState()
+function Economy.newState(profile)
+    profile = profile or {}
+    local savedShift = profile.shift or {}
+    local upgrades = profile.ownedUpgrades or {}
     return {
-        stage = "Cart",
-        cash = 0,
-        stock = 0,
-        sales = 0,
-        cartRecovered = false,
-        shiftClosed = false,
-        upgradePurchased = false,
+        stage = savedShift.stage or "Cart",
+        cash = profile.balance or 0,
+        stock = savedShift.stock or 0,
+        sales = savedShift.sales or 0,
+        cartRecovered = savedShift.cartRecovered or false,
+        shiftClosed = savedShift.shiftClosed or false,
+        upgradePurchased = upgrades.shelfBay or false,
     }
 end
 
@@ -62,8 +65,24 @@ function Economy.closeShift(state)
     end
     state.shiftClosed = true
     state.cash += Economy.SHIFT_REWARD
+    if state.upgradePurchased then
+        state.stage = "Complete"
+        return true, "Shift complete! +$20. Your store is ready for another shift."
+    end
     state.stage = "Upgrade"
     return true, "First shift complete! +$20. Add a shelf bay to grow the store."
+end
+
+function Economy.restartShift(state)
+    if state.stage ~= "Complete" then
+        return false, "Finish this shift before starting another."
+    end
+    state.stage = "Cart"
+    state.stock = 0
+    state.sales = 0
+    state.cartRecovered = false
+    state.shiftClosed = false
+    return true, "New shift started. Stop the runaway cart near the entrance."
 end
 
 function Economy.buyUpgrade(state)

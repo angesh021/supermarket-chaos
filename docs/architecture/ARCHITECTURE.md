@@ -30,5 +30,13 @@ Expose pure functions for validate/price/compute transitions and return explicit
 ## Persistence/economy invariants
 Currency and stock changes occur only after server-side validation. Transactions have stable IDs and idempotent application. A receipt or saved operation cannot be granted twice. Schema has version and migration path. Session coordination and conflict strategy must be tested against actual DataStore semantics before release.
 
+## Phase 2 profile implementation
+- `ProfileService` owns server-only DataStore access. The client receives only a sanitized shift snapshot and a save-status label.
+- Each profile is keyed by `Player.UserId`, stores an explicit schema version, balance, current shift, owned upgrades and progression counters, and is normalized before use.
+- An atomic `UpdateAsync` claim writes a unique server lease with expiry. Saves and lease refreshes verify the lease; autosave, PlayerRemoving and BindToClose attempt final writes/releases.
+- Store interactions are rejected for visitors and while the owner's profile is loading or its lease is known lost. One server has one store owner until the Phase 3 guest/role model.
+- DataStore failures fall back to a fresh session-only profile; that profile is never written over the persistent record. The HUD exposes this state.
+- G2 remains pending actual Studio testing, including two-server lock contention and failure recovery. This custom lease is a first implementation and is not yet a security certification.
+
 ## Open technical decisions
-See `docs/decisions/README.md`: collaboration/store ownership model; persistence/session strategy; Rojo project schema and CI runner availability; Studio place configuration; analytics implementation/privacy review. Avoid choosing APIs based on memory; verify current official Roblox documentation when implementation starts.
+See `docs/decisions/README.md` for accepted ownership policy. Remaining decisions include multi-store/guest permissions, production Studio place configuration, analytics implementation/privacy review, and any changes to persistence recovery. Verify platform APIs against official documentation when implementation starts.

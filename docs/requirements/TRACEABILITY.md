@@ -11,6 +11,7 @@
 | NFR-01 | Usable desktop and touch UI | `design/VISUAL_DESIGN_BIBLE.md` | Studio device emulation/manual mobile test | HUD/prompt scaffold; Studio pending |
 | NFR-02 | Cohesive, readable small supermarket | `design/VISUAL_DESIGN_BIBLE.md` | Art gate in gameplay camera/screenshots | Procedural blockout; visual gate pending |
 | NFR-03 | Recoverable versioned progression | `architecture/ARCHITECTURE.md` | Failure, migration, save/reload tests | Planned |
+| FR-07 | Per-player profile, saved shift and owned upgrade recovery | `decisions/ADR-0002-player-owned-store-profiles.md`, `architecture/ARCHITECTURE.md` | Save/rejoin, two-server lease conflict, failure fallback, shutdown | Implemented; Studio DataStore verification pending |
 | OPS-01 | Reproducible local setup and quality checks | `operations/BEGINNER_SETUP.md`, `operations/QUALITY.md` | Fresh setup and CI run | In progress |
 
 No requirement is marked verified until the documented check is actually run and its evidence is recorded.

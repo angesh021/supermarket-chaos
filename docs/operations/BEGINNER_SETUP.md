@@ -29,4 +29,9 @@ Use a Rojo 7 Studio plugin with the Rojo 7.7.0 CLI. The project's exact `default
 - If a binary says home directory not found, verify the Windows user profile environment and tool-specific configuration; do not copy credentials or auth files into the repository.
 - Keep `.rbxlx`/`.rbxl` development place files only if deliberately versioned; never commit account tokens or private data.
 - Production publication, DataStore access, analytics and commerce require separate environment configuration and approval. Use a separate test experience and test products for any later verification.
+
+## Phase 2 profile testing
+DataStore is disabled in Studio by default. For persistence checks, create/use a private test experience that is separate from any future production experience, publish that test experience yourself, then in Studio open **File → Experience Settings → Security**, enable **Enable Studio Access to API Services**, and save. Studio then uses that test experience's DataStores; do not enable this against live player data. The game labels a profile `SESSION ONLY` when DataStore access fails, and does not write that fallback profile to the store.
+
+Use the same Roblox account for the save/rejoin check. Complete an action, stop the local Play session, start it again, and confirm the saved shift resumes. To check the session lease, join the same test experience from a second server using the same account while the first session is still active; the second session must not load a writable copy. Disable Studio API access in the test experience to verify normal session-only play and the HUD warning.
 - Record exact tool versions and successful commands in `docs/PROJECT_STATUS.md` after they are verified.

@@ -27,3 +27,12 @@ Multiple business types; regional map; online grocery logistics; employee automa
 
 ## Success measures
 Instrument funnel events for first interaction, first stock, first sale, first upgrade, first shift completion and voluntary return. The master specification's completion percentages are hypotheses to validate with actual playtests, not external benchmarks or promises.
+
+## Phase 2 progression requirements
+- Each player's currency, current shift, owned store upgrades and progression counters are stored in a versioned profile keyed by Roblox UserId.
+- A returning owner resumes the saved shift and sees already-purchased physical upgrades.
+- One server session has one store owner. Visitors are read-only until Phase 3 defines explicit guest roles and permissions.
+- Profile loading/saving is server-only and uses session ownership; a known lost lock blocks store interactions.
+- A DataStore outage may allow session-only play, but the UI must disclose that progress will not persist and the fallback must never overwrite the saved profile.
+- Profiles can start another shift after completing the current shift; rewards and upgrades remain server-authoritative.
+- G2 is not complete until the save/rejoin, lease conflict, session-only fallback, and shutdown paths are verified in a private Studio test experience.

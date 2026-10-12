@@ -31,3 +31,5 @@ globals:
     any: true
   workspace:
     any: true
+  warn:
+    any: true

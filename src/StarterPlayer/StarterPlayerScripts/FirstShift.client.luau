@@ -58,7 +58,7 @@ padding.Parent = card
 
 local title = Instance.new("TextLabel")
 title.Name = "Title"
-title.Size = UDim2.new(1, -28, 0, 22)
+title.Size = UDim2.new(1, -102, 0, 22)
 title.BackgroundTransparency = 1
 title.Text = "FIRST SHIFT"
 title.TextColor3 = COLORS.teal
@@ -66,6 +66,19 @@ title.Font = Enum.Font.GothamBold
 title.TextSize = 15
 title.TextXAlignment = Enum.TextXAlignment.Left
 title.Parent = card
+
+local saveStatus = Instance.new("TextLabel")
+saveStatus.Name = "SaveStatus"
+saveStatus.AnchorPoint = Vector2.new(1, 0)
+saveStatus.Position = UDim2.new(1, -28, 0, 0)
+saveStatus.Size = UDim2.fromOffset(70, 22)
+saveStatus.BackgroundTransparency = 1
+saveStatus.Text = "LOADING"
+saveStatus.TextColor3 = COLORS.teal
+saveStatus.Font = Enum.Font.GothamBold
+saveStatus.TextSize = 9
+saveStatus.TextXAlignment = Enum.TextXAlignment.Right
+saveStatus.Parent = card
 
 local toggle = Instance.new("TextButton")
 toggle.Name = "CollapseButton"
@@ -159,10 +172,11 @@ feedback.TextTruncate = Enum.TextTruncate.AtEnd
 feedback.Parent = card
 
 local collapsed = false
+local ownerView = true
 local function setCollapsed(value)
     collapsed = value
     objective.Visible = not collapsed
-    stats.Visible = not collapsed
+    stats.Visible = not collapsed and ownerView
     feedback.Visible = not collapsed
     card.Size = UDim2.fromOffset(280, collapsed and 40 or 145)
     toggle.Text = collapsed and "+" or "−"
@@ -178,6 +192,28 @@ local function update(state)
         return
     end
     objective.Text = tostring(state.objective or "Keep the store running.")
+    ownerView = state.isOwner ~= false
+    stats.Visible = not collapsed and ownerView
+    local saveText = tostring(state.saveStatus or "loading")
+    if saveText == "saved" then
+        saveStatus.Text = "SAVE ON"
+        saveStatus.TextColor3 = Color3.fromRGB(48, 112, 61)
+    elseif saveText == "session only" then
+        saveStatus.Text = "SESSION ONLY"
+        saveStatus.TextColor3 = COLORS.coral
+    elseif saveText == "save pending" then
+        saveStatus.Text = "SAVE PENDING"
+        saveStatus.TextColor3 = COLORS.coral
+    elseif saveText == "lock lost" then
+        saveStatus.Text = "SAVE LOCK LOST"
+        saveStatus.TextColor3 = COLORS.coral
+    elseif saveText == "view only" then
+        saveStatus.Text = "VISITOR"
+        saveStatus.TextColor3 = COLORS.teal
+    else
+        saveStatus.Text = "LOADING"
+        saveStatus.TextColor3 = COLORS.teal
+    end
     cashValue.Text = string.format("$%d", state.cash or 0)
     stockValue.Text = tostring(state.stock or 0)
     salesValue.Text = tostring(state.sales or 0)

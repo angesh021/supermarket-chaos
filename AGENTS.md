@@ -1,7 +1,7 @@
 # Repository working agreement
 
 ## Scope and truthfulness
-- Keep work within the currently approved phase. Phase 0 ends at G0; do not begin Phase 1 implementation without approval.
+- Keep work within the currently approved phase. The user approved Phase 1 and later explicitly authorized continued implementation through subsequent phases. Complete one phase increment at a time and stop for user verification at defined manual gates.
 - The server is authoritative for currency, inventory, ownership, permissions, transactions, progression, and persistence.
 - Never claim a test, Studio play session, build, asset, benchmark, or publication succeeded unless it was run and observed. Label hypotheses and unverified assumptions.
 - Do not publish to Roblox or activate production commerce without explicit approval.

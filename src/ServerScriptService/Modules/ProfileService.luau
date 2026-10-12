@@ -1,0 +1,372 @@
+-- Per-player save profiles with a server-side lease. All callers are server code.
+local DataStoreService = game:GetService("DataStoreService")
+local HttpService = game:GetService("HttpService")
+
+local ProfileService = {}
+
+local SCHEMA_VERSION = 1
+local SESSION_LEASE_SECONDS = 180
+local MAX_RETRIES = 3
+local STORE_NAME = "SupermarketChaos_PlayerProfiles_v1"
+local sessionId = HttpService:GenerateGUID(false)
+local profiles = {}
+local store
+local storeReady, storeError = pcall(function()
+    store = DataStoreService:GetDataStore(STORE_NAME)
+end)
+
+local function defaultProfile()
+    return {
+        schemaVersion = SCHEMA_VERSION,
+        balance = 0,
+        shift = {
+            stage = "Cart",
+            stock = 0,
+            sales = 0,
+            cartRecovered = false,
+            shiftClosed = false,
+        },
+        ownedUpgrades = {
+            shelfBay = false,
+        },
+        completedShifts = 0,
+        lifetimeSales = 0,
+    }
+end
+
+local function nonNegativeInteger(value, fallback)
+    if type(value) ~= "number" or value ~= value then
+        return fallback
+    end
+    return math.min(math.max(math.floor(value), 0), 1000000000)
+end
+
+local function validCounter(value)
+    return value == nil
+        or (type(value) == "number" and value == value and value >= 0 and value <= 1000000000)
+end
+
+local function normalizeProfile(value)
+    local profile = defaultProfile()
+    if value == nil then
+        return profile
+    end
+    if type(value) ~= "table" then
+        return nil, "Stored profile is malformed."
+    end
+    if value.schemaVersion ~= nil and type(value.schemaVersion) ~= "number" then
+        return nil, "Stored profile version is malformed."
+    end
+    if type(value.schemaVersion) == "number" and value.schemaVersion > SCHEMA_VERSION then
+        return nil, "This profile was saved by a newer game version."
+    end
+    if
+        not validCounter(value.balance)
+        or not validCounter(value.completedShifts)
+        or not validCounter(value.lifetimeSales)
+    then
+        return nil, "Stored profile contains an invalid counter."
+    end
+
+    profile.balance = nonNegativeInteger(value.balance, 0)
+    profile.completedShifts = nonNegativeInteger(value.completedShifts, 0)
+    profile.lifetimeSales = nonNegativeInteger(value.lifetimeSales, 0)
+    if value.ownedUpgrades ~= nil and type(value.ownedUpgrades) ~= "table" then
+        return nil, "Stored upgrade data is malformed."
+    end
+    if type(value.ownedUpgrades) == "table" then
+        if
+            value.ownedUpgrades.shelfBay ~= nil
+            and type(value.ownedUpgrades.shelfBay) ~= "boolean"
+        then
+            return nil, "Stored upgrade flag is malformed."
+        end
+        profile.ownedUpgrades.shelfBay = value.ownedUpgrades.shelfBay == true
+    end
+    if value.shift ~= nil and type(value.shift) ~= "table" then
+        return nil, "Stored shift data is malformed."
+    end
+    if type(value.shift) == "table" then
+        local stage = value.shift.stage
+        if stage ~= nil then
+            if
+                stage ~= "Cart"
+                and stage ~= "Stock"
+                and stage ~= "Checkout"
+                and stage ~= "CloseShift"
+                and stage ~= "Upgrade"
+                and stage ~= "Complete"
+            then
+                return nil, "Stored shift stage is invalid."
+            end
+            profile.shift.stage = stage
+        end
+        if not validCounter(value.shift.stock) or not validCounter(value.shift.sales) then
+            return nil, "Stored shift counters are invalid."
+        end
+        if
+            (value.shift.cartRecovered ~= nil and type(value.shift.cartRecovered) ~= "boolean")
+            or (value.shift.shiftClosed ~= nil and type(value.shift.shiftClosed) ~= "boolean")
+        then
+            return nil, "Stored shift flags are malformed."
+        end
+        profile.shift.stock = nonNegativeInteger(value.shift.stock, 0)
+        profile.shift.sales = nonNegativeInteger(value.shift.sales, 0)
+        profile.shift.cartRecovered = value.shift.cartRecovered == true
+        profile.shift.shiftClosed = value.shift.shiftClosed == true
+    end
+    return profile
+end
+
+local function copyProfile(profile)
+    return {
+        schemaVersion = SCHEMA_VERSION,
+        balance = profile.balance,
+        shift = {
+            stage = profile.shift.stage,
+            stock = profile.shift.stock,
+            sales = profile.shift.sales,
+            cartRecovered = profile.shift.cartRecovered,
+            shiftClosed = profile.shift.shiftClosed,
+        },
+        ownedUpgrades = {
+            shelfBay = profile.ownedUpgrades.shelfBay,
+        },
+        completedShifts = profile.completedShifts,
+        lifetimeSales = profile.lifetimeSales,
+    }
+end
+
+local function keyFor(player)
+    return "Player_" .. tostring(player.UserId)
+end
+
+local function saveEntry(entry, releasing)
+    if not entry.persistent or entry.lockLost then
+        return false
+    end
+    local key = entry.key
+    local lastError = "Unknown DataStore error"
+    for attempt = 1, MAX_RETRIES do
+        local ok, result = pcall(function()
+            return store:UpdateAsync(key, function(current)
+                if type(current) ~= "table" or type(current.session) ~= "table" then
+                    return nil
+                end
+                if current.session.id ~= sessionId then
+                    return nil
+                end
+                local updated = {
+                    schemaVersion = SCHEMA_VERSION,
+                    profile = copyProfile(entry.profile),
+                }
+                if not releasing then
+                    updated.session = {
+                        id = sessionId,
+                        expiresAt = os.time() + SESSION_LEASE_SECONDS,
+                    }
+                end
+                return updated
+            end)
+        end)
+        if ok and type(result) == "table" then
+            entry.saveStatus = releasing and "saved" or "saved"
+            if releasing then
+                entry.persistent = false
+            end
+            return true
+        end
+        if ok and result == nil then
+            entry.lockLost = true
+            entry.saveStatus = "lock lost"
+            return false
+        end
+        lastError = tostring(result)
+        if attempt < MAX_RETRIES then
+            task.wait(0.4 * (2 ^ (attempt - 1)) + math.random() * 0.25)
+        end
+    end
+    entry.saveStatus = "save pending"
+    warn(string.format("Profile save failed for user %s: %s", entry.userId, lastError))
+    return false
+end
+
+function ProfileService.load(player)
+    local key = keyFor(player)
+    if not storeReady then
+        warn("DataStore unavailable; using session-only profile: " .. tostring(storeError))
+        local profile = defaultProfile()
+        profiles[player.UserId] = {
+            userId = player.UserId,
+            key = key,
+            profile = profile,
+            persistent = false,
+            saveStatus = "session only",
+        }
+        return profile, "session only"
+    end
+
+    local lastError
+    for attempt = 1, MAX_RETRIES do
+        local loadedProfile
+        local ok, result = pcall(function()
+            return store:UpdateAsync(key, function(current)
+                local now = os.time()
+                if
+                    type(current) == "table"
+                    and type(current.session) == "table"
+                    and current.session.id ~= sessionId
+                    and type(current.session.expiresAt) == "number"
+                    and current.session.expiresAt > now
+                then
+                    return nil
+                end
+
+                local rawProfile
+                if current ~= nil then
+                    if type(current) ~= "table" or type(current.profile) ~= "table" then
+                        error("Stored profile envelope is malformed.")
+                    end
+                    if
+                        type(current.schemaVersion) == "number"
+                        and current.schemaVersion > SCHEMA_VERSION
+                    then
+                        error("This profile was saved by a newer game version.")
+                    end
+                    rawProfile = current.profile
+                end
+
+                local normalized, reason = normalizeProfile(rawProfile)
+                if not normalized then
+                    error(reason)
+                end
+                loadedProfile = normalized
+                return {
+                    schemaVersion = SCHEMA_VERSION,
+                    profile = copyProfile(normalized),
+                    session = {
+                        id = sessionId,
+                        expiresAt = now + SESSION_LEASE_SECONDS,
+                    },
+                }
+            end)
+        end)
+
+        if ok and type(result) == "table" and loadedProfile then
+            profiles[player.UserId] = {
+                userId = player.UserId,
+                key = key,
+                profile = loadedProfile,
+                persistent = true,
+                lockLost = false,
+                saveStatus = "saved",
+            }
+            return loadedProfile, "saved"
+        end
+        if ok and result == nil then
+            lastError = "Profile is active in another server. Rejoin after that session ends."
+            break
+        end
+        lastError = tostring(result)
+        if attempt < MAX_RETRIES then
+            task.wait(0.4 * (2 ^ (attempt - 1)) + math.random() * 0.25)
+        end
+    end
+
+    if string.find(lastError or "", "newer game version", 1, true) then
+        return nil, lastError
+    end
+    if string.find(lastError or "", "active in another server", 1, true) then
+        return nil, lastError
+    end
+
+    warn(
+        string.format(
+            "Profile load failed for user %s; using session-only profile: %s",
+            player.UserId,
+            lastError
+        )
+    )
+    local profile = defaultProfile()
+    profiles[player.UserId] = {
+        userId = player.UserId,
+        key = key,
+        profile = profile,
+        persistent = false,
+        saveStatus = "session only",
+    }
+    return profile, "session only"
+end
+
+function ProfileService.get(player)
+    local entry = profiles[player.UserId]
+    return entry and entry.profile or nil
+end
+
+function ProfileService.saveProgress(player, state, eventName)
+    local entry = profiles[player.UserId]
+    if not entry then
+        return false
+    end
+    local profile = entry.profile
+    profile.balance = state.cash
+    profile.shift.stage = state.stage
+    profile.shift.stock = state.stock
+    profile.shift.sales = state.sales
+    profile.shift.cartRecovered = state.cartRecovered
+    profile.shift.shiftClosed = state.shiftClosed
+    profile.ownedUpgrades.shelfBay = state.upgradePurchased
+    if eventName == "sale" then
+        profile.lifetimeSales += 1
+    elseif eventName == "shiftClosed" then
+        profile.completedShifts += 1
+    end
+    if entry.persistent then
+        return saveEntry(entry, false)
+    end
+    return false
+end
+
+function ProfileService.getSaveStatus(player)
+    local entry = profiles[player.UserId]
+    return entry and entry.saveStatus or "loading"
+end
+
+function ProfileService.release(player)
+    local entry = profiles[player.UserId]
+    if not entry then
+        return
+    end
+    if entry.persistent then
+        saveEntry(entry, true)
+    end
+    profiles[player.UserId] = nil
+end
+
+function ProfileService.releaseAll()
+    for _, entry in pairs(profiles) do
+        if entry.persistent then
+            saveEntry(entry, true)
+        end
+    end
+    profiles = {}
+end
+
+function ProfileService.startAutosave(onStatusChanged)
+    task.spawn(function()
+        while true do
+            task.wait(60)
+            for _, entry in pairs(profiles) do
+                if entry.persistent then
+                    local previousStatus = entry.saveStatus
+                    saveEntry(entry, false)
+                    if previousStatus ~= entry.saveStatus and onStatusChanged then
+                        onStatusChanged(entry.userId)
+                    end
+                end
+            end
+        end
+    end)
+end
+
+return ProfileService

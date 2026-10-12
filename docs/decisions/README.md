@@ -7,3 +7,7 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Context:** The master brief defines G0 as architecture/foundation approval and requires stopping before Phase 1.
 - **Decision:** Establish the documentation and project scaffold, assess local tooling, and stop for G0 review. Do not add gameplay implementation in this milestone.
 - **Consequences:** Runtime assumptions remain proposed; Phase 1 may revise them after Studio/toolchain validation.
+
+## ADR-0002 — Player-owned store profiles
+- **Status:** Accepted — 2026-10-12; see [ADR-0002](ADR-0002-player-owned-store-profiles.md).
+- **Decision:** Persistent progression belongs to an individual Roblox player. The first player in a server owns that server's one store; multiplayer helpers and role permissions are a Phase 3 feature.
