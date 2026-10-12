@@ -176,7 +176,7 @@ function WorldBuilder.build()
         Vector3.new(44, 0.45, 36),
         CFrame.new(0, 0.24, -1),
         COLORS.cream,
-        Enum.Material.Tile
+        Enum.Material.CeramicTiles
     )
     part(interior, "Back Wall", Vector3.new(44, 12, 1), CFrame.new(0, 6, -19), COLORS.cream)
     part(interior, "Left Wall", Vector3.new(1, 12, 36), CFrame.new(-22, 6, -1), COLORS.cream)
