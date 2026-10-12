@@ -38,6 +38,8 @@ G0 was approved on 2026-10-12. The user authorized continued phase implementatio
 - [x] Phase 5 security increment: finite/schema-bounded profile versions, server role checks, bounded remotes, and visitor-state data minimization.
 - [x] Phase 5 analytics increment: a first-shift funnel is sent through Roblox AnalyticsService only in the configured development universe, without custom fields or game-owned player IDs (the platform associates events with the required Player argument).
 - [ ] Phase 5: broader adversarial security checks, persistence recovery, fair commerce and deeper analytics.
+- [x] Phase 5 persistence increment: serialize each player's gameplay/autosave/release DataStore writes; add a manual contention and recovery checklist.
+- [ ] Phase 5 manual verification of the save guard, active-session lease, outage fallback and recovery.
 - [x] Phase 6 UI increment: touch devices get a collapsed top-center objective card, a centered resizable team panel, and larger role controls.
 - [ ] Phase 6: device emulation/touch QA, performance review, external beta, staging and release approval.
 - [x] Phase 7 first increment: server-authoritative $200 warehouse annex purchase, physical buildout and per-player persistence.

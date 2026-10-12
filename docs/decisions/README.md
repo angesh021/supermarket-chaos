@@ -15,3 +15,7 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 ## ADR-0003 — Persistent warehouse expansion
 - **Status:** Accepted — 2026-10-12; see [ADR-0003](ADR-0003-persistent-warehouse-expansion.md).
 - **Decision:** Add a server-validated $200 warehouse annex as the first Phase 7 increment; persist ownership per player and rebuild its procedural world model on load.
+
+## ADR-0004 — Serialize profile saves
+- **Status:** Accepted — 2026-10-12; see [ADR-0004](ADR-0004-serialize-profile-saves.md).
+- **Decision:** Serialize DataStore writes for each player profile so gameplay, autosave and release writes cannot overlap for the same in-memory entry.

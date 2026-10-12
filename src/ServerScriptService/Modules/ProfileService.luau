@@ -184,9 +184,13 @@ local function keyFor(player)
 end
 
 local function saveEntry(entry, releasing)
+    while entry.saveInProgress do
+        task.wait()
+    end
     if not entry.persistent or entry.lockLost then
         return false
     end
+    entry.saveInProgress = true
     local key = entry.key
     local lastError = "Unknown DataStore error"
     for attempt = 1, MAX_RETRIES do
@@ -212,7 +216,8 @@ local function saveEntry(entry, releasing)
             end)
         end)
         if ok and type(result) == "table" then
-            entry.saveStatus = releasing and "saved" or "saved"
+            entry.saveStatus = "saved"
+            entry.saveInProgress = false
             if releasing then
                 entry.persistent = false
             end
@@ -221,6 +226,7 @@ local function saveEntry(entry, releasing)
         if ok and result == nil then
             entry.lockLost = true
             entry.saveStatus = "lock lost"
+            entry.saveInProgress = false
             return false
         end
         lastError = tostring(result)
@@ -229,6 +235,7 @@ local function saveEntry(entry, releasing)
         end
     end
     entry.saveStatus = "save pending"
+    entry.saveInProgress = false
     warn(string.format("Profile save failed for user %s: %s", entry.userId, lastError))
     return false
 end
@@ -244,6 +251,7 @@ function ProfileService.load(player)
             profile = profile,
             persistent = false,
             saveStatus = "session only",
+            saveInProgress = false,
         }
         return profile, "session only"
     end
@@ -302,6 +310,7 @@ function ProfileService.load(player)
                 persistent = true,
                 lockLost = false,
                 saveStatus = "saved",
+                saveInProgress = false,
             }
             return loadedProfile, "saved"
         end
@@ -336,6 +345,7 @@ function ProfileService.load(player)
         profile = profile,
         persistent = false,
         saveStatus = "session only",
+        saveInProgress = false,
     }
     return profile, "session only"
 end

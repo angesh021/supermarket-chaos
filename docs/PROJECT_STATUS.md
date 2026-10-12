@@ -14,6 +14,7 @@ Phase 1 desktop first play and Phase 2 progression/persistence were reported pas
 - Phase 4 employees: $100 cashier and $80 stock clerk, unlocked after shift completion. Both appear in the store; the stock clerk automatically stocks after the cart objective and the cashier automatically serves checkout after four seconds. Both use existing server-side economy transitions.
 - Profile schema v2 adds employee ownership flags and migrates v1 profiles through safe defaults.
 - Phase 5 security increment validates saved schema versions as finite bounded integers and avoids exposing store cash/stock/sales to read-only visitors.
+- Phase 5 persistence increment serializes writes per profile across gameplay commits, 60-second autosave, player release and shutdown. The new private-Studio contention/recovery checklist is pending; this code has not been runtime-tested.
 - Phase 5 analytics increment sends first-shift milestones to Roblox AnalyticsService only in development universe `10770581249`. The API associates events with its required Player argument; the game sends no custom fields or game-owned player IDs. Funnel session IDs stay ephemeral; dashboard ingestion is unverified.
 - Phase 6 UI increment uses a collapsed top-center objective card on touch devices, a centered team panel sized to the viewport, and larger role controls. Device emulation is not yet verified.
 - Phase 7 warehouse increment adds a $200 purchase available at Complete, an exterior annex buildout, and per-player owned-upgrade persistence in profile schema v3. Owner/Manager authorization uses the existing server-side role, prompt-distance and rate-limit checks. Purchase/rejoin behavior is not yet verified in Studio.
@@ -29,10 +30,11 @@ Use a private development test experience in universe `10770581249`; use two or 
 6. In a non-development copy/universe, confirm the HUD reports **SESSION ONLY** and no writes occur against the development profile store.
 7. With $200 or more and a completed shift, purchase the warehouse annex. Confirm exact charge, visible construction, and disabled purchase prompt. Try with insufficient funds, helper roles without permission, an unapproved visitor and duplicate/racing interactions; no invalid attempt may charge or build it.
 8. Leave and rejoin the development experience; confirm the warehouse remains and is not charged again. In a non-development universe, confirm the session-only fallback.
+9. Follow [Phase 5 persistence checks](operations/PHASE5_PERSISTENCE.md) for same-user lease contention, autosave overlap, normal release, shutdown and session-only fallback.
 
 ## Toolchain and checks
 - Rojo 7.7.0, Selene 0.32.0 and StyLua 2.5.0 are pinned in `rokit.toml`.
-- Current environment attempts to launch these executables returned `ERROR home directory not found` because `HOME` is not set in the shell. `git diff --check` was run; it reported only Windows line-ending normalization warnings.
+- Current environment attempts to launch these executables returned `ERROR home directory not found`. The shell has a Windows user profile but an empty `HOME`; setting the command-scoped `HOME` to `USERPROFILE` did not resolve the launcher error. `git diff --check` passed with Windows line-ending normalization warnings.
 - Roblox Studio runtime and DataStore behavior cannot be exercised from the local shell. Do not mark the new multiplayer or employee behavior passed until the user confirms Studio results.
 
 ## Known limitations
