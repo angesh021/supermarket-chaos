@@ -3,6 +3,7 @@ local TweenService = game:GetService("TweenService")
 
 local Economy = require(script.Parent.Economy)
 local ProfileService = require(script.Parent.ProfileService)
+local TelemetryService = require(script.Parent.TelemetryService)
 local WorldBuilder = require(script.Parent.WorldBuilder)
 
 local ShiftService = {}
@@ -270,6 +271,7 @@ function ShiftService.init(event, membershipRemotes)
 
     commit = function(eventName)
         ProfileService.saveProgress(ownerPlayer, state, eventName)
+        TelemetryService.record(ownerPlayer, eventName)
         world.setStage(state.stage)
         broadcast()
         scheduleStocker()
@@ -478,6 +480,7 @@ function ShiftService.init(event, membershipRemotes)
                 return
             end
             state = Economy.newState(profile)
+            TelemetryService.begin(player, profile, state)
             ownerReady = true
             if state.upgradePurchased then
                 world.addUpgrade()
@@ -507,6 +510,7 @@ function ShiftService.init(event, membershipRemotes)
         joinRequests[player.UserId] = nil
         broadcastMemberState()
         if player == ownerPlayer then
+            TelemetryService.finish(player)
             ProfileService.release(player)
             ownerReady = false
             ownerPlayer = nil

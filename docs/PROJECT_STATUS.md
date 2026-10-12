@@ -14,6 +14,8 @@ Phase 1 desktop first play and Phase 2 progression/persistence were reported pas
 - Phase 4 employees: $100 cashier and $80 stock clerk, unlocked after shift completion. Both appear in the store; the stock clerk automatically stocks after the cart objective and the cashier automatically serves checkout after four seconds. Both use existing server-side economy transitions.
 - Profile schema v2 adds employee ownership flags and migrates v1 profiles through safe defaults.
 - Phase 5 security increment validates saved schema versions as finite bounded integers and avoids exposing store cash/stock/sales to read-only visitors.
+- Phase 5 analytics increment sends first-shift milestones to Roblox AnalyticsService only in development universe `10770581249`. The API associates events with its required Player argument; the game sends no custom fields or game-owned player IDs. Funnel session IDs stay ephemeral; dashboard ingestion is unverified.
+- Phase 6 UI increment uses a collapsed top-center objective card on touch devices, a centered team panel sized to the viewport, and larger role controls. Device emulation is not yet verified.
 - DataStore calls are enabled only when `game.GameId` matches development universe `10770581249`. Other universes display session-only status and never write to that store.
 
 ## Studio verification needed (G3/G4)
@@ -34,8 +36,8 @@ Use a private development test experience in universe `10770581249` and two or m
 1. One physical store per server; ownership does not transfer when the owner leaves.
 2. Membership is server-session only. Helpers must request access again in a new server.
 3. Employees are a first automation increment and only auto-serve the introductory stock/checkout stage; they do not simulate a full queue or wages.
-4. Mobile layout, multi-server lease failure paths, malicious-client stress, and Studio behavior for Phases 3/4 remain unverified.
-5. Production universe ID, publishing, commerce, and live analytics are not configured.
+4. Mobile layout, multi-server lease failure paths, malicious-client stress, development funnel ingestion and Studio behavior for Phases 3/4 remain unverified.
+5. Production universe ID, publishing and commerce are not configured. Development funnel ingestion and Creator Dashboard reporting remain unverified.
 
 ## Current gate
-**G0:** approved. **G1:** desktop first-shift accepted. **G2:** user reported tests passed. **G3/G4 and Phase 5 security increment:** implemented; Studio verification pending. **Production:** disabled pending user-provided production universe ID and deployment approval.
+**G0:** approved. **G1:** desktop first-shift accepted. **G2:** user reported tests passed. **G3/G4 and Phase 5/6 increments:** implemented; Studio/device verification pending. **Production:** disabled pending user-provided production universe ID and deployment approval.

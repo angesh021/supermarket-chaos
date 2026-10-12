@@ -32,3 +32,4 @@ This is a design threat model, not a security audit. No runtime code or adversar
 - A cashier purchase is checked and charged by the server. Automatic checkout uses the existing economy transition and is delayed, bounded to the Checkout stage, and rechecked against owner/save state.
 - Persistent profile access is allow-listed to the user-provided development universe ID. Other universes run session-only; production is not configured.
 - Profile schema versions are checked as finite, bounded integers. Read-only visitors receive zeroed economic counters in replicated state; only store owner and approved helpers receive the shared operational totals.
+- Funnel telemetry is development-universe-only and wrapped so AnalyticsService failure cannot block gameplay. Roblox associates events with its required Player argument; the game adds no custom fields or identifiers. The temporary funnel-session GUID stays in server memory and is not stored in the player profile.

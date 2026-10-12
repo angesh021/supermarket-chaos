@@ -36,6 +36,8 @@ G0 was approved on 2026-10-12. The user authorized continued phase implementatio
 
 ## Later phases
 - [x] Phase 5 security increment: finite/schema-bounded profile versions, server role checks, bounded remotes, and visitor-state data minimization.
-- [ ] Phase 5: broader adversarial security checks, persistence recovery, fair commerce and analytics.
-- [ ] Phase 6: external beta, performance/mobile review, staging and release approval.
+- [x] Phase 5 analytics increment: a first-shift funnel is sent through Roblox AnalyticsService only in the configured development universe, without custom fields or game-owned player IDs (the platform associates events with the required Player argument).
+- [ ] Phase 5: broader adversarial security checks, persistence recovery, fair commerce and deeper analytics.
+- [x] Phase 6 UI increment: touch devices get a collapsed top-center objective card, a centered resizable team panel, and larger role controls.
+- [ ] Phase 6: device emulation/touch QA, performance review, external beta, staging and release approval.
 - [ ] Phase 7: additional businesses, warehouse, delivery and retail-empire expansion.

@@ -50,3 +50,13 @@ Instrument funnel events for first interaction, first stock, first sale, first u
 - A hired cashier is visibly represented in the store and automatically completes a stocked checkout after a short delay using the ordinary sale path exactly once. A hired stock clerk visibly appears and automatically stocks the starting product after the cart stage.
 - Profile schema v2 safely defaults legacy profiles to no employees. Saved schema version values must be finite bounded integers; read-only visitors receive no balance, stock or sales values.
 - G4 requires Studio verification of both purchases, persistence, automatic actions and races with players/helpers at the same prompts.
+
+## Phase 5 analytics requirements (development increment)
+- Track the first-shift funnel through Store Ready, Cart Recovered, Product Stocked, First Sale, First Shift Closed and First Shelf Upgrade.
+- Emit funnel steps only in the configured development universe using Roblox AnalyticsService. The API associates events with the required Player argument; do not add custom fields or game-owned player identifiers.
+- Analytics failures must not affect gameplay or persistence. Verify event availability in the development Creator Dashboard before using results for decisions.
+
+## Phase 6 touch UI requirements (first increment)
+- On touch devices, the objective HUD starts compact and clear of the movement thumbstick; the player can expand it when needed.
+- The team panel resizes to the viewport, has an in-panel close control, and lays out role actions into tap-sized rows on narrow screens.
+- G6 requires Studio device emulation on phone and tablet sizes, including Roblox core touch controls and safe areas.

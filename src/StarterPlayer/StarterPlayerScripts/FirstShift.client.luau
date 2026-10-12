@@ -1,5 +1,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
+local UserInputService = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -27,7 +29,7 @@ gui.IgnoreGuiInset = false
 gui.DisplayOrder = 10
 gui.Parent = playerGui
 
--- Keep the compact HUD in the lower-left, away from chat and the player list.
+-- Desktop uses the lower-left HUD; touch layout moves the collapsed card to top center.
 local card = Instance.new("Frame")
 card.Name = "ObjectiveCard"
 card.AnchorPoint = Vector2.new(0, 1)
@@ -206,7 +208,7 @@ teamPanelStroke.Color = COLORS.teal
 teamPanelStroke.Thickness = 2
 teamPanelStroke.Parent = teamPanel
 local teamHeading = Instance.new("TextLabel")
-teamHeading.Size = UDim2.new(1, -20, 0, 30)
+teamHeading.Size = UDim2.new(1, -64, 0, 30)
 teamHeading.Position = UDim2.fromOffset(10, 7)
 teamHeading.BackgroundTransparency = 1
 teamHeading.Text = "STORE TEAM"
@@ -215,10 +217,24 @@ teamHeading.Font = Enum.Font.GothamBold
 teamHeading.TextSize = 15
 teamHeading.TextXAlignment = Enum.TextXAlignment.Left
 teamHeading.Parent = teamPanel
+local teamClose = Instance.new("TextButton")
+teamClose.Name = "CloseTeam"
+teamClose.AnchorPoint = Vector2.new(1, 0)
+teamClose.Position = UDim2.new(1, -6, 0, 4)
+teamClose.Size = UDim2.fromOffset(44, 40)
+teamClose.BackgroundColor3 = COLORS.teal
+teamClose.TextColor3 = COLORS.cream
+teamClose.Text = "X"
+teamClose.Font = Enum.Font.GothamBold
+teamClose.TextSize = 14
+teamClose.Parent = teamPanel
+local teamCloseCorner = Instance.new("UICorner")
+teamCloseCorner.CornerRadius = UDim.new(0, 6)
+teamCloseCorner.Parent = teamClose
 local teamScroll = Instance.new("ScrollingFrame")
 teamScroll.Name = "TeamList"
-teamScroll.Position = UDim2.fromOffset(8, 40)
-teamScroll.Size = UDim2.new(1, -16, 1, -48)
+teamScroll.Position = UDim2.fromOffset(8, 50)
+teamScroll.Size = UDim2.new(1, -16, 1, -58)
 teamScroll.BackgroundTransparency = 1
 teamScroll.BorderSizePixel = 0
 teamScroll.ScrollBarThickness = 5
@@ -281,9 +297,15 @@ local function renderTeam(data)
     end
     if data.ownRole == "Owner" then
         addTeamLabel("You own this store. Assign manager, cashier, stocker or maintenance.", 38)
+        local contentWidth = math.max(220, teamScroll.AbsoluteSize.X - 4)
+        local columns = contentWidth < 280 and 3 or 5
+        local roleButtonWidth = math.floor((contentWidth - 8 - (columns - 1) * 4) / columns)
+        local roleButtonHeight = UserInputService.TouchEnabled and 40 or 34
+        local roleButtonSpacing = roleButtonWidth + 4
         for _, request in ipairs(data.requests or {}) do
             local row = Instance.new("Frame")
-            row.Size = UDim2.new(1, -4, 0, 62)
+            local roleRows = math.ceil(5 / columns)
+            row.Size = UDim2.new(1, -4, 0, 26 + roleRows * (roleButtonHeight + 4))
             row.BackgroundColor3 = COLORS.gold
             row.Parent = teamScroll
             local name = Instance.new("TextLabel")
@@ -298,20 +320,27 @@ local function renderTeam(data)
             name.Parent = row
             local roles = { "Cashier", "Stocker", "Maintenance", "Manager", "Decline" }
             for index, role in ipairs(roles) do
-                local roleButton = addTeamButton(row, role, 52, function()
+                local roleButton = addTeamButton(row, role, roleButtonWidth, function()
                     if role == "Decline" then
                         memberActionEvent:FireServer("decline", request.userId)
                     else
                         memberActionEvent:FireServer("approve", request.userId, role)
                     end
                 end)
-                roleButton.Size = UDim2.fromOffset(52, 34)
-                roleButton.Position = UDim2.new(0, 4 + (index - 1) * 55, 0, 24)
+                local column = (index - 1) % columns
+                local roleRow = math.floor((index - 1) / columns)
+                roleButton.Size = UDim2.fromOffset(roleButtonWidth, roleButtonHeight)
+                roleButton.Position = UDim2.new(
+                    0,
+                    4 + column * roleButtonSpacing,
+                    0,
+                    24 + roleRow * (roleButtonHeight + 4)
+                )
             end
         end
         for _, member in ipairs(data.members or {}) do
             local row = Instance.new("Frame")
-            row.Size = UDim2.new(1, -4, 0, 32)
+            row.Size = UDim2.new(1, -4, 0, 46)
             row.BackgroundColor3 = COLORS.blue
             row.Parent = teamScroll
             local name = Instance.new("TextLabel")
@@ -324,14 +353,16 @@ local function renderTeam(data)
             name.TextSize = 11
             name.TextXAlignment = Enum.TextXAlignment.Left
             name.Parent = row
-            addTeamButton(row, "REMOVE", 62, function()
+            local removeButton = addTeamButton(row, "REMOVE", 74, function()
                 memberActionEvent:FireServer("remove", member.userId)
-            end).Position = UDim2.new(1, -66, 0, 2)
+            end)
+            removeButton.Size = UDim2.fromOffset(74, 40)
+            removeButton.Position = UDim2.new(1, -78, 0, 3)
         end
     elseif data.ownRole == "Visitor" then
         addTeamLabel(data.ownerName .. " owns this store. Request a role to help with the shift.", 62)
         local row = Instance.new("Frame")
-        row.Size = UDim2.new(1, -4, 0, 38)
+        row.Size = UDim2.new(1, -4, 0, 48)
         row.BackgroundTransparency = 1
         row.Parent = teamScroll
         local requestButton = addTeamButton(
@@ -342,6 +373,7 @@ local function renderTeam(data)
             joinRequestEvent:FireServer()
             end
         )
+        requestButton.Size = UDim2.fromOffset(170, 44)
         requestButton.Position = UDim2.fromOffset(0, 2)
         requestButton.Active = not data.requestPending
         requestButton.AutoButtonColor = not data.requestPending
@@ -362,6 +394,9 @@ teamToggle.Activated:Connect(function()
         renderTeam(teamData)
     end
 end)
+teamClose.Activated:Connect(function()
+    teamPanel.Visible = false
+end)
 memberStateEvent.OnClientEvent:Connect(renderTeam)
 
 local collapsed = false
@@ -377,6 +412,57 @@ end
 
 toggle.Activated:Connect(function()
     setCollapsed(not collapsed)
+end)
+
+local function applyResponsiveLayout()
+    local camera = workspace.CurrentCamera
+    local viewport = camera and camera.ViewportSize
+    if not viewport then
+        return
+    end
+
+    local cardWidth = math.max(220, math.min(280, viewport.X - 24))
+    sizeConstraint.MinSize = Vector2.new(math.min(235, cardWidth), 40)
+    sizeConstraint.MaxSize = Vector2.new(cardWidth, 145)
+    if UserInputService.TouchEnabled then
+        teamToggle.Size = UDim2.fromOffset(48, 32)
+        teamToggle.Position = UDim2.new(1, -27, 0, 4)
+        card.AnchorPoint = Vector2.new(0.5, 0)
+        card.Position = UDim2.new(0.5, 0, 0, 8)
+        teamPanel.AnchorPoint = Vector2.new(0.5, 0.5)
+        teamPanel.Position = UDim2.new(0.5, 0, 0.52, 0)
+        teamPanel.Size = UDim2.fromOffset(
+            math.max(220, math.min(300, viewport.X - 24)),
+            math.max(220, math.min(340, viewport.Y - 130))
+        )
+        if not collapsed then
+            setCollapsed(true)
+        end
+    else
+        teamToggle.Size = UDim2.fromOffset(43, 22)
+        teamToggle.Position = UDim2.new(1, -27, 0, 0)
+        card.AnchorPoint = Vector2.new(0, 1)
+        card.Position = UDim2.new(0, 14, 1, -14)
+        teamPanel.AnchorPoint = Vector2.new(0, 1)
+        teamPanel.Position = UDim2.new(0, 14, 1, -169)
+        teamPanel.Size = UDim2.fromOffset(300, 270)
+    end
+
+    if teamPanel.Visible then
+        renderTeam(teamData)
+    end
+end
+
+local function watchCamera(camera)
+    if camera then
+        camera:GetPropertyChangedSignal("ViewportSize"):Connect(applyResponsiveLayout)
+    end
+    applyResponsiveLayout()
+end
+
+watchCamera(workspace.CurrentCamera)
+workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(function()
+    watchCamera(workspace.CurrentCamera)
 end)
 
 local messageRevision = 0
