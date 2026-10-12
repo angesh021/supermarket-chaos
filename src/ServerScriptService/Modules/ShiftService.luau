@@ -30,6 +30,7 @@ local ROLE_ACTIONS = {
         Upgrade = true,
         Complete = true,
         HireCashier = true,
+        HireStocker = true,
     },
     Cashier = { Checkout = true },
     Stocker = { Stock = true },
@@ -52,6 +53,7 @@ local function snapshot(message, recipient)
     local current = state or Economy.newState()
     local isOwner = recipient == ownerPlayer and ownerReady
     local isHelper = storeMembers[recipient.UserId] ~= nil
+    local hasStoreAccess = isOwner or isHelper
     local objective = OBJECTIVES[current.stage] or "Your store is starting up."
     if not isOwner and not isHelper then
         if ownerPlayer then
@@ -65,13 +67,13 @@ local function snapshot(message, recipient)
     return {
         stage = current.stage,
         objective = objective,
-        cash = current.cash,
-        stock = current.stock,
-        sales = current.sales,
+        cash = hasStoreAccess and current.cash or 0,
+        stock = hasStoreAccess and current.stock or 0,
+        sales = hasStoreAccess and current.sales or 0,
         message = message or "",
         upgradePurchased = current.upgradePurchased,
         isOwner = isOwner,
-        hasStoreAccess = isOwner or storeMembers[recipient.UserId] ~= nil,
+        hasStoreAccess = hasStoreAccess,
         memberRole = isOwner and "Owner" or (storeMembers[recipient.UserId] or "Visitor"),
         saveStatus = isOwner and ProfileService.getSaveStatus(recipient) or "view only",
     }
@@ -216,6 +218,31 @@ function ShiftService.init(event, membershipRemotes)
     end
 
     local commit
+    local function scheduleStocker()
+        if not state or not state.stockerHired or state.stage ~= "Stock" then
+            return
+        end
+        task.delay(4, function()
+            if
+                not ownerReady
+                or not ownerPlayer
+                or not state
+                or not state.stockerHired
+                or state.stage ~= "Stock"
+                or ProfileService.getSaveStatus(ownerPlayer) == "lock lost"
+                or ProfileService.getSaveStatus(ownerPlayer) == "save pending"
+            then
+                return
+            end
+            local ok, message = Economy.stockProduct(state)
+            if ok then
+                world.setStockVisual(state.stock)
+                commit("stock")
+                broadcast("Stock clerk restocked Citrus Pop automatically. " .. message)
+            end
+        end)
+    end
+
     local function scheduleCashierSale()
         if not state or not state.cashierHired or state.stage ~= "Checkout" then
             return
@@ -245,6 +272,7 @@ function ShiftService.init(event, membershipRemotes)
         ProfileService.saveProgress(ownerPlayer, state, eventName)
         world.setStage(state.stage)
         broadcast()
+        scheduleStocker()
         scheduleCashierSale()
     end
 
@@ -312,6 +340,15 @@ function ShiftService.init(event, membershipRemotes)
         local ok, message = Economy.hireCashier(state)
         if ok then
             world.setCashierHired(true)
+            commit("employeeHired")
+        end
+        broadcast(message)
+    end)
+
+    bind("HireStocker", world.stockerHirePrompt, 12, function()
+        local ok, message = Economy.hireStocker(state)
+        if ok then
+            world.setStockerHired(true)
             commit("employeeHired")
         end
         broadcast(message)
@@ -446,12 +483,14 @@ function ShiftService.init(event, membershipRemotes)
                 world.addUpgrade()
             end
             world.setCashierHired(state.cashierHired)
+            world.setStockerHired(state.stockerHired)
             world.setStockVisual(state.stock)
             world.setStage(state.stage)
             if state.stage == "Cart" then
                 startCart()
             end
             scheduleCashierSale()
+            scheduleStocker()
             broadcast(
                 status == "session only" and "Data saving is off; this session will not persist."
                     or "Store profile loaded."

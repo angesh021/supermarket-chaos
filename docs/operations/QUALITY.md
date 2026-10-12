@@ -25,7 +25,10 @@ Roblox Studio runtime and persistence cannot be exercised from the local shell. 
 - [ ] Verify owner can decline/remove helpers; removed members lose permissions; server rejects a fifth player from joining the store.
 - [ ] Confirm helper actions update the owner's store and profile without creating a second writable profile.
 - [ ] Earn $100, hire the cashier, and verify visual appearance, cost, and save/rejoin persistence.
+- [ ] Earn $80, hire the stock clerk, and verify visual appearance, cost, and save/rejoin persistence.
+- [ ] On the next shift, confirm the stock clerk stocks exactly once after the cart objective. Test the player stock race.
 - [ ] On the next shift, confirm the cashier sells exactly once after a short delay when stocked. Test the player checkout race.
 - [ ] In a non-development universe, confirm `SESSION ONLY` and that development DataStore writes are never attempted.
+- [ ] Confirm a visitor without a team role does not receive the owner's cash/stock/sales values; approved helpers see the shared operational counters.
 
 Capture any exact Output errors and report the failing checklist number. G3/G4 remain pending until these Studio checks are completed.

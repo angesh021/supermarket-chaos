@@ -414,6 +414,47 @@ function WorldBuilder.build()
     end
     local cashierHired = false
     local currentStage = "Loading"
+    local stockerHiringBoard = label(
+        interior,
+        "Stocker Hiring Board",
+        "HIRE A STOCKER  $80",
+        Vector3.new(5, 2, 0.45),
+        CFrame.new(-17.8, 3.4, -3.8),
+        COLORS.teal,
+        COLORS.gold
+    )
+    local stockerHirePrompt = prompt(
+        stockerHiringBoard,
+        "Hire Stocker ($80)",
+        "Staff Board",
+        "HireStocker",
+        10
+    )
+    local stockerModel = Instance.new("Model")
+    stockerModel.Name = "Store Stock Clerk"
+    stockerModel.Parent = interior
+    local stockerBody = part(
+        stockerModel,
+        "Stocker Uniform",
+        Vector3.new(1.4, 2.4, 0.9),
+        CFrame.new(-6.5, 1.75, -1),
+        COLORS.green
+    )
+    local stockerHead = part(
+        stockerModel,
+        "Stocker Head",
+        Vector3.new(1.15, 1.15, 1.15),
+        CFrame.new(-6.5, 3.5, -1),
+        Color3.fromRGB(237, 190, 153)
+    )
+    stockerHead.Shape = Enum.PartType.Ball
+    for _, item in ipairs(stockerModel:GetDescendants()) do
+        if item:IsA("BasePart") then
+            item.Transparency = 1
+            item.CanCollide = false
+        end
+    end
+    local stockerHired = false
     local stockPrompt = prompt(
         shelf.PrimaryPart or shelf:FindFirstChild("Base"),
         "Stock Shelf",
@@ -586,6 +627,7 @@ function WorldBuilder.build()
         restartPrompt.Enabled = stage == "Complete"
         upgradeMarker.Enabled = stage == "Upgrade"
         cashierHirePrompt.Enabled = stage == "Complete" and not cashierHired
+        stockerHirePrompt.Enabled = stage == "Complete" and not stockerHired
         setCustomerVisible(stage == "Checkout" or stage == "CloseShift")
     end
 
@@ -606,6 +648,7 @@ function WorldBuilder.build()
         closePrompt = closePrompt,
         restartPrompt = restartPrompt,
         cashierHirePrompt = cashierHirePrompt,
+        stockerHirePrompt = stockerHirePrompt,
         upgradePrompt = upgradePrompt,
         setStage = setStage,
         setUpgradeReady = function(ready)
@@ -633,6 +676,15 @@ function WorldBuilder.build()
             for _, item in ipairs(cashierModel:GetDescendants()) do
                 if item:IsA("BasePart") then
                     item.Transparency = cashierHired and 0 or 1
+                end
+            end
+        end,
+        setStockerHired = function(hired)
+            stockerHired = hired == true
+            stockerHirePrompt.Enabled = not stockerHired and currentStage == "Complete"
+            for _, item in ipairs(stockerModel:GetDescendants()) do
+                if item:IsA("BasePart") then
+                    item.Transparency = stockerHired and 0 or 1
                 end
             end
         end,

@@ -30,10 +30,12 @@ G0 was approved on 2026-10-12. The user authorized continued phase implementatio
 ## Phase 4 — Employees and operations (first employee increment implemented)
 - [x] Hire a persistent cashier for $100 after a shift; show the cashier in the store.
 - [x] Cashier automatically serves a stocked customer after a short delay; sale uses the existing server economy.
+- [x] Hire a persistent stock clerk for $80; the clerk automatically stocks the introductory product after the cart objective.
 - [ ] Studio verification of hire, save/rejoin, automatic service and helper permissions.
 - [ ] Add further staff roles, automation settings, departments and customization.
 
 ## Later phases
-- [ ] Phase 5: broader security hardening, persistence recovery, fair commerce and analytics.
+- [x] Phase 5 security increment: finite/schema-bounded profile versions, server role checks, bounded remotes, and visitor-state data minimization.
+- [ ] Phase 5: broader adversarial security checks, persistence recovery, fair commerce and analytics.
 - [ ] Phase 6: external beta, performance/mobile review, staging and release approval.
 - [ ] Phase 7: additional businesses, warehouse, delivery and retail-empire expansion.

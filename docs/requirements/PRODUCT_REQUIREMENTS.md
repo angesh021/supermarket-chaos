@@ -45,8 +45,8 @@ Instrument funnel events for first interaction, first stock, first sale, first u
 - G3 requires multi-client Studio verification of each role, removal, capacity and rejected remote/event misuse.
 
 ## Phase 4 employee requirements (first increment)
-- On a completed shift, the owner or authorized manager may purchase one persistent cashier for $100 in fictional currency.
+- On a completed shift, the owner or authorized manager may purchase a persistent cashier for $100 or stock clerk for $80 in fictional currency.
 - The server checks the stage, balance and ownership before taking payment and saving the employee flag.
-- A hired cashier is visibly represented in the store and automatically completes a stocked checkout after a short delay using the ordinary sale path exactly once.
-- Profile schema v2 safely defaults legacy profiles to no cashier.
-- G4 requires Studio verification of the purchase, persistence, automatic sale and race with a player at checkout.
+- A hired cashier is visibly represented in the store and automatically completes a stocked checkout after a short delay using the ordinary sale path exactly once. A hired stock clerk visibly appears and automatically stocks the starting product after the cart stage.
+- Profile schema v2 safely defaults legacy profiles to no employees. Saved schema version values must be finite bounded integers; read-only visitors receive no balance, stock or sales values.
+- G4 requires Studio verification of both purchases, persistence, automatic actions and races with players/helpers at the same prompts.

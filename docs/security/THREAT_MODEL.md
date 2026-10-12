@@ -31,3 +31,4 @@ This is a design threat model, not a security audit. No runtime code or adversar
 - Member lists are generated on the server from current Players and safe display fields. Clients never submit a balance, profile, stage, inventory count or saved employee value.
 - A cashier purchase is checked and charged by the server. Automatic checkout uses the existing economy transition and is delayed, bounded to the Checkout stage, and rechecked against owner/save state.
 - Persistent profile access is allow-listed to the user-provided development universe ID. Other universes run session-only; production is not configured.
+- Profile schema versions are checked as finite, bounded integers. Read-only visitors receive zeroed economic counters in replicated state; only store owner and approved helpers receive the shared operational totals.

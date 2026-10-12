@@ -41,6 +41,7 @@ local function defaultProfile()
         },
         hiredEmployees = {
             cashier = false,
+            stocker = false,
         },
         completedShifts = 0,
         lifetimeSales = 0,
@@ -59,6 +60,14 @@ local function validCounter(value)
         or (type(value) == "number" and value == value and value >= 0 and value <= 1000000000)
 end
 
+local function validSchemaVersion(value)
+    return type(value) == "number"
+        and value == value
+        and value >= 1
+        and value <= 1000000
+        and value % 1 == 0
+end
+
 local function normalizeProfile(value)
     local profile = defaultProfile()
     if value == nil then
@@ -67,7 +76,7 @@ local function normalizeProfile(value)
     if type(value) ~= "table" then
         return nil, "Stored profile is malformed."
     end
-    if value.schemaVersion ~= nil and type(value.schemaVersion) ~= "number" then
+    if value.schemaVersion ~= nil and not validSchemaVersion(value.schemaVersion) then
         return nil, "Stored profile version is malformed."
     end
     if type(value.schemaVersion) == "number" and value.schemaVersion > SCHEMA_VERSION then
@@ -100,10 +109,14 @@ local function normalizeProfile(value)
         return nil, "Stored employee data is malformed."
     end
     if type(value.hiredEmployees) == "table" then
-        if value.hiredEmployees.cashier ~= nil and type(value.hiredEmployees.cashier) ~= "boolean" then
+        if
+            (value.hiredEmployees.cashier ~= nil and type(value.hiredEmployees.cashier) ~= "boolean")
+            or (value.hiredEmployees.stocker ~= nil and type(value.hiredEmployees.stocker) ~= "boolean")
+        then
             return nil, "Stored employee flag is malformed."
         end
         profile.hiredEmployees.cashier = value.hiredEmployees.cashier == true
+        profile.hiredEmployees.stocker = value.hiredEmployees.stocker == true
     end
     if value.shift ~= nil and type(value.shift) ~= "table" then
         return nil, "Stored shift data is malformed."
@@ -156,6 +169,7 @@ local function copyProfile(profile)
         },
         hiredEmployees = {
             cashier = profile.hiredEmployees.cashier,
+            stocker = profile.hiredEmployees.stocker,
         },
         completedShifts = profile.completedShifts,
         lifetimeSales = profile.lifetimeSales,
@@ -252,10 +266,10 @@ function ProfileService.load(player)
                     if type(current) ~= "table" or type(current.profile) ~= "table" then
                         error("Stored profile envelope is malformed.")
                     end
-                    if
-                        type(current.schemaVersion) == "number"
-                        and current.schemaVersion > SCHEMA_VERSION
-                    then
+                    if current.schemaVersion ~= nil and not validSchemaVersion(current.schemaVersion) then
+                        error("Stored profile envelope version is malformed.")
+                    end
+                    if type(current.schemaVersion) == "number" and current.schemaVersion > SCHEMA_VERSION then
                         error("This profile was saved by a newer game version.")
                     end
                     rawProfile = current.profile
@@ -342,6 +356,7 @@ function ProfileService.saveProgress(player, state, eventName)
     profile.shift.shiftClosed = state.shiftClosed
     profile.ownedUpgrades.shelfBay = state.upgradePurchased
     profile.hiredEmployees.cashier = state.cashierHired
+    profile.hiredEmployees.stocker = state.stockerHired
     if eventName == "sale" then
         profile.lifetimeSales += 1
     elseif eventName == "shiftClosed" then
