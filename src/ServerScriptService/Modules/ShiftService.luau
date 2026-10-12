@@ -8,12 +8,36 @@ local WorldBuilder = require(script.Parent.WorldBuilder)
 local ShiftService = {}
 
 local interactionTimes = {}
+local membershipTimes = {}
+local storeMembers = {}
+local joinRequests = {}
 local state
 local ownerPlayer
 local ownerReady = false
 local ownershipClaimed = false
 local world
 local stateEvent
+local joinRequestEvent
+local memberActionEvent
+local memberStateEvent
+
+local ROLE_ACTIONS = {
+    Manager = {
+        Cart = true,
+        Stock = true,
+        Checkout = true,
+        CloseShift = true,
+        Upgrade = true,
+        Complete = true,
+        HireCashier = true,
+    },
+    Cashier = { Checkout = true },
+    Stocker = { Stock = true },
+    Maintenance = { Cart = true },
+}
+local ASSIGNABLE_ROLES = { Manager = true, Cashier = true, Stocker = true, Maintenance = true }
+local MAX_STORE_PLAYERS = 4
+local MAX_PENDING_REQUESTS = 120
 
 local OBJECTIVES = {
     Cart = "First Shift: stop the runaway shopping cart near the entrance.",
@@ -27,8 +51,9 @@ local OBJECTIVES = {
 local function snapshot(message, recipient)
     local current = state or Economy.newState()
     local isOwner = recipient == ownerPlayer and ownerReady
+    local isHelper = storeMembers[recipient.UserId] ~= nil
     local objective = OBJECTIVES[current.stage] or "Your store is starting up."
-    if not isOwner then
+    if not isOwner and not isHelper then
         if ownerPlayer then
             objective = "This store belongs to " .. ownerPlayer.DisplayName .. "."
         elseif ownershipClaimed then
@@ -46,8 +71,51 @@ local function snapshot(message, recipient)
         message = message or "",
         upgradePurchased = current.upgradePurchased,
         isOwner = isOwner,
+        hasStoreAccess = isOwner or storeMembers[recipient.UserId] ~= nil,
+        memberRole = isOwner and "Owner" or (storeMembers[recipient.UserId] or "Visitor"),
         saveStatus = isOwner and ProfileService.getSaveStatus(recipient) or "view only",
     }
+end
+
+local function sendMemberState(player)
+    if not memberStateEvent or not player then
+        return
+    end
+    local members = {}
+    for userId, role in pairs(storeMembers) do
+        local member = Players:GetPlayerByUserId(userId)
+        if member then
+            table.insert(members, { userId = userId, name = member.DisplayName, role = role })
+        end
+    end
+    local requests = {}
+    if player == ownerPlayer then
+        for userId, requestedAt in pairs(joinRequests) do
+            if os.clock() - requestedAt <= MAX_PENDING_REQUESTS then
+                local requester = Players:GetPlayerByUserId(userId)
+                if requester then
+                    table.insert(requests, { userId = userId, name = requester.DisplayName })
+                end
+            else
+                joinRequests[userId] = nil
+            end
+        end
+    end
+    memberStateEvent:FireClient(player, {
+        ownerUserId = ownerPlayer and ownerPlayer.UserId or nil,
+        ownerName = ownerPlayer and ownerPlayer.DisplayName or "",
+        ownRole = player == ownerPlayer and "Owner" or (storeMembers[player.UserId] or "Visitor"),
+        requestPending = joinRequests[player.UserId] ~= nil
+            and os.clock() - joinRequests[player.UserId] <= MAX_PENDING_REQUESTS,
+        members = members,
+        requests = requests,
+    })
+end
+
+local function broadcastMemberState()
+    for _, player in ipairs(Players:GetPlayers()) do
+        sendMemberState(player)
+    end
 end
 
 local function broadcast(message)
@@ -77,13 +145,17 @@ local function atPrompt(player, promptObject, maxDistance)
     return (root.Position - position).Magnitude <= maxDistance
 end
 
-local function permitInteraction(player, promptObject, maxDistance)
+local function permitInteraction(player, actionId, promptObject, maxDistance)
+    local role = player and (player == ownerPlayer and "Owner" or storeMembers[player.UserId])
+    local allowed = role == "Owner"
+        or (role and ROLE_ACTIONS[role] and ROLE_ACTIONS[role][actionId] == true)
     if
         not player
-        or player ~= ownerPlayer
+        or not allowed
         or not ownerReady
-        or ProfileService.getSaveStatus(player) == "lock lost"
-        or ProfileService.getSaveStatus(player) == "save pending"
+        or not ownerPlayer
+        or ProfileService.getSaveStatus(ownerPlayer) == "lock lost"
+        or ProfileService.getSaveStatus(ownerPlayer) == "save pending"
         or player.Parent ~= Players
         or not promptObject
         or not promptObject:IsDescendantOf(workspace)
@@ -102,17 +174,20 @@ local function permitInteraction(player, promptObject, maxDistance)
     return true
 end
 
-local function bind(promptObject, maxDistance, callback)
+local function bind(actionId, promptObject, maxDistance, callback)
     promptObject.Triggered:Connect(function(player)
-        if not permitInteraction(player, promptObject, maxDistance) then
+        if not permitInteraction(player, actionId, promptObject, maxDistance) then
             return
         end
         callback(player)
     end)
 end
 
-function ShiftService.init(event)
+function ShiftService.init(event, membershipRemotes)
     stateEvent = event
+    joinRequestEvent = membershipRemotes.joinRequest
+    memberActionEvent = membershipRemotes.memberAction
+    memberStateEvent = membershipRemotes.memberState
     world = WorldBuilder.build()
     world.setStage("Loading")
     ProfileService.startAutosave(function()
@@ -140,13 +215,40 @@ function ShiftService.init(event)
         tween:Play()
     end
 
-    local function commit(eventName)
+    local commit
+    local function scheduleCashierSale()
+        if not state or not state.cashierHired or state.stage ~= "Checkout" then
+            return
+        end
+        task.delay(4, function()
+            if
+                not ownerReady
+                or not ownerPlayer
+                or not state
+                or not state.cashierHired
+                or state.stage ~= "Checkout"
+                or ProfileService.getSaveStatus(ownerPlayer) == "lock lost"
+                or ProfileService.getSaveStatus(ownerPlayer) == "save pending"
+            then
+                return
+            end
+            local ok, message = Economy.sellProduct(state)
+            if ok then
+                world.setStockVisual(state.stock)
+                commit("sale")
+                broadcast("Cashier served the customer automatically. " .. message)
+            end
+        end)
+    end
+
+    commit = function(eventName)
         ProfileService.saveProgress(ownerPlayer, state, eventName)
         world.setStage(state.stage)
         broadcast()
+        scheduleCashierSale()
     end
 
-    bind(world.cartPrompt, 12, function()
+    bind("Cart", world.cartPrompt, 12, function()
         local activeTween = world.cartTween()
         if activeTween then
             activeTween:Cancel()
@@ -159,7 +261,7 @@ function ShiftService.init(event)
         broadcast(message)
     end)
 
-    bind(world.stockPrompt, 12, function()
+    bind("Stock", world.stockPrompt, 12, function()
         local ok, message = Economy.stockProduct(state)
         if ok then
             world.setStockVisual(state.stock)
@@ -168,7 +270,7 @@ function ShiftService.init(event)
         broadcast(message)
     end)
 
-    bind(world.registerPrompt, 12, function()
+    bind("Checkout", world.registerPrompt, 12, function()
         local ok, message = Economy.sellProduct(state)
         if ok then
             world.setStockVisual(state.stock)
@@ -177,7 +279,7 @@ function ShiftService.init(event)
         broadcast(message)
     end)
 
-    bind(world.closePrompt, 12, function()
+    bind("CloseShift", world.closePrompt, 12, function()
         local ok, message = Economy.closeShift(state)
         if ok then
             commit("shiftClosed")
@@ -185,7 +287,7 @@ function ShiftService.init(event)
         broadcast(message)
     end)
 
-    bind(world.upgradePrompt, 13, function()
+    bind("Upgrade", world.upgradePrompt, 13, function()
         local ok, message = Economy.buyUpgrade(state)
         if ok then
             world.addUpgrade()
@@ -194,7 +296,7 @@ function ShiftService.init(event)
         broadcast(message)
     end)
 
-    bind(world.restartPrompt, 12, function()
+    bind("Complete", world.restartPrompt, 12, function()
         local ok, message = Economy.restartShift(state)
         if ok then
             world.setStockVisual(0)
@@ -206,6 +308,109 @@ function ShiftService.init(event)
         broadcast(message)
     end)
 
+    bind("HireCashier", world.cashierHirePrompt, 12, function()
+        local ok, message = Economy.hireCashier(state)
+        if ok then
+            world.setCashierHired(true)
+            commit("employeeHired")
+        end
+        broadcast(message)
+    end)
+
+    joinRequestEvent.OnServerEvent:Connect(function(player)
+        if player == ownerPlayer or not ownerPlayer or not ownerReady or player.Parent ~= Players then
+            return
+        end
+        local now = os.clock()
+        if membershipTimes[player] and now - membershipTimes[player] < 5 then
+            return
+        end
+        membershipTimes[player] = now
+        if storeMembers[player.UserId] then
+            sendMemberState(player)
+            return
+        end
+        local count = 1
+        for _ in pairs(storeMembers) do
+            count += 1
+        end
+        if count >= MAX_STORE_PLAYERS then
+            stateEvent:FireClient(player, snapshot("This store is full right now.", player))
+            return
+        end
+        joinRequests[player.UserId] = now
+        broadcastMemberState()
+        stateEvent:FireClient(player, snapshot("Help request sent to the store owner.", player))
+    end)
+
+    memberActionEvent.OnServerEvent:Connect(function(player, action, targetUserId, role)
+        if player ~= ownerPlayer or not ownerReady or player.Parent ~= Players then
+            return
+        end
+        local now = os.clock()
+        if membershipTimes[player] and now - membershipTimes[player] < 0.25 then
+            return
+        end
+        membershipTimes[player] = now
+        if type(action) ~= "string" or type(targetUserId) ~= "number" then
+            return
+        end
+        if
+            targetUserId ~= targetUserId
+            or targetUserId < 1
+            or targetUserId > 9007199254740991
+            or targetUserId % 1 ~= 0
+        then
+            return
+        end
+        local target = Players:GetPlayerByUserId(targetUserId)
+        if not target or target == ownerPlayer then
+            return
+        end
+        if action == "approve" then
+            local requestedAt = joinRequests[targetUserId]
+            if
+                not requestedAt
+                or os.clock() - requestedAt > MAX_PENDING_REQUESTS
+                or type(role) ~= "string"
+                or not ASSIGNABLE_ROLES[role]
+            then
+                joinRequests[targetUserId] = nil
+                broadcastMemberState()
+                return
+            end
+            local count = 1
+            for _ in pairs(storeMembers) do
+                count += 1
+            end
+            if count >= MAX_STORE_PLAYERS then
+                return
+            end
+            storeMembers[targetUserId] = role
+            joinRequests[targetUserId] = nil
+            stateEvent:FireClient(
+                target,
+                snapshot("You joined " .. ownerPlayer.DisplayName .. "'s store as " .. role .. ".", target)
+            )
+        elseif action == "decline" then
+            if not joinRequests[targetUserId] then
+                return
+            end
+            joinRequests[targetUserId] = nil
+            stateEvent:FireClient(target, snapshot("The store owner declined your help request.", target))
+        elseif action == "remove" then
+            if not storeMembers[targetUserId] then
+                return
+            end
+            storeMembers[targetUserId] = nil
+            stateEvent:FireClient(target, snapshot("Your store access was removed by the owner.", target))
+        else
+            return
+        end
+        broadcastMemberState()
+        broadcast()
+    end)
+
     local function claimStore(player)
         if ownerPlayer == player then
             return
@@ -215,6 +420,7 @@ function ShiftService.init(event)
                 player,
                 snapshot("You can visit, but this store is owned by another player.", player)
             )
+            sendMemberState(player)
             return
         end
         ownerPlayer = player
@@ -239,32 +445,42 @@ function ShiftService.init(event)
             if state.upgradePurchased then
                 world.addUpgrade()
             end
+            world.setCashierHired(state.cashierHired)
             world.setStockVisual(state.stock)
             world.setStage(state.stage)
             if state.stage == "Cart" then
                 startCart()
             end
+            scheduleCashierSale()
             broadcast(
                 status == "session only" and "Data saving is off; this session will not persist."
                     or "Store profile loaded."
             )
+            broadcastMemberState()
         end)
     end
 
     Players.PlayerAdded:Connect(claimStore)
     Players.PlayerRemoving:Connect(function(player)
         interactionTimes[player] = nil
+        membershipTimes[player] = nil
+        storeMembers[player.UserId] = nil
+        joinRequests[player.UserId] = nil
+        broadcastMemberState()
         if player == ownerPlayer then
             ProfileService.release(player)
             ownerReady = false
             ownerPlayer = nil
             ownershipClaimed = true
+            storeMembers = {}
+            joinRequests = {}
             local activeTween = world.cartTween()
             if activeTween then
                 activeTween:Cancel()
             end
             world.setStage("OwnerOffline")
             broadcast("The store owner left. Join a new server to open your store.")
+            broadcastMemberState()
         end
     end)
 

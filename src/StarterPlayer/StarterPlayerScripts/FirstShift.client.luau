@@ -5,6 +5,9 @@ local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 local network = ReplicatedStorage:WaitForChild("SupermarketChaosNetwork")
 local stateEvent = network:WaitForChild("ShiftState")
+local joinRequestEvent = network:WaitForChild("JoinStoreRequest")
+local memberActionEvent = network:WaitForChild("StoreMemberAction")
+local memberStateEvent = network:WaitForChild("StoreMemberState")
 
 local COLORS = {
     deepTeal = Color3.fromRGB(17, 57, 61),
@@ -58,7 +61,7 @@ padding.Parent = card
 
 local title = Instance.new("TextLabel")
 title.Name = "Title"
-title.Size = UDim2.new(1, -102, 0, 22)
+title.Size = UDim2.new(1, -160, 0, 22)
 title.BackgroundTransparency = 1
 title.Text = "FIRST SHIFT"
 title.TextColor3 = COLORS.teal
@@ -70,8 +73,8 @@ title.Parent = card
 local saveStatus = Instance.new("TextLabel")
 saveStatus.Name = "SaveStatus"
 saveStatus.AnchorPoint = Vector2.new(1, 0)
-saveStatus.Position = UDim2.new(1, -28, 0, 0)
-saveStatus.Size = UDim2.fromOffset(70, 22)
+saveStatus.Position = UDim2.new(1, -75, 0, 0)
+saveStatus.Size = UDim2.fromOffset(76, 22)
 saveStatus.BackgroundTransparency = 1
 saveStatus.Text = "LOADING"
 saveStatus.TextColor3 = COLORS.teal
@@ -95,6 +98,21 @@ toggle.Parent = card
 local toggleCorner = Instance.new("UICorner")
 toggleCorner.CornerRadius = UDim.new(0, 6)
 toggleCorner.Parent = toggle
+
+local teamToggle = Instance.new("TextButton")
+teamToggle.Name = "TeamButton"
+teamToggle.AnchorPoint = Vector2.new(1, 0)
+teamToggle.Position = UDim2.new(1, -27, 0, 0)
+teamToggle.Size = UDim2.fromOffset(43, 22)
+teamToggle.BackgroundColor3 = COLORS.gold
+teamToggle.TextColor3 = COLORS.deepTeal
+teamToggle.Text = "TEAM"
+teamToggle.Font = Enum.Font.GothamBold
+teamToggle.TextSize = 9
+teamToggle.Parent = card
+local teamCorner = Instance.new("UICorner")
+teamCorner.CornerRadius = UDim.new(0, 6)
+teamCorner.Parent = teamToggle
 
 local objective = Instance.new("TextLabel")
 objective.Name = "Objective"
@@ -171,6 +189,181 @@ feedback.TextYAlignment = Enum.TextYAlignment.Center
 feedback.TextTruncate = Enum.TextTruncate.AtEnd
 feedback.Parent = card
 
+local teamPanel = Instance.new("Frame")
+teamPanel.Name = "TeamPanel"
+teamPanel.AnchorPoint = Vector2.new(0, 1)
+teamPanel.Position = UDim2.new(0, 14, 1, -169)
+teamPanel.Size = UDim2.fromOffset(300, 270)
+teamPanel.BackgroundColor3 = COLORS.cream
+teamPanel.BorderSizePixel = 0
+teamPanel.Visible = false
+teamPanel.Parent = gui
+local teamPanelCorner = Instance.new("UICorner")
+teamPanelCorner.CornerRadius = UDim.new(0, 12)
+teamPanelCorner.Parent = teamPanel
+local teamPanelStroke = Instance.new("UIStroke")
+teamPanelStroke.Color = COLORS.teal
+teamPanelStroke.Thickness = 2
+teamPanelStroke.Parent = teamPanel
+local teamHeading = Instance.new("TextLabel")
+teamHeading.Size = UDim2.new(1, -20, 0, 30)
+teamHeading.Position = UDim2.fromOffset(10, 7)
+teamHeading.BackgroundTransparency = 1
+teamHeading.Text = "STORE TEAM"
+teamHeading.TextColor3 = COLORS.teal
+teamHeading.Font = Enum.Font.GothamBold
+teamHeading.TextSize = 15
+teamHeading.TextXAlignment = Enum.TextXAlignment.Left
+teamHeading.Parent = teamPanel
+local teamScroll = Instance.new("ScrollingFrame")
+teamScroll.Name = "TeamList"
+teamScroll.Position = UDim2.fromOffset(8, 40)
+teamScroll.Size = UDim2.new(1, -16, 1, -48)
+teamScroll.BackgroundTransparency = 1
+teamScroll.BorderSizePixel = 0
+teamScroll.ScrollBarThickness = 5
+teamScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+teamScroll.CanvasSize = UDim2.new()
+teamScroll.Parent = teamPanel
+local teamLayout = Instance.new("UIListLayout")
+teamLayout.Padding = UDim.new(0, 5)
+teamLayout.SortOrder = Enum.SortOrder.LayoutOrder
+teamLayout.Parent = teamScroll
+
+local function clearTeamRows()
+    for _, child in ipairs(teamScroll:GetChildren()) do
+        if child ~= teamLayout then
+            child:Destroy()
+        end
+    end
+end
+
+local function addTeamLabel(text, height)
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, -4, 0, height or 32)
+    label.BackgroundColor3 = COLORS.blue
+    label.TextColor3 = COLORS.deepTeal
+    label.Text = text
+    label.Font = Enum.Font.GothamSemibold
+    label.TextSize = 12
+    label.TextWrapped = true
+    label.Parent = teamScroll
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = label
+    return label
+end
+
+local function addTeamButton(parent, text, width, callback)
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(0, width, 1, -4)
+    button.BackgroundColor3 = COLORS.teal
+    button.TextColor3 = COLORS.cream
+    button.Text = text
+    button.Font = Enum.Font.GothamBold
+    button.TextSize = 10
+    button.TextWrapped = true
+    button.Parent = parent
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 5)
+    corner.Parent = button
+    button.Activated:Connect(callback)
+    return button
+end
+
+local teamData
+local function renderTeam(data)
+    teamData = data
+    clearTeamRows()
+    if not data then
+        addTeamLabel("Loading store membership…", 38)
+        return
+    end
+    if data.ownRole == "Owner" then
+        addTeamLabel("You own this store. Assign manager, cashier, stocker or maintenance.", 38)
+        for _, request in ipairs(data.requests or {}) do
+            local row = Instance.new("Frame")
+            row.Size = UDim2.new(1, -4, 0, 62)
+            row.BackgroundColor3 = COLORS.gold
+            row.Parent = teamScroll
+            local name = Instance.new("TextLabel")
+            name.Size = UDim2.new(1, -8, 0, 20)
+            name.Position = UDim2.fromOffset(4, 1)
+            name.BackgroundTransparency = 1
+            name.Text = request.name .. " wants to help"
+            name.TextColor3 = COLORS.deepTeal
+            name.Font = Enum.Font.GothamBold
+            name.TextSize = 11
+            name.TextXAlignment = Enum.TextXAlignment.Left
+            name.Parent = row
+            local roles = { "Cashier", "Stocker", "Maintenance", "Manager", "Decline" }
+            for index, role in ipairs(roles) do
+                local roleButton = addTeamButton(row, role, 52, function()
+                    if role == "Decline" then
+                        memberActionEvent:FireServer("decline", request.userId)
+                    else
+                        memberActionEvent:FireServer("approve", request.userId, role)
+                    end
+                end)
+                roleButton.Size = UDim2.fromOffset(52, 34)
+                roleButton.Position = UDim2.new(0, 4 + (index - 1) * 55, 0, 24)
+            end
+        end
+        for _, member in ipairs(data.members or {}) do
+            local row = Instance.new("Frame")
+            row.Size = UDim2.new(1, -4, 0, 32)
+            row.BackgroundColor3 = COLORS.blue
+            row.Parent = teamScroll
+            local name = Instance.new("TextLabel")
+            name.Size = UDim2.new(1, -74, 1, 0)
+            name.Position = UDim2.fromOffset(6, 0)
+            name.BackgroundTransparency = 1
+            name.Text = member.name .. " · " .. member.role
+            name.TextColor3 = COLORS.deepTeal
+            name.Font = Enum.Font.GothamSemibold
+            name.TextSize = 11
+            name.TextXAlignment = Enum.TextXAlignment.Left
+            name.Parent = row
+            addTeamButton(row, "REMOVE", 62, function()
+                memberActionEvent:FireServer("remove", member.userId)
+            end).Position = UDim2.new(1, -66, 0, 2)
+        end
+    elseif data.ownRole == "Visitor" then
+        addTeamLabel(data.ownerName .. " owns this store. Request a role to help with the shift.", 62)
+        local row = Instance.new("Frame")
+        row.Size = UDim2.new(1, -4, 0, 38)
+        row.BackgroundTransparency = 1
+        row.Parent = teamScroll
+        local requestButton = addTeamButton(
+            row,
+            data.requestPending and "REQUEST SENT" or "REQUEST TO HELP",
+            170,
+            function()
+            joinRequestEvent:FireServer()
+            end
+        )
+        requestButton.Position = UDim2.fromOffset(0, 2)
+        requestButton.Active = not data.requestPending
+        requestButton.AutoButtonColor = not data.requestPending
+        for _, member in ipairs(data.members or {}) do
+            addTeamLabel(member.name .. " · " .. member.role, 30)
+        end
+    else
+        addTeamLabel("You are helping " .. data.ownerName .. " as " .. tostring(data.ownRole) .. ".", 48)
+        for _, member in ipairs(data.members or {}) do
+            addTeamLabel(member.name .. " · " .. member.role, 30)
+        end
+    end
+end
+
+teamToggle.Activated:Connect(function()
+    teamPanel.Visible = not teamPanel.Visible
+    if teamPanel.Visible then
+        renderTeam(teamData)
+    end
+end)
+memberStateEvent.OnClientEvent:Connect(renderTeam)
+
 local collapsed = false
 local ownerView = true
 local function setCollapsed(value)
@@ -192,7 +385,7 @@ local function update(state)
         return
     end
     objective.Text = tostring(state.objective or "Keep the store running.")
-    ownerView = state.isOwner ~= false
+    ownerView = state.hasStoreAccess == true or state.isOwner ~= false
     stats.Visible = not collapsed and ownerView
     local saveText = tostring(state.saveStatus or "loading")
     if saveText == "saved" then

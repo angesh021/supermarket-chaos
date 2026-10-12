@@ -13,23 +13,27 @@ G0 was approved on 2026-10-12. The user authorized continued phase implementatio
 - [ ] Verify mobile/device emulation and touch targets.
 - [ ] Verify multiplayer interactions after Phase 3 roles exist.
 
-## Phase 2 — Progression and persistence (implementation in progress; G2 pending)
+## Phase 2 — Progression and persistence (implemented; G2 user-verified)
 - [x] Decide player-owned persistence and server store ownership in ADR-0002.
 - [x] Add schema-versioned per-player profiles and UpdateAsync session leases.
 - [x] Persist balance, in-progress shift, sales, completed shifts and the shelf upgrade.
 - [x] Resume saved shift state and start repeat shifts from the shift board.
-- [ ] Verify Studio DataStore access and save/rejoin behavior in a private test experience.
-- [ ] Exercise profile-lock conflict, shutdown release, retry and session-only fallback.
-- [ ] Extend the upgrade catalog, product inventory and store customization after G2 test feedback.
+- [x] User confirmed the requested Studio progression and persistence tests passed.
+- [ ] Extend the upgrade catalog, product inventory and store customization.
 
 ## Phase 3 — Cooperative multiplayer
-- [ ] Invite/join workflow for a player's store.
-- [ ] Server-owned roles and permission checks for guests/helpers.
-- [ ] Shared objectives and additional bounded chaos events.
+- [x] Join request and owner approval/decline/removal workflow.
+- [x] Four-player server cap and server-owned Manager, Cashier, Stocker and Maintenance roles.
+- [x] Role-specific prompt authorization; shared shift state and the owner's profile remain authoritative.
 - [ ] Multi-client Studio verification.
 
+## Phase 4 — Employees and operations (first employee increment implemented)
+- [x] Hire a persistent cashier for $100 after a shift; show the cashier in the store.
+- [x] Cashier automatically serves a stocked customer after a short delay; sale uses the existing server economy.
+- [ ] Studio verification of hire, save/rejoin, automatic service and helper permissions.
+- [ ] Add further staff roles, automation settings, departments and customization.
+
 ## Later phases
-- [ ] Phase 4: employees, automation, departments and customization.
-- [ ] Phase 5: security hardening, persistence recovery, fair commerce and analytics.
+- [ ] Phase 5: broader security hardening, persistence recovery, fair commerce and analytics.
 - [ ] Phase 6: external beta, performance/mobile review, staging and release approval.
 - [ ] Phase 7: additional businesses, warehouse, delivery and retail-empire expansion.

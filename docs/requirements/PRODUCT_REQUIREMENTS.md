@@ -36,3 +36,17 @@ Instrument funnel events for first interaction, first stock, first sale, first u
 - A DataStore outage may allow session-only play, but the UI must disclose that progress will not persist and the fallback must never overwrite the saved profile.
 - Profiles can start another shift after completing the current shift; rewards and upgrades remain server-authoritative.
 - G2 is not complete until the save/rejoin, lease conflict, session-only fallback, and shutdown paths are verified in a private Studio test experience.
+
+## Phase 3 cooperative store requirements
+- A visitor can request access; only the store owner can approve, decline, or remove a helper.
+- A store has at most four active players including its owner. Membership and role grants are server-session scoped.
+- The server assigns one of Manager, Cashier, Stocker, or Maintenance and checks role permission, current shift stage, ownership, prompt range and rate limit for every action.
+- Helpers act on the owner's shared shift and currency; they do not load or write the owner's profile as their own.
+- G3 requires multi-client Studio verification of each role, removal, capacity and rejected remote/event misuse.
+
+## Phase 4 employee requirements (first increment)
+- On a completed shift, the owner or authorized manager may purchase one persistent cashier for $100 in fictional currency.
+- The server checks the stage, balance and ownership before taking payment and saving the employee flag.
+- A hired cashier is visibly represented in the store and automatically completes a stocked checkout after a short delay using the ordinary sale path exactly once.
+- Profile schema v2 safely defaults legacy profiles to no cashier.
+- G4 requires Studio verification of the purchase, persistence, automatic sale and race with a player at checkout.

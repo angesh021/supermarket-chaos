@@ -378,6 +378,42 @@ function WorldBuilder.build()
     end
 
     local register = prompt(counter, "Serve Customer", "Checkout", "Checkout", 9)
+    local hiringBoard = label(
+        interior,
+        "Staff Hiring Board",
+        "HIRE A CASHIER  $100",
+        Vector3.new(5, 2, 0.45),
+        CFrame.new(17.8, 3.4, -3.8),
+        COLORS.teal,
+        COLORS.gold
+    )
+    local cashierHirePrompt = prompt(hiringBoard, "Hire Cashier ($100)", "Staff Board", "HireCashier", 10)
+    local cashierModel = Instance.new("Model")
+    cashierModel.Name = "Store Cashier"
+    cashierModel.Parent = interior
+    local cashierBody = part(
+        cashierModel,
+        "Cashier Uniform",
+        Vector3.new(1.5, 2.5, 0.9),
+        CFrame.new(10.5, 1.8, 8),
+        COLORS.teal
+    )
+    local cashierHead = part(
+        cashierModel,
+        "Cashier Head",
+        Vector3.new(1.2, 1.2, 1.2),
+        CFrame.new(10.5, 3.65, 8),
+        Color3.fromRGB(237, 190, 153)
+    )
+    cashierHead.Shape = Enum.PartType.Ball
+    for _, item in ipairs(cashierModel:GetDescendants()) do
+        if item:IsA("BasePart") then
+            item.Transparency = 1
+            item.CanCollide = false
+        end
+    end
+    local cashierHired = false
+    local currentStage = "Loading"
     local stockPrompt = prompt(
         shelf.PrimaryPart or shelf:FindFirstChild("Base"),
         "Stock Shelf",
@@ -541,6 +577,7 @@ function WorldBuilder.build()
     workspace.Gravity = 196.2
 
     local function setStage(stage)
+        currentStage = stage
         cartPrompt.Enabled = stage == "Cart"
         stockPrompt.Enabled = stage == "Stock"
         register.Enabled = stage == "Checkout"
@@ -548,6 +585,7 @@ function WorldBuilder.build()
         upgradePrompt.Enabled = stage == "Upgrade"
         restartPrompt.Enabled = stage == "Complete"
         upgradeMarker.Enabled = stage == "Upgrade"
+        cashierHirePrompt.Enabled = stage == "Complete" and not cashierHired
         setCustomerVisible(stage == "Checkout" or stage == "CloseShift")
     end
 
@@ -567,6 +605,7 @@ function WorldBuilder.build()
         registerPrompt = register,
         closePrompt = closePrompt,
         restartPrompt = restartPrompt,
+        cashierHirePrompt = cashierHirePrompt,
         upgradePrompt = upgradePrompt,
         setStage = setStage,
         setUpgradeReady = function(ready)
@@ -587,6 +626,15 @@ function WorldBuilder.build()
                 COLORS.green
             )
             sign:SetAttribute("PlayerPurchased", true)
+        end,
+        setCashierHired = function(hired)
+            cashierHired = hired == true
+            cashierHirePrompt.Enabled = not cashierHired and currentStage == "Complete"
+            for _, item in ipairs(cashierModel:GetDescendants()) do
+                if item:IsA("BasePart") then
+                    item.Transparency = cashierHired and 0 or 1
+                end
+            end
         end,
     }
 end

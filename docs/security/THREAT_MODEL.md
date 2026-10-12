@@ -25,3 +25,9 @@ Forged requests, malformed and out-of-range values, cross-player ownership, dupl
 
 ## Phase 0 limits
 This is a design threat model, not a security audit. No runtime code or adversarial tests exist yet. Reassess when remotes, persistence, co-op roles and commerce are designed; verify current Roblox security and commerce documentation then.
+# Phase 3/4 additions
+- Join requests are rate-limited by the server. Only the current store owner can assign roles or remove a player; role names are allow-listed and target users must be in the same server.
+- Every ProximityPrompt remains a client-controlled signal. The server rechecks membership, role/action permission, owner profile lock, world ancestry, character distance, player membership and interaction rate before changing shared state.
+- Member lists are generated on the server from current Players and safe display fields. Clients never submit a balance, profile, stage, inventory count or saved employee value.
+- A cashier purchase is checked and charged by the server. Automatic checkout uses the existing economy transition and is delayed, bounded to the Checkout stage, and rechecked against owner/save state.
+- Persistent profile access is allow-listed to the user-provided development universe ID. Other universes run session-only; production is not configured.

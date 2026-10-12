@@ -5,6 +5,7 @@ Economy.CART_REWARD = 10
 Economy.SALE_REWARD = 25
 Economy.SHIFT_REWARD = 20
 Economy.UPGRADE_COST = 45
+Economy.CASHIER_COST = 100
 Economy.STARTING_STOCK = 3
 
 function Economy.newState(profile)
@@ -19,6 +20,7 @@ function Economy.newState(profile)
         cartRecovered = savedShift.cartRecovered or false,
         shiftClosed = savedShift.shiftClosed or false,
         upgradePurchased = upgrades.shelfBay or false,
+        cashierHired = (profile.hiredEmployees and profile.hiredEmployees.cashier) or false,
     }
 end
 
@@ -96,6 +98,18 @@ function Economy.buyUpgrade(state)
     state.upgradePurchased = true
     state.stage = "Complete"
     return true, "New shelf bay installed! Your store is growing."
+end
+
+function Economy.hireCashier(state)
+    if state.stage ~= "Complete" or state.cashierHired then
+        return false, "The cashier position is not available right now."
+    end
+    if state.cash < Economy.CASHIER_COST then
+        return false, string.format("You need $%d to hire a cashier.", Economy.CASHIER_COST)
+    end
+    state.cash -= Economy.CASHIER_COST
+    state.cashierHired = true
+    return true, "Cashier hired! They will serve stocked customers automatically."
 end
 
 return Economy

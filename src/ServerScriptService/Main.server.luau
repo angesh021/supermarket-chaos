@@ -17,4 +17,18 @@ if not stateEvent then
     stateEvent.Parent = network
 end
 
-ShiftService.init(stateEvent)
+local function remote(name, className)
+    local result = network:FindFirstChild(name)
+    if not result then
+        result = Instance.new(className)
+        result.Name = name
+        result.Parent = network
+    end
+    return result
+end
+
+ShiftService.init(stateEvent, {
+    joinRequest = remote("JoinStoreRequest", "RemoteEvent"),
+    memberAction = remote("StoreMemberAction", "RemoteEvent"),
+    memberState = remote("StoreMemberState", "RemoteEvent"),
+})

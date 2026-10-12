@@ -4,16 +4,26 @@ local HttpService = game:GetService("HttpService")
 
 local ProfileService = {}
 
-local SCHEMA_VERSION = 1
+local SCHEMA_VERSION = 2
 local SESSION_LEASE_SECONDS = 180
 local MAX_RETRIES = 3
 local STORE_NAME = "SupermarketChaos_PlayerProfiles_v1"
+local DEVELOPMENT_UNIVERSE_ID = 10770581249
 local sessionId = HttpService:GenerateGUID(false)
 local profiles = {}
 local store
-local storeReady, storeError = pcall(function()
-    store = DataStoreService:GetDataStore(STORE_NAME)
-end)
+local storeReady = false
+local storeError = "Persistence is enabled only in the configured development universe."
+if game.GameId == DEVELOPMENT_UNIVERSE_ID then
+    storeReady, storeError = pcall(function()
+        store = DataStoreService:GetDataStore(STORE_NAME)
+    end)
+else
+    storeError = string.format(
+        "Universe %s is not the configured development universe; using session-only profiles.",
+        tostring(game.GameId)
+    )
+end
 
 local function defaultProfile()
     return {
@@ -28,6 +38,9 @@ local function defaultProfile()
         },
         ownedUpgrades = {
             shelfBay = false,
+        },
+        hiredEmployees = {
+            cashier = false,
         },
         completedShifts = 0,
         lifetimeSales = 0,
@@ -83,6 +96,15 @@ local function normalizeProfile(value)
         end
         profile.ownedUpgrades.shelfBay = value.ownedUpgrades.shelfBay == true
     end
+    if value.hiredEmployees ~= nil and type(value.hiredEmployees) ~= "table" then
+        return nil, "Stored employee data is malformed."
+    end
+    if type(value.hiredEmployees) == "table" then
+        if value.hiredEmployees.cashier ~= nil and type(value.hiredEmployees.cashier) ~= "boolean" then
+            return nil, "Stored employee flag is malformed."
+        end
+        profile.hiredEmployees.cashier = value.hiredEmployees.cashier == true
+    end
     if value.shift ~= nil and type(value.shift) ~= "table" then
         return nil, "Stored shift data is malformed."
     end
@@ -131,6 +153,9 @@ local function copyProfile(profile)
         },
         ownedUpgrades = {
             shelfBay = profile.ownedUpgrades.shelfBay,
+        },
+        hiredEmployees = {
+            cashier = profile.hiredEmployees.cashier,
         },
         completedShifts = profile.completedShifts,
         lifetimeSales = profile.lifetimeSales,
@@ -316,6 +341,7 @@ function ProfileService.saveProgress(player, state, eventName)
     profile.shift.cartRecovered = state.cartRecovered
     profile.shift.shiftClosed = state.shiftClosed
     profile.ownedUpgrades.shelfBay = state.upgradePurchased
+    profile.hiredEmployees.cashier = state.cashierHired
     if eventName == "sale" then
         profile.lifetimeSales += 1
     elseif eventName == "shiftClosed" then
