@@ -11,6 +11,7 @@ The user approved the G0 foundation and directed Phase 1 to begin. A first-shift
 
 ## Toolchain assessment
 - Detected and directly invoked: Rojo 7.7.0, Selene 0.32.0, StyLua 2.5.0, Node.js v22.18.0, Python 3.11.0.
+- Added a project RoKit manifest pinning the installed tool versions. Run `rokit install` in the local project shell to set up its command shims.
 - `rojo build default.project.json -o build.rbxlx`: passed.
 - `stylua src` and `stylua --check src`: passed.
 - `selene src`: passed with the checked-in custom offline Roblox globals standard. It checks Luau syntax and configured lints; API property validation is limited.
