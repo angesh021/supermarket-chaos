@@ -601,10 +601,27 @@ function WorldBuilder.build()
         COLORS.gray,
         Enum.Material.Concrete
     )
+    local warehousePad = part(
+        exterior,
+        "Warehouse Expansion Pad",
+        Vector3.new(5, 0.5, 5),
+        CFrame.new(59, 0.45, 7),
+        COLORS.gold,
+        Enum.Material.Neon
+    )
+    local warehousePrompt = prompt(
+        warehousePad,
+        "Build Warehouse ($200)",
+        "Retail Empire Expansion",
+        "Warehouse",
+        10
+    )
+    local warehouseModel
+    local warehousePurchased = false
     label(
         exterior,
-        "Future Plot Sign",
-        "COMING SOON",
+        "Warehouse Plot Sign",
+        "WAREHOUSE EXPANSION\n$200",
         Vector3.new(10, 3, 0.5),
         CFrame.new(59, 2.5, 10),
         COLORS.teal
@@ -617,6 +634,87 @@ function WorldBuilder.build()
     lighting.OutdoorAmbient = Color3.fromRGB(173, 182, 165)
     workspace.Gravity = 196.2
 
+    local function addWarehouse()
+        if warehouseModel then
+            return
+        end
+        warehousePurchased = true
+        warehouseModel = Instance.new("Model")
+        warehouseModel.Name = "Purchased Warehouse Annex"
+        warehouseModel.Parent = exterior
+        local center = Vector3.new(59, 0, -2)
+        local backWall = part(
+            warehouseModel,
+            "Warehouse Back Wall",
+            Vector3.new(20, 10, 0.8),
+            CFrame.new(center + Vector3.new(0, 5, -7.6)),
+            COLORS.gray,
+            Enum.Material.Metal
+        )
+        backWall:SetAttribute("PlayerPurchased", true)
+        part(
+            warehouseModel,
+            "Warehouse Left Wall",
+            Vector3.new(0.8, 10, 15.2),
+            CFrame.new(center + Vector3.new(-9.6, 5, 0)),
+            COLORS.gray,
+            Enum.Material.Metal
+        )
+        part(
+            warehouseModel,
+            "Warehouse Right Wall",
+            Vector3.new(0.8, 10, 15.2),
+            CFrame.new(center + Vector3.new(9.6, 5, 0)),
+            COLORS.gray,
+            Enum.Material.Metal
+        )
+        for _, x in ipairs({ -7, 7 }) do
+            part(
+                warehouseModel,
+                "Warehouse Front Wall",
+                Vector3.new(6, 10, 0.8),
+                CFrame.new(center + Vector3.new(x, 5, 7.6)),
+                COLORS.gray,
+                Enum.Material.Metal
+            )
+        end
+        part(
+            warehouseModel,
+            "Warehouse Door Header",
+            Vector3.new(8, 2, 0.8),
+            CFrame.new(center + Vector3.new(0, 9, 7.6)),
+            COLORS.gray,
+            Enum.Material.Metal
+        )
+        part(
+            warehouseModel,
+            "Warehouse Roof",
+            Vector3.new(22, 0.8, 18),
+            CFrame.new(center + Vector3.new(0, 10.3, 0)),
+            COLORS.deepTeal,
+            Enum.Material.Metal
+        )
+        local door = part(
+            warehouseModel,
+            "Warehouse Loading Door",
+            Vector3.new(7.5, 6.8, 0.3),
+            CFrame.new(center + Vector3.new(0, 3.4, 7.7)),
+            COLORS.gold,
+            Enum.Material.Metal,
+            0.55
+        )
+        door.CanCollide = false
+        part(
+            warehouseModel,
+            "Loading Dock",
+            Vector3.new(12, 1, 5),
+            CFrame.new(center + Vector3.new(0, 0.5, 11)),
+            COLORS.wood,
+            Enum.Material.Wood
+        )
+        warehousePrompt.Enabled = false
+    end
+
     local function setStage(stage)
         currentStage = stage
         cartPrompt.Enabled = stage == "Cart"
@@ -628,6 +726,7 @@ function WorldBuilder.build()
         upgradeMarker.Enabled = stage == "Upgrade"
         cashierHirePrompt.Enabled = stage == "Complete" and not cashierHired
         stockerHirePrompt.Enabled = stage == "Complete" and not stockerHired
+        warehousePrompt.Enabled = stage == "Complete" and not warehousePurchased
         setCustomerVisible(stage == "Checkout" or stage == "CloseShift")
     end
 
@@ -649,6 +748,7 @@ function WorldBuilder.build()
         restartPrompt = restartPrompt,
         cashierHirePrompt = cashierHirePrompt,
         stockerHirePrompt = stockerHirePrompt,
+        warehousePrompt = warehousePrompt,
         upgradePrompt = upgradePrompt,
         setStage = setStage,
         setUpgradeReady = function(ready)
@@ -686,6 +786,15 @@ function WorldBuilder.build()
                 if item:IsA("BasePart") then
                     item.Transparency = stockerHired and 0 or 1
                 end
+            end
+        end,
+        addWarehouse = addWarehouse,
+        setWarehousePurchased = function(purchased)
+            warehousePurchased = purchased == true
+            if warehousePurchased then
+                addWarehouse()
+            else
+                warehousePrompt.Enabled = currentStage == "Complete"
             end
         end,
     }

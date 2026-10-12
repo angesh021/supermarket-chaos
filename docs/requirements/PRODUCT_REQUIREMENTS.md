@@ -60,3 +60,10 @@ Instrument funnel events for first interaction, first stock, first sale, first u
 - On touch devices, the objective HUD starts compact and clear of the movement thumbstick; the player can expand it when needed.
 - The team panel resizes to the viewport, has an in-panel close control, and lays out role actions into tap-sized rows on narrow screens.
 - G6 requires Studio device emulation on phone and tablet sizes, including Roblox core touch controls and safe areas.
+
+## Phase 7 retail expansion requirements (first increment)
+- At the completed-shift state, the owner or authorized Manager may buy one warehouse annex for $200 of server-owned fictional currency.
+- The server validates stage, ownership/role, proximity, request rate and balance; it deducts once and saves the owned-upgrade flag with the player's profile.
+- The purchased annex appears on the reserved exterior plot, and a returning owner sees it without being charged again.
+- Legacy profiles default to no warehouse. Other universes remain session-only unless separately configured; production remains disabled.
+- G7 requires Studio verification of insufficient funds, unauthorized roles, exact charge, duplicate interaction, visible buildout, save/rejoin and non-development session-only behavior.

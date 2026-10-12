@@ -4,7 +4,7 @@ local HttpService = game:GetService("HttpService")
 
 local ProfileService = {}
 
-local SCHEMA_VERSION = 2
+local SCHEMA_VERSION = 3
 local SESSION_LEASE_SECONDS = 180
 local MAX_RETRIES = 3
 local STORE_NAME = "SupermarketChaos_PlayerProfiles_v1"
@@ -38,6 +38,7 @@ local function defaultProfile()
         },
         ownedUpgrades = {
             shelfBay = false,
+            warehouse = false,
         },
         hiredEmployees = {
             cashier = false,
@@ -98,12 +99,13 @@ local function normalizeProfile(value)
     end
     if type(value.ownedUpgrades) == "table" then
         if
-            value.ownedUpgrades.shelfBay ~= nil
-            and type(value.ownedUpgrades.shelfBay) ~= "boolean"
+            (value.ownedUpgrades.shelfBay ~= nil and type(value.ownedUpgrades.shelfBay) ~= "boolean")
+            or (value.ownedUpgrades.warehouse ~= nil and type(value.ownedUpgrades.warehouse) ~= "boolean")
         then
             return nil, "Stored upgrade flag is malformed."
         end
         profile.ownedUpgrades.shelfBay = value.ownedUpgrades.shelfBay == true
+        profile.ownedUpgrades.warehouse = value.ownedUpgrades.warehouse == true
     end
     if value.hiredEmployees ~= nil and type(value.hiredEmployees) ~= "table" then
         return nil, "Stored employee data is malformed."
@@ -166,6 +168,7 @@ local function copyProfile(profile)
         },
         ownedUpgrades = {
             shelfBay = profile.ownedUpgrades.shelfBay,
+            warehouse = profile.ownedUpgrades.warehouse,
         },
         hiredEmployees = {
             cashier = profile.hiredEmployees.cashier,
@@ -355,6 +358,7 @@ function ProfileService.saveProgress(player, state, eventName)
     profile.shift.cartRecovered = state.cartRecovered
     profile.shift.shiftClosed = state.shiftClosed
     profile.ownedUpgrades.shelfBay = state.upgradePurchased
+    profile.ownedUpgrades.warehouse = state.warehousePurchased
     profile.hiredEmployees.cashier = state.cashierHired
     profile.hiredEmployees.stocker = state.stockerHired
     if eventName == "sale" then

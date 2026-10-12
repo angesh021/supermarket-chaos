@@ -11,3 +11,7 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 ## ADR-0002 — Player-owned store profiles
 - **Status:** Accepted — 2026-10-12; see [ADR-0002](ADR-0002-player-owned-store-profiles.md).
 - **Decision:** Persistent progression belongs to an individual Roblox player. The first player in a server owns that server's one store; multiplayer helpers and role permissions are a Phase 3 feature.
+
+## ADR-0003 — Persistent warehouse expansion
+- **Status:** Accepted — 2026-10-12; see [ADR-0003](ADR-0003-persistent-warehouse-expansion.md).
+- **Decision:** Add a server-validated $200 warehouse annex as the first Phase 7 increment; persist ownership per player and rebuild its procedural world model on load.

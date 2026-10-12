@@ -40,4 +40,6 @@ G0 was approved on 2026-10-12. The user authorized continued phase implementatio
 - [ ] Phase 5: broader adversarial security checks, persistence recovery, fair commerce and deeper analytics.
 - [x] Phase 6 UI increment: touch devices get a collapsed top-center objective card, a centered resizable team panel, and larger role controls.
 - [ ] Phase 6: device emulation/touch QA, performance review, external beta, staging and release approval.
-- [ ] Phase 7: additional businesses, warehouse, delivery and retail-empire expansion.
+- [x] Phase 7 first increment: server-authoritative $200 warehouse annex purchase, physical buildout and per-player persistence.
+- [ ] Phase 7 follow-up: warehouse inventory, delivery loop, more departments and Studio verification of purchase/save/rejoin.
+- [ ] Later phases: broader economy, seasonal/live operations, production commerce and release work remain gated by the specification, Studio validation and explicit release approval.

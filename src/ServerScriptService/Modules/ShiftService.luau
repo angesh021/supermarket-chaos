@@ -32,6 +32,7 @@ local ROLE_ACTIONS = {
         Complete = true,
         HireCashier = true,
         HireStocker = true,
+        Warehouse = true,
     },
     Cashier = { Checkout = true },
     Stocker = { Stock = true },
@@ -326,6 +327,15 @@ function ShiftService.init(event, membershipRemotes)
         broadcast(message)
     end)
 
+    bind("Warehouse", world.warehousePrompt, 12, function()
+        local ok, message = Economy.buyWarehouse(state)
+        if ok then
+            world.addWarehouse()
+            commit("warehouse")
+        end
+        broadcast(message)
+    end)
+
     bind("Complete", world.restartPrompt, 12, function()
         local ok, message = Economy.restartShift(state)
         if ok then
@@ -485,6 +495,7 @@ function ShiftService.init(event, membershipRemotes)
             if state.upgradePurchased then
                 world.addUpgrade()
             end
+            world.setWarehousePurchased(state.warehousePurchased)
             world.setCashierHired(state.cashierHired)
             world.setStockerHired(state.stockerHired)
             world.setStockVisual(state.stock)

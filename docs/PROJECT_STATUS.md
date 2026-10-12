@@ -1,7 +1,7 @@
 # Project status — 2026-10-12
 
 ## Summary
-Phase 1 desktop first play and Phase 2 progression/persistence were reported passed by the user. Phases 3 and 4 first increments are implemented locally and are awaiting Studio verification. DataStore persistence is hard-limited to development universe `10770581249`; all other universes, including the future production universe, run session-only until explicitly configured.
+Phase 1 desktop first play and Phase 2 progression/persistence were reported passed by the user. Phase 7 now has its first increment implemented: a server-authoritative, persistent warehouse purchase. The Phase 3–7 increments are awaiting Studio verification. DataStore persistence is hard-limited to development universe `10770581249`; all other universes, including the future production universe, run session-only until explicitly configured.
 
 ## Completed and user-verified
 - Phase 1 desktop flow: cart, stocking visuals, visible checkout customer, sale, shift close, visible upgrade and compact HUD.
@@ -16,16 +16,19 @@ Phase 1 desktop first play and Phase 2 progression/persistence were reported pas
 - Phase 5 security increment validates saved schema versions as finite bounded integers and avoids exposing store cash/stock/sales to read-only visitors.
 - Phase 5 analytics increment sends first-shift milestones to Roblox AnalyticsService only in development universe `10770581249`. The API associates events with its required Player argument; the game sends no custom fields or game-owned player IDs. Funnel session IDs stay ephemeral; dashboard ingestion is unverified.
 - Phase 6 UI increment uses a collapsed top-center objective card on touch devices, a centered team panel sized to the viewport, and larger role controls. Device emulation is not yet verified.
+- Phase 7 warehouse increment adds a $200 purchase available at Complete, an exterior annex buildout, and per-player owned-upgrade persistence in profile schema v3. Owner/Manager authorization uses the existing server-side role, prompt-distance and rate-limit checks. Purchase/rejoin behavior is not yet verified in Studio.
 - DataStore calls are enabled only when `game.GameId` matches development universe `10770581249`. Other universes display session-only status and never write to that store.
 
-## Studio verification needed (G3/G4)
-Use a private development test experience in universe `10770581249` and two or more test accounts:
+## Studio verification needed (G3–G7)
+Use a private development test experience in universe `10770581249`; use two or more test accounts for multiplayer cases:
 1. With owner A in a store and player B joined, B opens **TEAM** and requests help. A sees the request.
 2. A approves B as Stocker. B can perform Stock while the shift is at Stock; B cannot use Checkout, close the shift, upgrade, or restart. Confirm the owner HUD/profile changes once.
 3. Try Cashier, Maintenance and Manager roles against their intended actions; remove one helper and verify prompts no longer work for that player. Try a third helper and confirm a fourth total player is accepted while a fifth is rejected.
 4. As owner A, earn at least $180 and hire from both staff boards: **HIRE A STOCKER $80** and **HIRE A CASHIER $100**. Confirm each hire charges once, appears in the store, and remains after leave/rejoin.
 5. Start another shift. The owner stops the cart; confirm the stock clerk stocks once and advances the objective. Confirm the cashier then serves once after four seconds and the shift advances. Also test a helper racing each automatic action.
 6. In a non-development copy/universe, confirm the HUD reports **SESSION ONLY** and no writes occur against the development profile store.
+7. With $200 or more and a completed shift, purchase the warehouse annex. Confirm exact charge, visible construction, and disabled purchase prompt. Try with insufficient funds, helper roles without permission, an unapproved visitor and duplicate/racing interactions; no invalid attempt may charge or build it.
+8. Leave and rejoin the development experience; confirm the warehouse remains and is not charged again. In a non-development universe, confirm the session-only fallback.
 
 ## Toolchain and checks
 - Rojo 7.7.0, Selene 0.32.0 and StyLua 2.5.0 are pinned in `rokit.toml`.
@@ -40,4 +43,4 @@ Use a private development test experience in universe `10770581249` and two or m
 5. Production universe ID, publishing and commerce are not configured. Development funnel ingestion and Creator Dashboard reporting remain unverified.
 
 ## Current gate
-**G0:** approved. **G1:** desktop first-shift accepted. **G2:** user reported tests passed. **G3/G4 and Phase 5/6 increments:** implemented; Studio/device verification pending. **Production:** disabled pending user-provided production universe ID and deployment approval.
+**G0:** approved. **G1:** desktop first-shift accepted. **G2:** user reported tests passed. **G3–G7 increments:** implemented; multiplayer, employee, analytics, touch and warehouse verification pending. **Production:** disabled pending user-provided production universe ID and deployment approval.

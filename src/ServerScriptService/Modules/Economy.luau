@@ -7,6 +7,7 @@ Economy.SHIFT_REWARD = 20
 Economy.UPGRADE_COST = 45
 Economy.CASHIER_COST = 100
 Economy.STOCKER_COST = 80
+Economy.WAREHOUSE_COST = 200
 Economy.STARTING_STOCK = 3
 
 function Economy.newState(profile)
@@ -21,6 +22,7 @@ function Economy.newState(profile)
         cartRecovered = savedShift.cartRecovered or false,
         shiftClosed = savedShift.shiftClosed or false,
         upgradePurchased = upgrades.shelfBay or false,
+        warehousePurchased = upgrades.warehouse or false,
         cashierHired = (profile.hiredEmployees and profile.hiredEmployees.cashier) or false,
         stockerHired = (profile.hiredEmployees and profile.hiredEmployees.stocker) or false,
     }
@@ -124,6 +126,18 @@ function Economy.hireStocker(state)
     state.cash -= Economy.STOCKER_COST
     state.stockerHired = true
     return true, "Stock clerk hired! They will restock Citrus Pop automatically."
+end
+
+function Economy.buyWarehouse(state)
+    if state.stage ~= "Complete" or state.warehousePurchased then
+        return false, "The warehouse expansion is not available right now."
+    end
+    if state.cash < Economy.WAREHOUSE_COST then
+        return false, string.format("You need $%d to expand into the warehouse.", Economy.WAREHOUSE_COST)
+    end
+    state.cash -= Economy.WAREHOUSE_COST
+    state.warehousePurchased = true
+    return true, "Warehouse annex purchased! Your retail empire is expanding."
 end
 
 return Economy
