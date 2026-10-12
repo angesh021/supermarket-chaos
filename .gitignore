@@ -1,0 +1,22 @@
+# Roblox Studio exports and local caches
+*.rbxl
+*.rbxlx
+*.rbxm
+*.rbxmx
+*.bak
+build/
+.rojo-cache/
+
+# Local configuration and credentials
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Editor / OS noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

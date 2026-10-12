@@ -1,0 +1,5 @@
+std = "roblox_custom"
+
+[lints]
+multiple_statements = "allow"
+unused_variable = "warn"

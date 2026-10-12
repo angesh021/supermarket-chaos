@@ -1,0 +1,478 @@
+local WorldBuilder = {}
+
+local COLORS = {
+    teal = Color3.fromRGB(22, 79, 82),
+    deepTeal = Color3.fromRGB(17, 57, 61),
+    cream = Color3.fromRGB(249, 239, 216),
+    warmWhite = Color3.fromRGB(255, 250, 235),
+    green = Color3.fromRGB(96, 157, 98),
+    coral = Color3.fromRGB(226, 119, 104),
+    gold = Color3.fromRGB(222, 177, 87),
+    wood = Color3.fromRGB(139, 93, 61),
+    gray = Color3.fromRGB(164, 172, 169),
+    blue = Color3.fromRGB(153, 202, 216),
+    road = Color3.fromRGB(55, 61, 63),
+}
+
+local function part(parent, name, size, cframe, color, material, transparency)
+    local item = Instance.new("Part")
+    item.Name = name
+    item.Anchored = true
+    item.Size = size
+    item.CFrame = cframe
+    item.Color = color
+    item.Material = material or Enum.Material.SmoothPlastic
+    item.TopSurface = Enum.SurfaceType.Smooth
+    item.BottomSurface = Enum.SurfaceType.Smooth
+    item.Transparency = transparency or 0
+    item.Parent = parent
+    return item
+end
+
+local function prompt(parent, action, object, key, distance)
+    local item = Instance.new("ProximityPrompt")
+    item.ActionText = action
+    item.ObjectText = object
+    item.KeyboardKeyCode = Enum.KeyCode.E
+    item.GamepadKeyCode = Enum.KeyCode.ButtonX
+    item.HoldDuration = 0
+    item.MaxActivationDistance = distance or 9
+    item.RequiresLineOfSight = false
+    item.ClickablePrompt = true
+    item:SetAttribute("ActionId", key)
+    item.Parent = parent
+    return item
+end
+
+local function label(parent, name, text, size, cframe, color, textColor)
+    local board = part(parent, name, size, cframe, color, Enum.Material.SmoothPlastic)
+    local surface = Instance.new("SurfaceGui")
+    -- Signage is mounted with its readable face toward the store approach (+Z).
+    surface.Face = Enum.NormalId.Back
+    surface.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+    surface.PixelsPerStud = 32
+    surface.Parent = board
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Size = UDim2.fromScale(1, 1)
+    textLabel.BackgroundTransparency = 1
+    textLabel.Text = text
+    textLabel.TextColor3 = textColor or COLORS.warmWhite
+    textLabel.Font = Enum.Font.GothamBold
+    textLabel.TextScaled = true
+    textLabel.Parent = surface
+    return board
+end
+
+local function createShelf(parent, name, x, z, width)
+    local shelf = Instance.new("Model")
+    shelf.Name = name
+    shelf.Parent = parent
+    local function fixture(partName, size, y, color, material)
+        return part(shelf, partName, size, CFrame.new(x, y, z), color, material)
+    end
+    fixture("Base", Vector3.new(width, 0.6, 2.2), 1.2, COLORS.wood, Enum.Material.Wood)
+    fixture("BackPanel", Vector3.new(width, 5.4, 0.35), 4.0, COLORS.cream)
+    for level = 1, 3 do
+        fixture(
+            "Shelf",
+            Vector3.new(width + 0.15, 0.22, 2.0),
+            1.9 + level * 1.3,
+            COLORS.warmWhite,
+            Enum.Material.Metal
+        )
+    end
+    for index = 1, 6 do
+        local productColor = ({ COLORS.coral, COLORS.green, COLORS.gold, COLORS.blue })[((index - 1) % 4) + 1]
+        local px = x - width / 2 + index * (width / 7)
+        for level = 1, 3 do
+            part(
+                shelf,
+                "Citrus Pop Package",
+                Vector3.new(0.48, 0.78, 0.58),
+                CFrame.new(px, 2.35 + level * 1.3, z - 0.54),
+                productColor
+            )
+        end
+    end
+    return shelf
+end
+
+local function createTree(parent, x, z)
+    part(
+        parent,
+        "Tree Trunk",
+        Vector3.new(1, 5, 1),
+        CFrame.new(x, 2.5, z),
+        COLORS.wood,
+        Enum.Material.Wood
+    )
+    local crown = part(
+        parent,
+        "Tree Crown",
+        Vector3.new(5.8, 5.8, 5.8),
+        CFrame.new(x, 6.5, z),
+        COLORS.green,
+        Enum.Material.Grass
+    )
+    crown.Shape = Enum.PartType.Ball
+end
+
+function WorldBuilder.build()
+    local previous = workspace:FindFirstChild("SupermarketChaosWorld")
+    if previous then
+        previous:Destroy()
+    end
+
+    local world = Instance.new("Folder")
+    world.Name = "SupermarketChaosWorld"
+    world.Parent = workspace
+    local exterior = Instance.new("Folder")
+    exterior.Name = "Exterior"
+    exterior.Parent = world
+    local interior = Instance.new("Folder")
+    interior.Name = "StoreInterior"
+    interior.Parent = world
+
+    -- A compact neighborhood block with a clear player approach to the entrance.
+    part(
+        exterior,
+        "Neighborhood Ground",
+        Vector3.new(180, 1, 150),
+        CFrame.new(0, -0.6, 2),
+        Color3.fromRGB(111, 145, 111),
+        Enum.Material.Grass
+    )
+    part(
+        exterior,
+        "Street",
+        Vector3.new(180, 0.2, 20),
+        CFrame.new(0, 0.02, 43),
+        COLORS.road,
+        Enum.Material.Asphalt
+    )
+    part(
+        exterior,
+        "Sidewalk",
+        Vector3.new(120, 0.35, 12),
+        CFrame.new(0, 0.18, 29),
+        COLORS.gray,
+        Enum.Material.Concrete
+    )
+    for x = -46, 46, 8 do
+        part(
+            exterior,
+            "Road Marking",
+            Vector3.new(4, 0.03, 0.22),
+            CFrame.new(x, 0.15, 43),
+            COLORS.gold,
+            Enum.Material.Neon
+        )
+    end
+
+    -- 44 x 36 storefront; entry opening remains visible from the parking approach.
+    part(
+        interior,
+        "Tile Floor",
+        Vector3.new(44, 0.45, 36),
+        CFrame.new(0, 0.24, -1),
+        COLORS.cream,
+        Enum.Material.Tile
+    )
+    part(interior, "Back Wall", Vector3.new(44, 12, 1), CFrame.new(0, 6, -19), COLORS.cream)
+    part(interior, "Left Wall", Vector3.new(1, 12, 36), CFrame.new(-22, 6, -1), COLORS.cream)
+    part(interior, "Right Wall", Vector3.new(1, 12, 36), CFrame.new(22, 6, -1), COLORS.cream)
+    part(interior, "Front Left Pier", Vector3.new(1, 12, 1), CFrame.new(-22, 6, 17), COLORS.cream)
+    part(interior, "Front Right Pier", Vector3.new(1, 12, 1), CFrame.new(22, 6, 17), COLORS.cream)
+    part(
+        interior,
+        "Front Left Window",
+        Vector3.new(13, 8, 0.35),
+        CFrame.new(-14.5, 5.4, 17),
+        COLORS.blue,
+        Enum.Material.Glass,
+        0.38
+    )
+    part(
+        interior,
+        "Front Right Window",
+        Vector3.new(13, 8, 0.35),
+        CFrame.new(14.5, 5.4, 17),
+        COLORS.blue,
+        Enum.Material.Glass,
+        0.38
+    )
+    part(interior, "Front Header", Vector3.new(44, 3, 1), CFrame.new(0, 10.5, 17), COLORS.teal)
+    part(exterior, "Teal Fascia", Vector3.new(47, 3.2, 1.4), CFrame.new(0, 10.3, 17.5), COLORS.teal)
+    label(
+        exterior,
+        "Store Sign",
+        "SUPERMARKET CHAOS",
+        Vector3.new(20, 2.1, 0.4),
+        CFrame.new(0, 10.35, 16.72),
+        COLORS.teal
+    )
+    part(exterior, "Entry Canopy", Vector3.new(21, 0.6, 6), CFrame.new(0, 9.3, 20.5), COLORS.coral)
+    part(
+        interior,
+        "Entrance Mat",
+        Vector3.new(13, 0.05, 5),
+        CFrame.new(0, 0.49, 13.6),
+        COLORS.green,
+        Enum.Material.Fabric
+    )
+    part(
+        interior,
+        "Checkout Zone",
+        Vector3.new(3, 0.1, 20),
+        CFrame.new(13, 0.54, 2),
+        COLORS.gold,
+        Enum.Material.SmoothPlastic,
+        0.45
+    )
+
+    -- Warm, high-visibility ceiling panels; point lights are sparse and non-shadow casting.
+    for x = -14, 14, 7 do
+        for z = -12, 6, 9 do
+            local panel = part(
+                interior,
+                "Warm Ceiling Panel",
+                Vector3.new(4.5, 0.18, 2),
+                CFrame.new(x, 11.7, z),
+                COLORS.warmWhite,
+                Enum.Material.Neon
+            )
+            if x == 0 and z == -3 then
+                local light = Instance.new("PointLight")
+                light.Color = Color3.fromRGB(255, 233, 190)
+                light.Brightness = 0.8
+                light.Range = 20
+                light.Shadows = false
+                light.Parent = panel
+            end
+        end
+    end
+
+    local shelf = createShelf(interior, "Citrus Pop Shelf", -10, -1, 6)
+    createShelf(interior, "Pantry Shelf", 0, -9, 6)
+    createShelf(interior, "Cold Drinks Display", 9, -10, 7)
+    part(
+        interior,
+        "Produce Counter",
+        Vector3.new(7, 2, 3),
+        CFrame.new(-13, 1.5, 8),
+        COLORS.wood,
+        Enum.Material.Wood
+    )
+    for index = 1, 5 do
+        local fruit = part(
+            interior,
+            "Fresh Produce",
+            Vector3.new(0.85, 0.75, 0.85),
+            CFrame.new(-15 + index, 2.85, 7.8),
+            ({ COLORS.coral, COLORS.green, COLORS.gold })[((index - 1) % 3) + 1],
+            Enum.Material.SmoothPlastic
+        )
+        fruit.Shape = Enum.PartType.Ball
+    end
+
+    -- Simple, recognizable checkout and a waiting customer silhouette.
+    local counter = part(
+        interior,
+        "Checkout Counter",
+        Vector3.new(8, 2.5, 3.5),
+        CFrame.new(14, 1.7, 8),
+        COLORS.wood,
+        Enum.Material.Wood
+    )
+    part(
+        interior,
+        "Checkout Countertop",
+        Vector3.new(8.3, 0.25, 3.8),
+        CFrame.new(14, 3.05, 8),
+        COLORS.warmWhite,
+        Enum.Material.Marble
+    )
+    part(
+        interior,
+        "Checkout Screen",
+        Vector3.new(1.5, 1.1, 0.3),
+        CFrame.new(14, 3.7, 6.8),
+        COLORS.teal
+    )
+    local customer = Instance.new("Model")
+    customer.Name = "Waiting Customer"
+    customer.Parent = interior
+    part(
+        customer,
+        "Customer Body",
+        Vector3.new(1.7, 2.7, 1.1),
+        CFrame.new(17.5, 1.8, 4),
+        COLORS.blue
+    )
+    local head = part(
+        customer,
+        "Customer Head",
+        Vector3.new(1.35, 1.35, 1.35),
+        CFrame.new(17.5, 3.8, 4),
+        Color3.fromRGB(237, 190, 153)
+    )
+    head.Shape = Enum.PartType.Ball
+
+    local register = prompt(counter, "Serve Customer", "Checkout", "Checkout", 9)
+    local stockPrompt = prompt(
+        shelf.PrimaryPart or shelf:FindFirstChild("Base"),
+        "Stock Shelf",
+        "Citrus Pop",
+        "Stock",
+        9
+    )
+    local shiftBoard = label(
+        interior,
+        "Shift Board",
+        "FIRST SHIFT",
+        Vector3.new(5, 3, 0.4),
+        CFrame.new(-17, 5, -18.35),
+        COLORS.teal
+    )
+    local closePrompt = prompt(shiftBoard, "Close Shift", "Shift Summary", "CloseShift", 9)
+    local upgradePad =
+        part(exterior, "Upgrade Pad", Vector3.new(5, 0.5, 5), CFrame.new(19, 0.5, 12), COLORS.gold)
+    local upgradePrompt = prompt(upgradePad, "Add Shelf Bay ($45)", "Store Upgrade", "Upgrade", 10)
+
+    -- A single anchored cart root is tweened only while the opening event is active.
+    local cart = Instance.new("Model")
+    cart.Name = "Runaway Shopping Cart"
+    cart.Parent = exterior
+    local root = part(
+        cart,
+        "Cart Root",
+        Vector3.new(2.8, 0.35, 3.8),
+        CFrame.new(-5, 1.3, 25),
+        COLORS.gray,
+        Enum.Material.Metal
+    )
+    root.CanCollide = false
+    cart.PrimaryPart = root
+    for _, definition in ipairs({
+        { "Basket Front", Vector3.new(2.5, 1.5, 0.2), CFrame.new(-5, 2.1, 23.2) },
+        { "Basket Back", Vector3.new(2.5, 1.5, 0.2), CFrame.new(-5, 2.1, 26.8) },
+        { "Basket Left", Vector3.new(0.2, 1.5, 3.4), CFrame.new(-6.25, 2.1, 25) },
+        { "Basket Right", Vector3.new(0.2, 1.5, 3.4), CFrame.new(-3.75, 2.1, 25) },
+        { "Handle", Vector3.new(2.4, 0.25, 0.25), CFrame.new(-5, 2.9, 27.8) },
+    }) do
+        local piece = part(
+            cart,
+            definition[1],
+            definition[2],
+            definition[3],
+            COLORS.gray,
+            Enum.Material.Metal
+        )
+        piece.CanCollide = false
+        local weld = Instance.new("WeldConstraint")
+        weld.Part0 = root
+        weld.Part1 = piece
+        weld.Parent = root
+        piece.Anchored = false
+    end
+    for _, x in ipairs({ -6, -4 }) do
+        for _, z in ipairs({ 23.7, 26.3 }) do
+            local wheel = part(
+                cart,
+                "Cart Wheel",
+                Vector3.new(0.65, 0.65, 0.25),
+                CFrame.new(x, 0.65, z),
+                COLORS.deepTeal,
+                Enum.Material.SmoothPlastic
+            )
+            wheel.CanCollide = false
+            wheel.Shape = Enum.PartType.Cylinder
+            local weld = Instance.new("WeldConstraint")
+            weld.Part0 = root
+            weld.Part1 = wheel
+            weld.Parent = root
+            wheel.Anchored = false
+        end
+    end
+    local cartPrompt = prompt(root, "Stop Runaway Cart", "Shopping Cart", "Cart", 10)
+    local cartTween
+
+    for _, x in ipairs({ -31, 31 }) do
+        createTree(exterior, x, 23)
+        createTree(exterior, x + (x < 0 and -12 or 12), -5)
+    end
+    for _, x in ipairs({ -8, 8 }) do
+        local planter = part(
+            exterior,
+            "Entry Planter",
+            Vector3.new(3, 0.9, 3),
+            CFrame.new(x, 0.8, 23),
+            COLORS.wood,
+            Enum.Material.Wood
+        )
+        local leaves = part(
+            exterior,
+            "Planter Greens",
+            Vector3.new(2.5, 1.7, 2.5),
+            CFrame.new(x, 2.0, 23),
+            COLORS.green,
+            Enum.Material.Grass
+        )
+        leaves.Shape = Enum.PartType.Ball
+        planter:SetAttribute("Decorative", true)
+    end
+    part(
+        exterior,
+        "Future Business Plot",
+        Vector3.new(24, 0.2, 26),
+        CFrame.new(59, 0.05, -3),
+        COLORS.gray,
+        Enum.Material.Concrete
+    )
+    label(
+        exterior,
+        "Future Plot Sign",
+        "COMING SOON",
+        Vector3.new(10, 3, 0.5),
+        CFrame.new(59, 2.5, 10),
+        COLORS.teal
+    )
+
+    local lighting = game:GetService("Lighting")
+    lighting.ClockTime = 14
+    lighting.Brightness = 2.3
+    lighting.Ambient = Color3.fromRGB(150, 157, 152)
+    lighting.OutdoorAmbient = Color3.fromRGB(173, 182, 165)
+    workspace.Gravity = 196.2
+
+    return {
+        root = world,
+        cartPrompt = cartPrompt,
+        cartModel = cart,
+        cartTween = function()
+            return cartTween
+        end,
+        setCartTween = function(value)
+            cartTween = value
+        end,
+        stockPrompt = stockPrompt,
+        registerPrompt = register,
+        closePrompt = closePrompt,
+        upgradePrompt = upgradePrompt,
+        addUpgrade = function()
+            local newShelf = createShelf(interior, "Purchased Shelf Bay", -10, -7, 6)
+            newShelf:SetAttribute("PlayerPurchased", true)
+            local sign = label(
+                interior,
+                "New Department Sign",
+                "MORE TO CHOOSE",
+                Vector3.new(8, 1.2, 0.35),
+                CFrame.new(-10, 7.8, -4.2),
+                COLORS.green
+            )
+            sign:SetAttribute("PlayerPurchased", true)
+        end,
+    }
+end
+
+return WorldBuilder

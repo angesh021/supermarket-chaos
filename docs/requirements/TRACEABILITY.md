@@ -1,0 +1,16 @@
+# Requirements traceability
+
+| ID | Requirement | Design artifact | Verification | State |
+|---|---|---|---|---|
+| FR-01 | First-session cart interaction and immediate reward | `design/FIRST_SESSION.md` | Solo Studio test; duplicate reward and skip/resume cases | Implemented; Studio pending |
+| FR-02 | Stock fictional product and serve customer | `design/GAME_DESIGN.md` | Stock/serve loop test with feedback | Implemented; Studio pending |
+| FR-03 | Complete checkout sale | `architecture/ARCHITECTURE.md` | Server transaction and client feedback test | Implemented; Studio pending |
+| FR-04 | Complete one shift and chaos event | `design/GAME_DESIGN.md` | Start/event/summary/end state test | Implemented; Studio pending |
+| FR-05 | Buy visible first upgrade | `requirements/PRODUCT_REQUIREMENTS.md` | Eligibility, balance, replay and world-change test | Implemented; Studio pending |
+| FR-06 | Server authority and request validation | `security/THREAT_MODEL.md` | Forgery, ownership, flood, replay tests | Planned |
+| NFR-01 | Usable desktop and touch UI | `design/VISUAL_DESIGN_BIBLE.md` | Studio device emulation/manual mobile test | HUD/prompt scaffold; Studio pending |
+| NFR-02 | Cohesive, readable small supermarket | `design/VISUAL_DESIGN_BIBLE.md` | Art gate in gameplay camera/screenshots | Procedural blockout; visual gate pending |
+| NFR-03 | Recoverable versioned progression | `architecture/ARCHITECTURE.md` | Failure, migration, save/reload tests | Planned |
+| OPS-01 | Reproducible local setup and quality checks | `operations/BEGINNER_SETUP.md`, `operations/QUALITY.md` | Fresh setup and CI run | In progress |
+
+No requirement is marked verified until the documented check is actually run and its evidence is recorded.

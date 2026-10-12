@@ -1,0 +1,33 @@
+name: roblox
+base: lua51
+lua_versions:
+  - luau
+globals:
+  CFrame:
+    any: true
+  Color3:
+    any: true
+  Enum:
+    any: true
+  Instance:
+    any: true
+  UDim:
+    any: true
+  UDim2:
+    any: true
+  TweenInfo:
+    any: true
+  Vector2:
+    any: true
+  Vector3:
+    any: true
+  game:
+    any: true
+  script:
+    any: true
+  task:
+    any: true
+  typeof:
+    any: true
+  workspace:
+    any: true
