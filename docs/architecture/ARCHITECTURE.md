@@ -162,6 +162,11 @@ Currency and stock changes occur only after server-side validation. Transactions
 
 ## Open technical decisions
 See `docs/decisions/README.md` for accepted ownership policy. Remaining decisions include multi-store/guest permissions, production Studio place configuration, analytics implementation/privacy review, and any changes to persistence recovery. Verify platform APIs against official documentation when implementation starts.
+
+## Phase 44 online grocery packing
+- `Economy.getNextOnlineOrder` derives a bounded four-order rotation from the saved fulfilled-order count. The server selects item IDs and quantities, reads current server prices, and checks warehouse backstock; clients supply no basket, price or quantity.
+- `Economy.fulfillOnlineOrder` is a single between-shifts transaction. It rechecks warehouse ownership, stage and all stock before deducting units and crediting the computed total. Manager and Stocker prompts share the normal proximity, rate, owner and profile-save gates, plus the transaction lock.
+- Profile schema v27 persists only the bounded fulfilled-order counter; orders are regenerated from that counter on load. Warehouse board text contains display-only item names, amounts and readiness.
 # Cooperative ownership and cashier extension
 - One owner profile remains the persistence boundary. Per-server membership grants temporary action permissions but does not load a guest's profile into the owner's economy.
 - Server role map: Owner (all), Manager (all shift actions including staff hiring), Cashier (checkout), Stocker (stock), Maintenance (cart recovery).

@@ -6,7 +6,7 @@ local ProfileService = {}
 local LayoutService = require(script.Parent.LayoutService)
 local RetailLayoutService = require(script.Parent.RetailLayoutService)
 
-local SCHEMA_VERSION = 26
+local SCHEMA_VERSION = 27
 local SESSION_LEASE_SECONDS = 180
 local MAX_RETRIES = 3
 local STORE_NAME = "SupermarketChaos_PlayerProfiles_v1"
@@ -92,6 +92,7 @@ local function defaultProfile()
         completedShifts = 0,
         customerSatisfaction = 75,
         lifetimeSales = 0,
+        onlineOrdersFulfilled = 0,
     }
 end
 
@@ -144,6 +145,7 @@ local function normalizeProfile(value)
         not validCounter(value.balance)
         or not validCounter(value.completedShifts)
         or not validCounter(value.lifetimeSales)
+        or not validCounter(value.onlineOrdersFulfilled)
     then
         return nil, "Stored profile contains an invalid counter."
     end
@@ -151,6 +153,7 @@ local function normalizeProfile(value)
     profile.balance = nonNegativeInteger(value.balance, 0)
     profile.completedShifts = nonNegativeInteger(value.completedShifts, 0)
     profile.lifetimeSales = nonNegativeInteger(value.lifetimeSales, 0)
+    profile.onlineOrdersFulfilled = nonNegativeInteger(value.onlineOrdersFulfilled, 0)
     if
         value.customerSatisfaction ~= nil
         and (
@@ -617,6 +620,7 @@ local function copyProfile(profile)
         completedShifts = profile.completedShifts,
         customerSatisfaction = profile.customerSatisfaction,
         lifetimeSales = profile.lifetimeSales,
+        onlineOrdersFulfilled = profile.onlineOrdersFulfilled,
     }
     for index, item in ipairs(profile.warehouseLayout.items) do
         copy.warehouseLayout.items[index] = {
@@ -831,6 +835,7 @@ function ProfileService.saveProgress(player, state, eventName)
     end
     local profile = entry.profile
     profile.balance = state.cash
+    profile.onlineOrdersFulfilled = state.onlineOrdersFulfilled or 0
     profile.shift.stage = state.stage
     profile.shift.stock = state.stock
     profile.shift.berryStock = state.berryStock

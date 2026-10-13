@@ -2340,6 +2340,33 @@ function WorldBuilder.build()
     local cerealDeliveryOrderPrompt
     local cinnamonTwistDeliveryOrderPrompt
     local frozenMealDeliveryOrderPrompt
+    local onlineOrderBoardLabel
+    local onlineOrderBoardSurface
+    local onlineOrderPrompt
+    local onlineOrderReady = false
+    local onlineOrderBoard = label(
+        exterior,
+        "Online Order Packing Board",
+        "ONLINE ORDER #1\nCITRUS POP x1  •  BERRY BITES x1  •  GOLDEN APPLES x1\nPACK VALUE $55",
+        Vector3.new(6, 2.8, 0.4),
+        CFrame.new(65.2, 3.2, -8.8),
+        COLORS.teal,
+        COLORS.warmWhite
+    )
+    onlineOrderBoard.Transparency = 1
+    onlineOrderBoardSurface = onlineOrderBoard:FindFirstChildOfClass("SurfaceGui")
+    if onlineOrderBoardSurface then
+        onlineOrderBoardSurface.Enabled = false
+        onlineOrderBoardLabel = onlineOrderBoardSurface:FindFirstChildOfClass("TextLabel")
+    end
+    onlineOrderPrompt = prompt(
+        onlineOrderBoard,
+        "Pack Online Order",
+        "Delivery Packing Station",
+        "FulfillOnlineOrder",
+        10
+    )
+    onlineOrderPrompt.Enabled = false
     local deliveryProductId = "citrusPop"
     local deliveryReadyAt = 0
     local deliveryQuantity = 0
@@ -2581,6 +2608,12 @@ function WorldBuilder.build()
         layoutFixtureFolder = Instance.new("Folder")
         layoutFixtureFolder.Name = "Custom Warehouse Fixtures"
         layoutFixtureFolder.Parent = warehouseModel
+        onlineOrderBoard.Parent = warehouseModel
+        onlineOrderBoard.CFrame = CFrame.new(center + Vector3.new(6.2, 3.2, -6.8))
+        onlineOrderBoard.Transparency = 0
+        if onlineOrderBoardSurface then
+            onlineOrderBoardSurface.Enabled = true
+        end
         warehousePrompt.Enabled = false
     end
 
@@ -2867,6 +2900,11 @@ function WorldBuilder.build()
         spillPrompt.Enabled = stage == "Spill"
         powerPrompt.Enabled = stage == "PowerOutage"
         layoutPrompt.Enabled = warehousePurchased and stage == "Complete"
+        if onlineOrderPrompt then
+            onlineOrderPrompt.Enabled = warehousePurchased
+                and stage == "Complete"
+                and onlineOrderReady
+        end
         retailLayoutPrompt.Enabled = stage == "Complete"
         upgradePrompt.Enabled = stage == "Upgrade"
         aisleExpansionPrompt.Enabled = stage == "Complete"
@@ -3473,6 +3511,31 @@ function WorldBuilder.build()
                 addWarehouse()
             else
                 warehousePrompt.Enabled = currentStage == "Complete"
+            end
+        end,
+        onlineOrderPrompt = function()
+            return onlineOrderPrompt
+        end,
+        setOnlineOrderState = function(order)
+            if not order or not onlineOrderBoardLabel then
+                return
+            end
+            onlineOrderReady = order.ready == true
+            local lines = {}
+            for _, item in ipairs(order.items or {}) do
+                table.insert(lines, string.format("%s x%d", item.displayName, item.quantity))
+            end
+            onlineOrderBoardLabel.Text = string.format(
+                "ONLINE ORDER #%d\n%s\n%s  •  PACK VALUE $%d",
+                order.number or 1,
+                table.concat(lines, "  •  "),
+                order.ready and "READY TO PACK" or "BACKROOM STOCK NEEDED",
+                order.total or 0
+            )
+            if onlineOrderPrompt then
+                onlineOrderPrompt.Enabled = warehousePurchased
+                    and currentStage == "Complete"
+                    and order.ready == true
             end
         end,
     }

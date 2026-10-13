@@ -50,5 +50,6 @@
 | [Automatic entrance door verification](operations/PHASE41_AUTOMATIC_ENTRANCE_DOORS.md) | Player/customer door triggers, tween timing and passable failure behavior |
 | [Layout remote hardening verification](operations/PHASE42_LAYOUT_REMOTE_HARDENING.md) | Bounded layout payloads, malformed request throttling and valid edit behavior |
 | [Self-checkout verification](operations/PHASE43_SELF_CHECKOUT.md) | Persistent second checkout, deterministic lane routing and shared sale authority |
+| [Online grocery order verification](operations/PHASE44_ONLINE_GROCERY_ORDERS.md) | Warehouse packing board, deterministic orders and backstock fulfillment |
 
 Keep this index and linked documents current as implementation changes. See [AGENTS.md](../AGENTS.md) for repository rules.

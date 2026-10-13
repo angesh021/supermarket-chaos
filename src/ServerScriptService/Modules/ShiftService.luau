@@ -54,6 +54,7 @@ local ROLE_ACTIONS = {
         BuildBakery = true,
         BuildFreezer = true,
         BuildSelfCheckout = true,
+        FulfillOnlineOrder = true,
         SelfCheckout = true,
         EditLayout = true,
         EditRetailLayout = true,
@@ -86,6 +87,7 @@ local ROLE_ACTIONS = {
         StockSunriseCereal = true,
         StockCinnamonTwists = true,
         StockFrozenMeals = true,
+        FulfillOnlineOrder = true,
     },
     Maintenance = { Cart = true, Spill = true, RestorePower = true },
 }
@@ -716,6 +718,7 @@ function ShiftService.init(event, membershipRemotes)
             Economy.getRemainingCustomers(state),
             Economy.getCustomerTarget(state)
         )
+        world.setOnlineOrderState(Economy.getNextOnlineOrder(state))
         broadcast()
         scheduleStocker()
         scheduleCashierSale()
@@ -1095,6 +1098,20 @@ function ShiftService.init(event, membershipRemotes)
             )
             commit("deliveryReceived")
         end
+        broadcast(message)
+    end)
+
+    bind("FulfillOnlineOrder", world.onlineOrderPrompt(), 12, function()
+        if saleTransactionInProgress then
+            broadcast("A store transaction is saving. Try packing the order again shortly.")
+            return
+        end
+        saleTransactionInProgress = true
+        local ok, message = Economy.fulfillOnlineOrder(state)
+        if ok then
+            commit("onlineOrderFulfilled")
+        end
+        saleTransactionInProgress = false
         broadcast(message)
     end)
 
@@ -1595,6 +1612,7 @@ function ShiftService.init(event, membershipRemotes)
                 state.shipmentQuantity,
                 state.shipmentProductId
             )
+            world.setOnlineOrderState(Economy.getNextOnlineOrder(state))
             world.setCashierHired(state.cashierHired)
             world.setStockerHired(state.stockerHired)
             world.setCleanerHired(state.cleanerHired)

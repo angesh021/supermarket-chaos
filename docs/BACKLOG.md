@@ -55,6 +55,8 @@ G0 was approved on 2026-10-12. The user authorized continued phase implementatio
 - [x] Phase 41: animate the storefront's automatic glass entrance doors for player and scripted customer traffic; see `operations/PHASE41_AUTOMATIC_ENTRANCE_DOORS.md`.
 - [x] Phase 42 security increment: throttle malformed layout remotes before replies and allow only action-specific bounded request fields; see `operations/PHASE42_LAYOUT_REMOTE_HARDENING.md`.
 - [x] Phase 43 Stage 3 increment: add a persistent second self-checkout terminal with deterministic customer lane assignment and shared server-priced sales; see `operations/PHASE43_SELF_CHECKOUT.md`.
+- [x] Phase 44 Stage 3 increment: add a persistent server-priced grocery order packing station using validated warehouse backstock; see `operations/PHASE44_ONLINE_GROCERY_ORDERS.md`.
+- [ ] Studio verification of order rotation, stock deduction, payout, role checks, v26-to-v27 migration and save/rejoin; see `operations/PHASE44_ONLINE_GROCERY_ORDERS.md`.
 - [ ] Studio verification of satisfaction thresholds, patience timing, event pauses, cashier parity and rejoin; see `operations/PHASE38_LOYALTY_AND_PATIENCE.md`.
 - [x] Phase 33: score customer satisfaction from preference fulfillment/price tiers and expose the bounded rating in the HUD; see `operations/PHASE33_CUSTOMER_SATISFACTION.md`.
 - [ ] Studio verification of cleaner hire/migration, save/rejoin, automatic cleanup and player/employee races.

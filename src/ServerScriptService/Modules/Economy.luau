@@ -18,6 +18,12 @@ Economy.FLOOR_EXPANSION_COST = 500
 Economy.BAKERY_DEPARTMENT_COST = 350
 Economy.FREEZER_DEPARTMENT_COST = 400
 Economy.SELF_CHECKOUT_COST = 300
+Economy.ONLINE_ORDER_PRODUCTS = {
+    { "citrusPop", "berryBites", "goldenApples" },
+    { "sunriseCereal", "citrusPop", "goldenApples" },
+    { "berryBites", "sunriseCereal", "citrusPop" },
+    { "goldenApples", "berryBites", "sunriseCereal" },
+}
 Economy.MARKET_STYLE_PRESETS = {
     coastal = { name = "Coastal Market", cost = 180 },
     urban = { name = "City Grocer", cost = 180 },
@@ -234,7 +240,74 @@ function Economy.newState(profile, playerSeed)
         shipmentProductId = shipmentQuantity > 0
                 and (Economy.PRODUCTS[warehouseInventory.shipmentProductId] and warehouseInventory.shipmentProductId or "citrusPop")
             or "",
+        onlineOrdersFulfilled = profile.onlineOrdersFulfilled or 0,
     }
+end
+
+function Economy.getNextOnlineOrder(state)
+    local sequence = (state.onlineOrdersFulfilled or 0) % #Economy.ONLINE_ORDER_PRODUCTS + 1
+    local items = {}
+    local total = 0
+    local backstockByProduct = {
+        citrusPop = state.backstock,
+        berryBites = state.berryBackstock,
+        goldenApples = state.goldenAppleBackstock,
+        sunriseCereal = state.cerealBackstock,
+    }
+    local ready = state.warehousePurchased == true
+    for _, productId in ipairs(Economy.ONLINE_ORDER_PRODUCTS[sequence]) do
+        local product = Economy.PRODUCTS[productId]
+        local quantity = 1
+        local unitPrice = Economy.getProductPrice(state, productId)
+        table.insert(items, {
+            productId = productId,
+            displayName = product.displayName,
+            quantity = quantity,
+            unitPrice = unitPrice,
+            available = backstockByProduct[productId] or 0,
+        })
+        total += quantity * unitPrice
+        if (backstockByProduct[productId] or 0) < quantity then
+            ready = false
+        end
+    end
+    return {
+        number = (state.onlineOrdersFulfilled or 0) + 1,
+        items = items,
+        total = total,
+        ready = ready,
+    }
+end
+
+function Economy.fulfillOnlineOrder(state)
+    if not state.warehousePurchased then
+        return false, "Build the warehouse before preparing online orders."
+    end
+    if state.stage ~= "Complete" then
+        return false, "Prepare online orders between shifts."
+    end
+    if (state.onlineOrdersFulfilled or 0) >= 1000000000 then
+        return false, "The online order history has reached its supported limit."
+    end
+    local order = Economy.getNextOnlineOrder(state)
+    if not order.ready then
+        return false, "The order needs more backroom stock. Replenish the missing products first."
+    end
+    for _, item in ipairs(order.items) do
+        if item.productId == "citrusPop" then
+            state.backstock -= item.quantity
+        elseif item.productId == "berryBites" then
+            state.berryBackstock -= item.quantity
+        elseif item.productId == "goldenApples" then
+            state.goldenAppleBackstock -= item.quantity
+        elseif item.productId == "sunriseCereal" then
+            state.cerealBackstock -= item.quantity
+        end
+    end
+    state.cash += order.total
+    state.onlineOrdersFulfilled = order.number
+    return true,
+        string.format("Online order #%d packed for delivery. +$%d.", order.number, order.total)
 end
 
 function Economy.getProductPrice(state, productId)

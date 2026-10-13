@@ -249,6 +249,11 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Consequences:** Profile schema v26 stores one validated purchase flag; client lane choice and transaction authority are not introduced.
 - **Verification:** See `docs/operations/PHASE43_SELF_CHECKOUT.md`.
 
+## ADR-0042: Add server-owned online grocery order packing
+- **Decision:** Generate one deterministic order at a time from a fixed rotation and fulfill it at the warehouse between shifts using current server prices and backstock.
+- **Consequences:** Profile schema v27 stores only the fulfilled-order counter; clients cannot choose order contents, quantities or payout.
+- **Verification:** See `docs/operations/PHASE44_ONLINE_GROCERY_ORDERS.md`.
+
 ## ADR-0009 — Keep product inventory and supplier orders SKU-specific
 - **Status:** Accepted — 2026-10-12.
 - **Context:** The retail loop needs visible department variety and product-specific stock behavior while keeping stock and money authoritative.
