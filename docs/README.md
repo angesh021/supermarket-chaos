@@ -45,5 +45,7 @@
 | [Bakery department verification](operations/PHASE36_BAKERY_DEPARTMENT.md) | Bakery construction, Cinnamon Twists inventory, delivery, pricing and migration |
 | [Product substitution verification](operations/PHASE37_PRODUCT_SUBSTITUTION.md) | Related SKU substitution, actual-item routing, pricing, stock and satisfaction |
 | [Loyalty and patience verification](operations/PHASE38_LOYALTY_AND_PATIENCE.md) | High-satisfaction regulars and server-measured checkout patience |
+| [Storefront palette choices](operations/PHASE39_STOREFRONT_PALETTE_CHOICES.md) | Three server-defined previewable and persistent exterior palettes |
+| [Freezer department verification](operations/PHASE40_FREEZER_DEPARTMENT.md) | Freezer construction, SKU inventory, shipments, pricing, baskets and migration |
 
 Keep this index and linked documents current as implementation changes. See [AGENTS.md](../AGENTS.md) for repository rules.

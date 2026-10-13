@@ -68,7 +68,8 @@ local function canPlace(
     rotation,
     excludedProductId,
     expansionPurchased,
-    bakeryPurchased
+    bakeryPurchased,
+    freezerPurchased
 )
     if not RetailLayoutService.isProductId(productId) then
         return false, "Choose one of the four installed product departments."
@@ -92,6 +93,15 @@ local function canPlace(
         and z + halfZ > -31.5
     then
         return false, "Keep the bakery display and counter clear."
+    end
+    if
+        freezerPurchased == true
+        and x - halfX < 10.2
+        and x + halfX > 1.8
+        and z - halfZ < -25.2
+        and z + halfZ > -32.8
+    then
+        return false, "Keep the freezer cases and aisle clear."
     end
 
     -- Fixed expansion bays occupy these reserved positions regardless of purchase state.
@@ -207,7 +217,7 @@ function RetailLayoutService.default()
     }
 end
 
-function RetailLayoutService.normalize(value, expansionPurchased, bakeryPurchased)
+function RetailLayoutService.normalize(value, expansionPurchased, bakeryPurchased, freezerPurchased)
     if value == nil then
         return RetailLayoutService.default()
     end
@@ -255,7 +265,8 @@ function RetailLayoutService.normalize(value, expansionPurchased, bakeryPurchase
             shelf.rotation,
             productId,
             expansionPurchased,
-            bakeryPurchased
+            bakeryPurchased,
+            freezerPurchased
         )
         if not valid then
             return nil, reason
@@ -291,7 +302,8 @@ function RetailLayoutService.normalize(value, expansionPurchased, bakeryPurchase
             shelf.rotation,
             normalized.checkout,
             expansionPurchased,
-            bakeryPurchased
+            bakeryPurchased,
+            freezerPurchased
         )
         if not shelfValid then
             return nil, shelfReason
@@ -308,10 +320,20 @@ function RetailLayoutService.canPlace(
     rotation,
     checkout,
     expansionPurchased,
-    bakeryPurchased
+    bakeryPurchased,
+    freezerPurchased
 )
-    local valid, reason =
-        canPlace(shelves, productId, x, z, rotation, productId, expansionPurchased, bakeryPurchased)
+    local valid, reason = canPlace(
+        shelves,
+        productId,
+        x,
+        z,
+        rotation,
+        productId,
+        expansionPurchased,
+        bakeryPurchased,
+        freezerPurchased
+    )
     if not valid then
         return false, reason
     end

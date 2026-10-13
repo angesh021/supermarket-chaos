@@ -16,6 +16,7 @@ Economy.MARKET_STYLE_COST = 180
 Economy.AISLE_EXPANSION_COST = 220
 Economy.FLOOR_EXPANSION_COST = 500
 Economy.BAKERY_DEPARTMENT_COST = 350
+Economy.FREEZER_DEPARTMENT_COST = 400
 Economy.MARKET_STYLE_PRESETS = {
     coastal = { name = "Coastal Market", cost = 180 },
     urban = { name = "City Grocer", cost = 180 },
@@ -44,6 +45,8 @@ Economy.SUNRISE_CEREAL_STOCK_PER_RESTOCK = 3
 Economy.SUNRISE_CEREAL_SHELF_CAPACITY = 24
 Economy.CINNAMON_TWISTS_STOCK_PER_RESTOCK = 3
 Economy.CINNAMON_TWISTS_SHELF_CAPACITY = 24
+Economy.FROZEN_MEALS_STOCK_PER_RESTOCK = 3
+Economy.FROZEN_MEALS_SHELF_CAPACITY = 24
 Economy.POWER_OUTAGE_DURATION = 30
 Economy.CUSTOMER_RUSH_DURATION = 60
 Economy.CUSTOMER_RUSH_EXTRA_CUSTOMERS = 2
@@ -82,6 +85,13 @@ Economy.PRODUCTS = {
         deliveryCost = 50,
         deliveryQuantity = 18,
     },
+    frozenMeals = {
+        displayName = "Freezer Meals",
+        salePrice = 22,
+        priceOptions = { 18, 22, 28 },
+        deliveryCost = 55,
+        deliveryQuantity = 18,
+    },
 }
 
 -- Ordered, server-owned substitutes. Customer demand never accepts a client SKU.
@@ -91,6 +101,7 @@ local PRODUCT_SUBSTITUTES = {
     goldenApples = { "sunriseCereal" },
     sunriseCereal = { "goldenApples" },
     cinnamonTwists = { "berryBites", "sunriseCereal" },
+    frozenMeals = { "sunriseCereal", "cinnamonTwists" },
 }
 
 Economy.CHAOS_EVENTS = {
@@ -165,6 +176,7 @@ function Economy.newState(profile, playerSeed)
         goldenAppleStock = savedShift.goldenAppleStock or 0,
         cerealStock = savedShift.cerealStock or 0,
         cinnamonTwistStock = savedShift.cinnamonTwistStock or 0,
+        frozenMealStock = savedShift.frozenMealStock or 0,
         sales = savedShift.sales or 0,
         completedShifts = completedShifts,
         playerSeed = playerSeed or 0,
@@ -180,11 +192,13 @@ function Economy.newState(profile, playerSeed)
         aisleExpansionPurchased = upgrades.aisleExpansion or false,
         floorExpansionPurchased = upgrades.floorExpansion or false,
         bakeryPurchased = upgrades.bakery or false,
+        freezerPurchased = upgrades.freezer or false,
         warehouseLayout = warehouseLayout,
         retailLayout = RetailLayoutService.normalize(
             profile.retailLayout,
             upgrades.floorExpansion == true,
-            upgrades.bakery == true
+            upgrades.bakery == true,
+            upgrades.freezer == true
         ) or RetailLayoutService.default(),
         cashierHired = (profile.hiredEmployees and profile.hiredEmployees.cashier) or false,
         stockerHired = (profile.hiredEmployees and profile.hiredEmployees.stocker) or false,
@@ -203,6 +217,7 @@ function Economy.newState(profile, playerSeed)
         goldenAppleBackstock = warehouseInventory.goldenApples or (upgrades.warehouse and 6 or 0),
         cerealBackstock = warehouseInventory.sunriseCereal or (upgrades.warehouse and 6 or 0),
         cinnamonTwistBackstock = warehouseInventory.cinnamonTwists or (upgrades.bakery and 6 or 0),
+        frozenMealBackstock = warehouseInventory.frozenMeals or (upgrades.freezer and 6 or 0),
         productPrices = {
             citrusPop = savedPrices.citrusPop or Economy.PRODUCTS.citrusPop.salePrice,
             berryBites = savedPrices.berryBites or Economy.PRODUCTS.berryBites.salePrice,
@@ -210,6 +225,7 @@ function Economy.newState(profile, playerSeed)
             sunriseCereal = savedPrices.sunriseCereal or Economy.PRODUCTS.sunriseCereal.salePrice,
             cinnamonTwists = savedPrices.cinnamonTwists
                 or Economy.PRODUCTS.cinnamonTwists.salePrice,
+            frozenMeals = savedPrices.frozenMeals or Economy.PRODUCTS.frozenMeals.salePrice,
         },
         shipmentReadyAt = warehouseInventory.shipmentReadyAt or 0,
         shipmentQuantity = shipmentQuantity,
@@ -245,9 +261,15 @@ function Economy.cycleProductPrice(state, productId)
     if state.stage == "Loading" or state.stage == "OwnerOffline" then
         return false, "Wait until the store is ready before changing prices."
     end
+    if productId == "cinnamonTwists" and not state.bakeryPurchased then
+        return false, "Build the bakery before changing Cinnamon Twists prices."
+    end
+    if productId == "frozenMeals" and not state.freezerPurchased then
+        return false, "Build the freezer section before changing Freezer Meals prices."
+    end
     local lowPrice = math.max(1, math.floor(product.salePrice * 0.8))
     local highPrice = math.ceil(product.salePrice * 1.25)
-    local options = { lowPrice, product.salePrice, highPrice }
+    local options = product.priceOptions or { lowPrice, product.salePrice, highPrice }
     local currentPrice = Economy.getProductPrice(state, productId)
     local currentIndex = 2
     for index, option in ipairs(options) do
@@ -427,6 +449,36 @@ function Economy.stockCinnamonTwists(state)
     return true, "Fresh Cinnamon Twists stocked in the bakery."
 end
 
+function Economy.stockFrozenMeals(state)
+    if
+        state.stage == "Cart"
+        or state.stage == "Upgrade"
+        or state.stage == "Loading"
+        or state.stage == "OwnerOffline"
+        or state.stage == "PowerOutage"
+        or state.stage == "Spill"
+        or state.stage == "CloseShift"
+        or state.stage == "Complete"
+    then
+        return false, "Wait until store operations are underway before stocking Freezer Meals."
+    end
+    if not state.freezerPurchased then
+        return false, "Build the freezer section before stocking Freezer Meals."
+    end
+    if state.frozenMealBackstock < Economy.FROZEN_MEALS_STOCK_PER_RESTOCK then
+        return false, "The backroom is out of Freezer Meals. Order a freezer delivery."
+    end
+    if
+        state.frozenMealStock + Economy.FROZEN_MEALS_STOCK_PER_RESTOCK
+        > Economy.FROZEN_MEALS_SHELF_CAPACITY
+    then
+        return false, "The freezer display is full."
+    end
+    state.frozenMealBackstock -= Economy.FROZEN_MEALS_STOCK_PER_RESTOCK
+    state.frozenMealStock += Economy.FROZEN_MEALS_STOCK_PER_RESTOCK
+    return true, "Freezer Meals stocked in the freezer section."
+end
+
 function Economy.orderDelivery(state, now, productId)
     productId = productId or "citrusPop"
     local product = Economy.PRODUCTS[productId]
@@ -439,6 +491,9 @@ function Economy.orderDelivery(state, now, productId)
     if productId == "cinnamonTwists" and not state.bakeryPurchased then
         return false, "Build the bakery before ordering Cinnamon Twists."
     end
+    if productId == "frozenMeals" and not state.freezerPurchased then
+        return false, "Build the freezer section before ordering Freezer Meals."
+    end
     if state.shipmentQuantity > 0 or state.shipmentReadyAt > 0 then
         return false, "A delivery is already on the way."
     end
@@ -449,7 +504,10 @@ function Economy.orderDelivery(state, now, productId)
                 productId == "goldenApples" and state.goldenAppleBackstock
                 or (
                     productId == "cinnamonTwists" and state.cinnamonTwistBackstock
-                    or state.cerealBackstock
+                    or (
+                        productId == "frozenMeals" and state.frozenMealBackstock
+                        or state.cerealBackstock
+                    )
                 )
             )
         )
@@ -482,12 +540,15 @@ function Economy.receiveDelivery(state, now)
     if type(now) ~= "number" or now ~= now or now % 1 ~= 0 or now < state.shipmentReadyAt then
         return false, "The delivery is still on its way."
     end
-    local productId = state.shipmentProductId == "cinnamonTwists" and "cinnamonTwists"
+    local productId = state.shipmentProductId == "frozenMeals" and "frozenMeals"
         or (
-            state.shipmentProductId == "goldenApples" and "goldenApples"
+            state.shipmentProductId == "cinnamonTwists" and "cinnamonTwists"
             or (
-                state.shipmentProductId == "sunriseCereal" and "sunriseCereal"
-                or (state.shipmentProductId == "berryBites" and "berryBites" or "citrusPop")
+                state.shipmentProductId == "goldenApples" and "goldenApples"
+                or (
+                    state.shipmentProductId == "sunriseCereal" and "sunriseCereal"
+                    or (state.shipmentProductId == "berryBites" and "berryBites" or "citrusPop")
+                )
             )
         )
     local currentBackstock = productId == "citrusPop" and state.backstock
@@ -497,7 +558,10 @@ function Economy.receiveDelivery(state, now)
                 productId == "goldenApples" and state.goldenAppleBackstock
                 or (
                     productId == "cinnamonTwists" and state.cinnamonTwistBackstock
-                    or state.cerealBackstock
+                    or (
+                        productId == "frozenMeals" and state.frozenMealBackstock
+                        or state.cerealBackstock
+                    )
                 )
             )
         )
@@ -513,6 +577,8 @@ function Economy.receiveDelivery(state, now)
         state.goldenAppleBackstock += quantity
     elseif productId == "cinnamonTwists" then
         state.cinnamonTwistBackstock += quantity
+    elseif productId == "frozenMeals" then
+        state.frozenMealBackstock += quantity
     else
         state.cerealBackstock += quantity
     end
@@ -623,13 +689,24 @@ function Economy.getNextCheckoutBasket(state)
             break
         end
     end
-    local preferredProducts = intent.products
+    local preferredProducts = {}
+    for _, productId in ipairs(intent.products) do
+        table.insert(preferredProducts, productId)
+    end
+    if
+        state.freezerPurchased
+        and (customerNumber + shiftNumber * Economy.CUSTOMERS_PER_SHIFT) % 4 == 0
+    then
+        table.insert(preferredProducts, "frozenMeals")
+        intent = { name = intent.name .. " + Freezer pick", products = preferredProducts }
+    end
     local available = {
         citrusPop = math.max(0, math.floor(state.stock or 0)),
         berryBites = math.max(0, math.floor(state.berryStock or 0)),
         goldenApples = math.max(0, math.floor(state.goldenAppleStock or 0)),
         sunriseCereal = math.max(0, math.floor(state.cerealStock or 0)),
         cinnamonTwists = math.max(0, math.floor(state.cinnamonTwistStock or 0)),
+        frozenMeals = math.max(0, math.floor(state.frozenMealStock or 0)),
     }
     local items = {}
     local counts = {}
@@ -678,6 +755,7 @@ function Economy.getNextCheckoutBasket(state)
             or (state.goldenAppleStock > 0 and "goldenApples" or nil)
             or (state.cerealStock > 0 and "sunriseCereal" or nil)
             or (state.cinnamonTwistStock > 0 and "cinnamonTwists" or nil)
+            or (state.frozenMealStock > 0 and "frozenMeals" or nil)
         if fallbackId then
             counts[fallbackId] = 1
             substitutionCounts[fallbackId] = substitutionCounts[fallbackId] or {}
@@ -842,6 +920,7 @@ function Economy.stockNextRequestedProduct(state)
         goldenApples = state.goldenAppleStock,
         sunriseCereal = state.cerealStock,
         cinnamonTwists = state.cinnamonTwistStock,
+        frozenMeals = state.frozenMealStock,
     }
     local backstockByProduct = {
         citrusPop = state.backstock,
@@ -849,6 +928,7 @@ function Economy.stockNextRequestedProduct(state)
         goldenApples = state.goldenAppleBackstock,
         sunriseCereal = state.cerealBackstock,
         cinnamonTwists = state.cinnamonTwistBackstock,
+        frozenMeals = state.frozenMealBackstock,
     }
     local restockByProduct = {
         citrusPop = Economy.CITRUS_POP_STOCK_PER_RESTOCK,
@@ -856,6 +936,7 @@ function Economy.stockNextRequestedProduct(state)
         goldenApples = Economy.GOLDEN_APPLES_STOCK_PER_RESTOCK,
         sunriseCereal = Economy.SUNRISE_CEREAL_STOCK_PER_RESTOCK,
         cinnamonTwists = Economy.CINNAMON_TWISTS_STOCK_PER_RESTOCK,
+        frozenMeals = Economy.FROZEN_MEALS_STOCK_PER_RESTOCK,
     }
     local stockActionByProduct = {
         citrusPop = Economy.stockProduct,
@@ -863,6 +944,7 @@ function Economy.stockNextRequestedProduct(state)
         goldenApples = Economy.stockGoldenApples,
         sunriseCereal = Economy.stockSunriseCereal,
         cinnamonTwists = Economy.stockCinnamonTwists,
+        frozenMeals = Economy.stockFrozenMeals,
     }
     for _, productId in ipairs(basket.preferredProductIds) do
         if
@@ -926,8 +1008,10 @@ function Economy.sellProduct(state, now, waitSeconds)
             state.goldenAppleStock -= item.quantity
         elseif item.productId == "sunriseCereal" then
             state.cerealStock -= item.quantity
-        else
+        elseif item.productId == "cinnamonTwists" then
             state.cinnamonTwistStock -= item.quantity
+        else
+            state.frozenMealStock -= item.quantity
         end
     end
     state.sales += 1
@@ -1314,6 +1398,39 @@ function Economy.buyBakeryDepartment(state)
     state.bakeryPurchased = true
     state.cinnamonTwistBackstock = math.max(state.cinnamonTwistBackstock or 0, 6)
     return true, "Bakery built! Fresh Cinnamon Twists are ready for stocking."
+end
+
+function Economy.buyFreezerDepartment(state)
+    if
+        state.stage ~= "Complete"
+        or not state.floorExpansionPurchased
+        or not state.warehousePurchased
+        or not state.bakeryPurchased
+        or state.freezerPurchased
+    then
+        return false, "Build the rear wing, warehouse and bakery before adding freezers."
+    end
+    if state.cash < Economy.FREEZER_DEPARTMENT_COST then
+        return false,
+            string.format(
+                "You need $%d to build the freezer section.",
+                Economy.FREEZER_DEPARTMENT_COST
+            )
+    end
+    local compatibleLayout, layoutError = RetailLayoutService.normalize(
+        state.retailLayout,
+        state.floorExpansionPurchased,
+        state.bakeryPurchased,
+        true
+    )
+    if not compatibleLayout then
+        return false,
+            "Move the rear shelf out of the freezer build zone first. " .. tostring(layoutError)
+    end
+    state.cash -= Economy.FREEZER_DEPARTMENT_COST
+    state.freezerPurchased = true
+    state.frozenMealBackstock = math.max(state.frozenMealBackstock or 0, 6)
+    return true, "Freezer section built! Freezer Meals are ready for stocking."
 end
 
 return Economy

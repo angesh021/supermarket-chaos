@@ -229,6 +229,11 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Consequences:** Schema v24 migrates existing storefront purchases without an ID to Coastal Market. Preview state is transient, and all players see the shared store palette.
 - **Verification:** See `docs/operations/PHASE39_STOREFRONT_PALETTE_CHOICES.md`.
 
+## ADR-0038: Add a persistent fixed freezer department
+- **Decision:** Add a server-built freezer bay after rear wing, warehouse and bakery ownership; route one SKU through the existing authoritative stock, delivery, pricing, basket and checkout paths.
+- **Consequences:** Schema v25 persists freezer ownership and stock state; legacy profiles migrate without the freezer. The freezer footprint is reserved from retail shelf placement.
+- **Verification:** See `docs/operations/PHASE40_FREEZER_DEPARTMENT.md`.
+
 ## ADR-0009 — Keep product inventory and supplier orders SKU-specific
 - **Status:** Accepted — 2026-10-12.
 - **Context:** The retail loop needs visible department variety and product-specific stock behavior while keeping stock and money authoritative.

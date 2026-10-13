@@ -639,11 +639,17 @@ function WorldBuilder.build()
     local retailDepartmentShelves = {}
     local retailShelfPositions = {}
     local bakeryPurchased = false
+    local freezerPurchased = false
     local bakeryModel
+    local freezerModel
     local cinnamonTwistStockPrompt
+    local frozenMealStockPrompt
     local cinnamonTwistStockAvailable = false
+    local frozenMealStockAvailable = false
     local bakerySign
+    local freezerSign
     local stockedCinnamonTwists = {}
+    local stockedFrozenMeals = {}
     local function createDepartmentShelf(productId, name, x, z, width, department)
         local model = createShelf(retailDepartmentFolder, name, x, z, width, department)
         model:SetAttribute("RetailProductId", productId)
@@ -672,6 +678,7 @@ function WorldBuilder.build()
         goldenApples = 12,
         sunriseCereal = 16,
         cinnamonTwists = 18,
+        frozenMeals = 22,
     }
     local function createPriceTag(productId, displayName, shelfModel, x, z)
         local tag = label(
@@ -683,8 +690,13 @@ function WorldBuilder.build()
             COLORS.gold,
             COLORS.ink
         )
-        local changePrompt =
-            prompt(shelfModel.PrimaryPart, "Change Price", displayName, "ChangePrice", 9)
+        local changePrompt = pricePrompts[productId]
+        if changePrompt then
+            changePrompt.Parent = shelfModel.PrimaryPart
+        else
+            changePrompt =
+                prompt(shelfModel.PrimaryPart, "Change Price", displayName, "ChangePrice", 9)
+        end
         priceTags[productId] = tag
         pricePrompts[productId] = changePrompt
         changePrompt.ActionText = string.format("Change Price ($%d)", initialPrices[productId])
@@ -1458,6 +1470,38 @@ function WorldBuilder.build()
         end
     end
 
+    local function setFrozenMealStockVisual(count)
+        for _, item in ipairs(stockedFrozenMeals) do
+            item:Destroy()
+        end
+        stockedFrozenMeals = {}
+        if not freezerModel then
+            return
+        end
+        local visibleCount = math.max(0, math.min(24, math.floor(tonumber(count) or 0)))
+        for index = 1, math.min(visibleCount, 12) do
+            local column = (index - 1) % 6
+            local row = math.floor((index - 1) / 6)
+            local meal = part(
+                freezerModel,
+                "Frozen Meal Pack Display",
+                Vector3.new(0.62, 0.42, 0.5),
+                CFrame.new(3.25 + column * 0.92, 2.25 + row * 0.48, -29),
+                index % 2 == 0 and COLORS.blue or COLORS.paleGreen,
+                Enum.Material.SmoothPlastic
+            )
+            meal:SetAttribute("ProductDisplay", true)
+            table.insert(stockedFrozenMeals, meal)
+        end
+        if freezerSign then
+            local surface = freezerSign:FindFirstChildOfClass("SurfaceGui")
+            local textLabel = surface and surface:FindFirstChildOfClass("TextLabel")
+            if textLabel then
+                textLabel.Text = string.format("FROZEN FOODS  •  %d IN STOCK", visibleCount)
+            end
+        end
+    end
+
     local hiringBoard = label(
         interior,
         "Staff Hiring Board",
@@ -1734,6 +1778,34 @@ function WorldBuilder.build()
     local bakeryDepartmentPrompt =
         prompt(bakeryExpansionPad, "Build Bakery ($350)", "New Department", "BuildBakery", 10)
     bakeryDepartmentPrompt.Enabled = false
+    cinnamonTwistStockPrompt =
+        prompt(bakeryExpansionPad, "Stock Display", "Cinnamon Twists", "StockCinnamonTwists", 9)
+    cinnamonTwistStockPrompt.Enabled = false
+    pricePrompts.cinnamonTwists =
+        prompt(bakeryExpansionPad, "Change Price", "Cinnamon Twists", "ChangePrice", 9)
+    pricePrompts.cinnamonTwists.Enabled = false
+    local freezerExpansionPad = part(
+        interior,
+        "Freezer Department Pad",
+        Vector3.new(4.5, 0.5, 4.5),
+        CFrame.new(-16, 0.5, -34),
+        COLORS.blue,
+        Enum.Material.Neon
+    )
+    local freezerDepartmentPrompt = prompt(
+        freezerExpansionPad,
+        "Build Freezer Section ($400)",
+        "New Department",
+        "BuildFreezer",
+        10
+    )
+    freezerDepartmentPrompt.Enabled = false
+    frozenMealStockPrompt =
+        prompt(freezerExpansionPad, "Stock Freezer", "Freezer Meals", "StockFrozenMeals", 9)
+    frozenMealStockPrompt.Enabled = false
+    pricePrompts.frozenMeals =
+        prompt(freezerExpansionPad, "Change Price", "Freezer Meals", "ChangePrice", 9)
+    pricePrompts.frozenMeals.Enabled = false
     local floorExpansionSign = label(
         interior,
         "Rear Department Expansion Sign",
@@ -2101,6 +2173,7 @@ function WorldBuilder.build()
     local appleDeliveryOrderPrompt
     local cerealDeliveryOrderPrompt
     local cinnamonTwistDeliveryOrderPrompt
+    local frozenMealDeliveryOrderPrompt
     local deliveryProductId = "citrusPop"
     local deliveryReadyAt = 0
     local deliveryQuantity = 0
@@ -2149,6 +2222,14 @@ function WorldBuilder.build()
         10
     )
     cinnamonTwistDeliveryOrderPrompt.Enabled = false
+    frozenMealDeliveryOrderPrompt = prompt(
+        orderBoard,
+        "Order Freezer Meals ($55)",
+        "Warehouse Board",
+        "OrderFrozenMealsDelivery",
+        10
+    )
+    frozenMealDeliveryOrderPrompt.Enabled = false
     deliveryCrate = Instance.new("Model")
     deliveryCrate.Name = "Warehouse Delivery Crate"
     deliveryCrate.Parent = exterior
@@ -2340,12 +2421,15 @@ function WorldBuilder.build()
     local function setDeliveryState(readyAt, quantity, productId)
         deliveryReadyAt = readyAt or 0
         deliveryQuantity = quantity or 0
-        deliveryProductId = productId == "cinnamonTwists" and "cinnamonTwists"
+        deliveryProductId = productId == "frozenMeals" and "frozenMeals"
             or (
-                productId == "sunriseCereal" and "sunriseCereal"
+                productId == "cinnamonTwists" and "cinnamonTwists"
                 or (
-                    productId == "goldenApples" and "goldenApples"
-                    or (productId == "berryBites" and "berryBites" or "citrusPop")
+                    productId == "sunriseCereal" and "sunriseCereal"
+                    or (
+                        productId == "goldenApples" and "goldenApples"
+                        or (productId == "berryBites" and "berryBites" or "citrusPop")
+                    )
                 )
             )
         local productInfoById = {
@@ -2354,6 +2438,7 @@ function WorldBuilder.build()
             goldenApples = { name = "GOLDEN APPLES", units = "APPLES" },
             sunriseCereal = { name = "SUNRISE CEREAL", units = "BOXES" },
             cinnamonTwists = { name = "CINNAMON TWISTS", units = "PASTRIES" },
+            frozenMeals = { name = "FREEZER MEALS", units = "MEALS" },
         }
         local productInfo = productInfoById[deliveryProductId]
         if not warehousePurchased or not deliveryBoardLabel then
@@ -2369,7 +2454,8 @@ function WorldBuilder.build()
                 productInfo.units
             )
         else
-            deliveryBoardLabel.Text = "CITRUS $60 • BERRY $45\nAPPLES $35 • CEREAL $45"
+            deliveryBoardLabel.Text =
+                "CITRUS $60 • BERRY $45\nAPPLES/CEREAL $35/45\nPASTRY/MEALS $50/55"
         end
         if crateLabel then
             local shipmentTextLabel = crateSurface
@@ -2412,6 +2498,9 @@ function WorldBuilder.build()
         end
         if cinnamonTwistDeliveryOrderPrompt then
             cinnamonTwistDeliveryOrderPrompt.Enabled = bakeryPurchased and deliveryQuantity == 0
+        end
+        if frozenMealDeliveryOrderPrompt then
+            frozenMealDeliveryOrderPrompt.Enabled = freezerPurchased and deliveryQuantity == 0
         end
     end
 
@@ -2477,10 +2566,69 @@ function WorldBuilder.build()
         bakeryModel.PrimaryPart = displayAnchor
         retailShelfPositions.cinnamonTwists = { x = 17.1, z = -29, rotation = 0 }
         createPriceTag("cinnamonTwists", "Cinnamon Twists", bakeryModel, 17.1, -29)
-        cinnamonTwistStockPrompt =
-            prompt(displayAnchor, "Stock Display", "Cinnamon Twists", "StockCinnamonTwists", 9)
+        cinnamonTwistStockPrompt.Parent = displayAnchor
         cinnamonTwistStockPrompt.Enabled = false
         setCinnamonTwistStockVisual(0)
+        updateCustomerBasketPositions()
+    end
+
+    local function addFreezerDepartment()
+        if freezerPurchased then
+            return
+        end
+        if not floorExpansionPurchased or not warehousePurchased or not bakeryPurchased then
+            return
+        end
+        freezerPurchased = true
+        freezerExpansionPad.Transparency = 1
+        freezerExpansionPad.CanCollide = false
+        freezerDepartmentPrompt.Enabled = false
+        freezerModel = Instance.new("Model")
+        freezerModel.Name = "Frozen Foods Department"
+        freezerModel.Parent = interior
+        part(
+            freezerModel,
+            "Freezer Case Base",
+            Vector3.new(8.4, 1.15, 2.5),
+            CFrame.new(6, 0.95, -29),
+            COLORS.gray,
+            Enum.Material.Metal
+        )
+        part(
+            freezerModel,
+            "Freezer Glass Top",
+            Vector3.new(8.2, 0.18, 2.3),
+            CFrame.new(6, 1.62, -29),
+            COLORS.blue,
+            Enum.Material.Glass,
+            0.45
+        )
+        freezerSign = label(
+            freezerModel,
+            "Freezer Department Sign",
+            "FROZEN FOODS  •  KEEP IT COOL",
+            Vector3.new(8, 1.1, 0.3),
+            CFrame.new(6, 5, -29),
+            COLORS.blue,
+            COLORS.deepTeal
+        )
+        freezerSign:SetAttribute("PlayerPurchased", true)
+        freezerModel.PrimaryPart = freezerModel:FindFirstChild("Freezer Case Base")
+        retailShelfPositions.frozenMeals = { x = 6, z = -29, rotation = 0 }
+        createPriceTag("frozenMeals", "Freezer Meals", freezerModel, 6, -29)
+        local displayAnchor = part(
+            freezerModel,
+            "Freezer Stock Anchor",
+            Vector3.new(7.8, 0.2, 1.8),
+            CFrame.new(6, 1.75, -29),
+            COLORS.blue,
+            Enum.Material.SmoothPlastic
+        )
+        displayAnchor.CanCollide = false
+        displayAnchor:SetAttribute("PlayerPurchased", true)
+        frozenMealStockPrompt.Parent = displayAnchor
+        frozenMealStockPrompt.Enabled = false
+        setFrozenMealStockVisual(0)
         updateCustomerBasketPositions()
     end
 
@@ -2489,6 +2637,22 @@ function WorldBuilder.build()
         if cinnamonTwistStockPrompt then
             cinnamonTwistStockPrompt.Enabled = cinnamonTwistStockAvailable
                 and bakeryPurchased
+                and currentStage ~= "Cart"
+                and currentStage ~= "Upgrade"
+                and currentStage ~= "Loading"
+                and currentStage ~= "OwnerOffline"
+                and currentStage ~= "PowerOutage"
+                and currentStage ~= "Spill"
+                and currentStage ~= "CloseShift"
+                and currentStage ~= "Complete"
+        end
+    end
+
+    local function setFrozenMealStockAvailable(available)
+        frozenMealStockAvailable = available == true
+        if frozenMealStockPrompt then
+            frozenMealStockPrompt.Enabled = frozenMealStockAvailable
+                and freezerPurchased
                 and currentStage ~= "Cart"
                 and currentStage ~= "Upgrade"
                 and currentStage ~= "Loading"
@@ -2565,6 +2729,17 @@ function WorldBuilder.build()
             and not bakeryPurchased
         bakeryExpansionPad.Transparency = bakeryPadVisible and 0 or 1
         bakeryExpansionPad.CanCollide = bakeryPadVisible
+        freezerDepartmentPrompt.Enabled = stage == "Complete"
+            and floorExpansionPurchased
+            and warehousePurchased
+            and bakeryPurchased
+            and not freezerPurchased
+        local freezerPadVisible = floorExpansionPurchased
+            and warehousePurchased
+            and bakeryPurchased
+            and not freezerPurchased
+        freezerExpansionPad.Transparency = freezerPadVisible and 0 or 1
+        freezerExpansionPad.CanCollide = freezerPadVisible
         local bakeryStockAllowed = cinnamonTwistStockAvailable
             and bakeryPurchased
             and stage ~= "Cart"
@@ -2577,6 +2752,19 @@ function WorldBuilder.build()
             and stage ~= "Complete"
         if cinnamonTwistStockPrompt then
             cinnamonTwistStockPrompt.Enabled = bakeryStockAllowed
+        end
+        local freezerStockAllowed = frozenMealStockAvailable
+            and freezerPurchased
+            and stage ~= "Cart"
+            and stage ~= "Upgrade"
+            and stage ~= "Loading"
+            and stage ~= "OwnerOffline"
+            and stage ~= "PowerOutage"
+            and stage ~= "Spill"
+            and stage ~= "CloseShift"
+            and stage ~= "Complete"
+        if frozenMealStockPrompt then
+            frozenMealStockPrompt.Enabled = freezerStockAllowed
         end
         local signSurface = upgradeSign:FindFirstChildOfClass("SurfaceGui")
         local signText = signSurface and signSurface:FindFirstChildOfClass("TextLabel")
@@ -2689,6 +2877,13 @@ function WorldBuilder.build()
         setCinnamonTwistStockAvailable = setCinnamonTwistStockAvailable,
         bakeryDepartmentPrompt = bakeryDepartmentPrompt,
         addBakeryDepartment = addBakeryDepartment,
+        freezerDepartmentPrompt = freezerDepartmentPrompt,
+        addFreezerDepartment = addFreezerDepartment,
+        frozenMealStockPrompt = function()
+            return frozenMealStockPrompt
+        end,
+        setFrozenMealStockVisual = setFrozenMealStockVisual,
+        setFrozenMealStockAvailable = setFrozenMealStockAvailable,
         pricePrompt = function(productId)
             return pricePrompts[productId]
         end,
@@ -2750,6 +2945,9 @@ function WorldBuilder.build()
         end,
         cinnamonTwistDeliveryPrompt = function()
             return cinnamonTwistDeliveryOrderPrompt
+        end,
+        frozenMealDeliveryPrompt = function()
+            return frozenMealDeliveryOrderPrompt
         end,
         setCustomerProduct = function(displayName)
             customerProductName = displayName or "Citrus Pop"

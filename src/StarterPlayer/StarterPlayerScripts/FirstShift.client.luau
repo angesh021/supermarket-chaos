@@ -522,16 +522,21 @@ local function update(state)
     warehouseView = state.warehousePurchased == true
     local stockHeading = stockValue.Parent:FindFirstChild("Heading")
     if stockHeading then
-        stockHeading.Text = state.bakeryPurchased and "C/B/A/C/T" or "C/B/A/C"
+        stockHeading.Text = state.freezerPurchased and "C/B/A/C/T/F"
+            or (state.bakeryPurchased and "C/B/A/C/T" or "C/B/A/C")
     end
     backroomValue.Text = string.format(
-        state.bakeryPurchased and "BACKROOM C/B/A/C/T %d/%d/%d/%d/%d"
-            or "BACKROOM C/B/A/C %d/%d/%d/%d",
+        state.freezerPurchased and "BACKROOM C/B/A/C/T/F %d/%d/%d/%d/%d/%d"
+            or (
+                state.bakeryPurchased and "BACKROOM C/B/A/C/T %d/%d/%d/%d/%d"
+                or "BACKROOM C/B/A/C %d/%d/%d/%d"
+            ),
         state.backstock or 0,
         state.berryBackstock or 0,
         state.goldenAppleBackstock or 0,
         state.cerealBackstock or 0,
-        state.cinnamonTwistBackstock or 0
+        state.cinnamonTwistBackstock or 0,
+        state.frozenMealBackstock or 0
     )
     backroomValue.Visible = not collapsed and ownerView and warehouseView
     card.Size = UDim2.fromOffset(280, collapsed and 40 or (warehouseView and 165 or 145))
@@ -559,12 +564,14 @@ local function update(state)
     end
     cashValue.Text = string.format("$%d", state.cash or 0)
     stockValue.Text = string.format(
-        state.bakeryPurchased and "%d/%d/%d/%d/%d" or "%d/%d/%d/%d",
+        state.freezerPurchased and "%d/%d/%d/%d/%d/%d"
+            or (state.bakeryPurchased and "%d/%d/%d/%d/%d" or "%d/%d/%d/%d"),
         state.stock or 0,
         state.berryStock or 0,
         state.goldenAppleStock or 0,
         state.cerealStock or 0,
-        state.cinnamonTwistStock or 0
+        state.cinnamonTwistStock or 0,
+        state.frozenMealStock or 0
     )
     salesValue.Text = tostring(state.sales or 0)
     satisfactionValue.Text = string.format("%d%%", state.customerSatisfaction or 0)

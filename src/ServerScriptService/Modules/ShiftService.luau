@@ -52,6 +52,7 @@ local ROLE_ACTIONS = {
         AisleExpansion = true,
         FloorExpansion = true,
         BuildBakery = true,
+        BuildFreezer = true,
         EditLayout = true,
         EditRetailLayout = true,
         MarketStyle = true,
@@ -61,16 +62,19 @@ local ROLE_ACTIONS = {
         OrderAppleDelivery = true,
         OrderCerealDelivery = true,
         OrderCinnamonTwistsDelivery = true,
+        OrderFrozenMealsDelivery = true,
         ReceiveDelivery = true,
         PriceCitrusPop = true,
         PriceBerryBites = true,
         PriceGoldenApples = true,
         PriceSunriseCereal = true,
         PriceCinnamonTwists = true,
+        PriceFrozenMeals = true,
         StockBerryBites = true,
         StockGoldenApples = true,
         StockSunriseCereal = true,
         StockCinnamonTwists = true,
+        StockFrozenMeals = true,
     },
     Cashier = { Checkout = true },
     Stocker = {
@@ -79,6 +83,7 @@ local ROLE_ACTIONS = {
         StockGoldenApples = true,
         StockSunriseCereal = true,
         StockCinnamonTwists = true,
+        StockFrozenMeals = true,
     },
     Maintenance = { Cart = true, Spill = true, RestorePower = true },
 }
@@ -154,7 +159,9 @@ local function snapshot(message, recipient)
         goldenAppleStock = hasStoreAccess and current.goldenAppleStock or 0,
         cerealStock = hasStoreAccess and current.cerealStock or 0,
         cinnamonTwistStock = hasStoreAccess and current.cinnamonTwistStock or 0,
+        frozenMealStock = hasStoreAccess and current.frozenMealStock or 0,
         bakeryPurchased = hasStoreAccess and current.bakeryPurchased or false,
+        freezerPurchased = hasStoreAccess and current.freezerPurchased or false,
         employeePayroll = hasStoreAccess and Economy.getShiftPayroll(current) or 0,
         sales = hasStoreAccess and current.sales or 0,
         message = message or "",
@@ -169,6 +176,7 @@ local function snapshot(message, recipient)
         goldenAppleBackstock = hasStoreAccess and current.goldenAppleBackstock or 0,
         cerealBackstock = hasStoreAccess and current.cerealBackstock or 0,
         cinnamonTwistBackstock = hasStoreAccess and current.cinnamonTwistBackstock or 0,
+        frozenMealBackstock = hasStoreAccess and current.frozenMealBackstock or 0,
         customerRushUntil = hasStoreAccess and current.customerRushUntil or 0,
         rushRemaining = hasStoreAccess and Economy.getRemainingCustomers(current) or 0,
         rushReward = hasStoreAccess and Economy.CUSTOMER_RUSH_REWARD or 0,
@@ -181,6 +189,7 @@ local function snapshot(message, recipient)
             goldenApples = current.productPrices.goldenApples,
             sunriseCereal = current.productPrices.sunriseCereal,
             cinnamonTwists = current.productPrices.cinnamonTwists,
+            frozenMeals = current.productPrices.frozenMeals,
         } or nil,
         customerAssistantHired = hasStoreAccess and current.customerAssistantHired or false,
     }
@@ -376,6 +385,7 @@ function ShiftService.init(event, membershipRemotes)
                 world.setGoldenAppleStockVisual(state.goldenAppleStock)
                 world.setCerealStockVisual(state.cerealStock)
                 world.setCinnamonTwistStockVisual(state.cinnamonTwistStock)
+                world.setFrozenMealStockVisual(state.frozenMealStock)
                 commit("stock")
                 broadcast(
                     "Stock clerk restocked "
@@ -434,6 +444,7 @@ function ShiftService.init(event, membershipRemotes)
                     world.setGoldenAppleStockVisual(state.goldenAppleStock)
                     world.setCerealStockVisual(state.cerealStock)
                     world.setCinnamonTwistStockVisual(state.cinnamonTwistStock)
+                    world.setFrozenMealStockVisual(state.frozenMealStock)
                     world.setBerryStockAvailable(
                         state.berryBackstock >= Economy.BERRY_BITES_STOCK_PER_RESTOCK
                     )
@@ -684,6 +695,13 @@ function ShiftService.init(event, membershipRemotes)
                 and state.cinnamonTwistStock + Economy.CINNAMON_TWISTS_STOCK_PER_RESTOCK
                     <= Economy.CINNAMON_TWISTS_SHELF_CAPACITY
         )
+        world.setFrozenMealStockVisual(state.frozenMealStock)
+        world.setFrozenMealStockAvailable(
+            state.freezerPurchased
+                and state.frozenMealBackstock >= Economy.FROZEN_MEALS_STOCK_PER_RESTOCK
+                and state.frozenMealStock + Economy.FROZEN_MEALS_STOCK_PER_RESTOCK
+                    <= Economy.FROZEN_MEALS_SHELF_CAPACITY
+        )
         world.setCustomerCount(
             Economy.getRemainingCustomers(state),
             Economy.getCustomerTarget(state)
@@ -766,6 +784,20 @@ function ShiftService.init(event, membershipRemotes)
         broadcast(message)
     end)
 
+    bind("StockFrozenMeals", world.frozenMealStockPrompt(), 12, function()
+        local ok, message = Economy.stockFrozenMeals(state)
+        if ok then
+            world.setFrozenMealStockVisual(state.frozenMealStock)
+            world.setFrozenMealStockAvailable(
+                state.frozenMealBackstock >= Economy.FROZEN_MEALS_STOCK_PER_RESTOCK
+                    and state.frozenMealStock + Economy.FROZEN_MEALS_STOCK_PER_RESTOCK
+                        <= Economy.FROZEN_MEALS_SHELF_CAPACITY
+            )
+            commit("freezerStock")
+        end
+        broadcast(message)
+    end)
+
     local function bindPricePrompt(productId, actionId)
         bind(actionId, world.pricePrompt(productId), 12, function()
             local ok, message = Economy.cycleProductPrice(state, productId)
@@ -782,6 +814,7 @@ function ShiftService.init(event, membershipRemotes)
         goldenApples = "PriceGoldenApples",
         sunriseCereal = "PriceSunriseCereal",
         cinnamonTwists = "PriceCinnamonTwists",
+        frozenMeals = "PriceFrozenMeals",
     }) do
         bindPricePrompt(productId, actionId)
     end
@@ -896,6 +929,20 @@ function ShiftService.init(event, membershipRemotes)
         broadcast(message)
     end)
 
+    bind("BuildFreezer", world.freezerDepartmentPrompt, 12, function()
+        local ok, message = Economy.buyFreezerDepartment(state)
+        if ok then
+            world.addFreezerDepartment()
+            world.setDeliveryState(
+                state.shipmentReadyAt,
+                state.shipmentQuantity,
+                state.shipmentProductId
+            )
+            commit("freezerBuilt")
+        end
+        broadcast(message)
+    end)
+
     bind("MarketStyle", world.marketStylePrompt, 13, function()
         local ok, message = Economy.buyMarketStyle(state, marketStyleSelectedId)
         if ok then
@@ -992,6 +1039,19 @@ function ShiftService.init(event, membershipRemotes)
         broadcast(message)
     end)
 
+    bind("OrderFrozenMealsDelivery", world.frozenMealDeliveryPrompt(), 12, function()
+        local ok, message = Economy.orderDelivery(state, os.time(), "frozenMeals")
+        if ok then
+            world.setDeliveryState(
+                state.shipmentReadyAt,
+                state.shipmentQuantity,
+                state.shipmentProductId
+            )
+            commit("freezerDeliveryOrdered")
+        end
+        broadcast(message)
+    end)
+
     bind("ReceiveDelivery", world.deliveryPrompt(), 12, function()
         local ok, message = Economy.receiveDelivery(state, os.time())
         if ok then
@@ -1012,6 +1072,8 @@ function ShiftService.init(event, membershipRemotes)
             world.setBerryStockVisual(0)
             world.setGoldenAppleStockVisual(0)
             world.setCerealStockVisual(0)
+            world.setCinnamonTwistStockVisual(0)
+            world.setFrozenMealStockVisual(0)
             world.setCustomerVisible(false)
             world.setStage(state.stage)
             startCart()
@@ -1314,7 +1376,8 @@ function ShiftService.init(event, membershipRemotes)
             request.rotation,
             state.retailLayout.checkout,
             state.floorExpansionPurchased,
-            state.bakeryPurchased
+            state.bakeryPurchased,
+            state.freezerPurchased
         )
         if not valid then
             return reject(reason)
@@ -1463,6 +1526,9 @@ function ShiftService.init(event, membershipRemotes)
             if state.bakeryPurchased then
                 world.addBakeryDepartment()
             end
+            if state.freezerPurchased then
+                world.addFreezerDepartment()
+            end
             world.setStorageLayout(state.warehouseLayout)
             world.setRetailLayout(state.retailLayout)
             world.setDeliveryState(
@@ -1484,6 +1550,7 @@ function ShiftService.init(event, membershipRemotes)
             world.setGoldenAppleStockVisual(state.goldenAppleStock)
             world.setCerealStockVisual(state.cerealStock)
             world.setCinnamonTwistStockVisual(state.cinnamonTwistStock)
+            world.setFrozenMealStockVisual(state.frozenMealStock)
             world.setStockAvailable(
                 state.backstock >= Economy.CITRUS_POP_STOCK_PER_RESTOCK
                     and state.stock + Economy.CITRUS_POP_STOCK_PER_RESTOCK
@@ -1512,6 +1579,12 @@ function ShiftService.init(event, membershipRemotes)
                     and state.cinnamonTwistBackstock >= Economy.CINNAMON_TWISTS_STOCK_PER_RESTOCK
                     and state.cinnamonTwistStock + Economy.CINNAMON_TWISTS_STOCK_PER_RESTOCK
                         <= Economy.CINNAMON_TWISTS_SHELF_CAPACITY
+            )
+            world.setFrozenMealStockAvailable(
+                state.freezerPurchased
+                    and state.frozenMealBackstock >= Economy.FROZEN_MEALS_STOCK_PER_RESTOCK
+                    and state.frozenMealStock + Economy.FROZEN_MEALS_STOCK_PER_RESTOCK
+                        <= Economy.FROZEN_MEALS_SHELF_CAPACITY
             )
             world.setCustomerProduct(
                 Economy.PRODUCTS[Economy.getNextCheckoutProductId(state) or "citrusPop"].displayName
