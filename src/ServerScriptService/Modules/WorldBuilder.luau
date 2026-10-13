@@ -269,6 +269,152 @@ local function createTree(parent, x, z)
     crown.Shape = Enum.PartType.Ball
 end
 
+local function createStreetlight(parent, x, z)
+    part(
+        parent,
+        "Commercial Avenue Lamp Post",
+        Vector3.new(0.35, 11, 0.35),
+        CFrame.new(x, 5.5, z),
+        COLORS.ink,
+        Enum.Material.Metal
+    )
+    part(
+        parent,
+        "Commercial Avenue Lamp Arm",
+        Vector3.new(2.4, 0.25, 0.25),
+        CFrame.new(x + 1, 10.8, z),
+        COLORS.ink,
+        Enum.Material.Metal
+    )
+    local lamp = part(
+        parent,
+        "Commercial Avenue LED Lantern",
+        Vector3.new(1.4, 0.3, 0.8),
+        CFrame.new(x + 2, 10.65, z),
+        COLORS.warmWhite,
+        Enum.Material.Neon
+    )
+    lamp.CanCollide = false
+    local light = Instance.new("PointLight")
+    light.Color = Color3.fromRGB(255, 231, 177)
+    light.Brightness = 1.2
+    light.Range = 22
+    light.Shadows = false
+    light.Parent = lamp
+end
+
+local function createNeighborhoodStorefront(parent, name, center, accent, signText)
+    local building = Instance.new("Model")
+    building.Name = name
+    building.Parent = parent
+    part(
+        building,
+        "Shop Foundation",
+        Vector3.new(20, 0.4, 15),
+        CFrame.new(center + Vector3.new(0, 0.2, 0)),
+        COLORS.gray,
+        Enum.Material.Concrete
+    )
+    part(
+        building,
+        "Shop Rear Wall",
+        Vector3.new(20, 7, 0.55),
+        CFrame.new(center + Vector3.new(0, 3.7, -7.2)),
+        COLORS.cream,
+        Enum.Material.Brick
+    )
+    for _, side in ipairs({ -1, 1 }) do
+        part(
+            building,
+            "Shop Side Wall",
+            Vector3.new(0.55, 7, 15),
+            CFrame.new(center + Vector3.new(side * 9.7, 3.7, 0)),
+            COLORS.cream,
+            Enum.Material.Brick
+        )
+    end
+    for _, xOffset in ipairs({ -9.7, 9.7 }) do
+        part(
+            building,
+            "Shop Front Pier",
+            Vector3.new(0.55, 7, 0.55),
+            CFrame.new(center + Vector3.new(xOffset, 3.7, 7.2)),
+            COLORS.cream,
+            Enum.Material.Brick
+        )
+    end
+    part(
+        building,
+        "Shop Front Header",
+        Vector3.new(19.4, 1.5, 0.55),
+        CFrame.new(center + Vector3.new(0, 6.45, 7.2)),
+        accent,
+        Enum.Material.SmoothPlastic
+    )
+    for _, xOffset in ipairs({ -6.4, 6.4 }) do
+        local window = part(
+            building,
+            "Shop Display Window",
+            Vector3.new(5.3, 4.4, 0.16),
+            CFrame.new(center + Vector3.new(xOffset, 3.35, 7.2)),
+            COLORS.blue,
+            Enum.Material.Glass,
+            0.35
+        )
+        window.CanCollide = false
+    end
+    local door = part(
+        building,
+        "Shop Glass Entry Door",
+        Vector3.new(2.7, 5.3, 0.16),
+        CFrame.new(center + Vector3.new(0, 2.85, 7.2)),
+        COLORS.blue,
+        Enum.Material.Glass,
+        0.4
+    )
+    door.CanCollide = false
+    part(
+        building,
+        "Shop Roof",
+        Vector3.new(21, 0.55, 16),
+        CFrame.new(center + Vector3.new(0, 7.45, 0)),
+        accent,
+        Enum.Material.Metal
+    )
+    label(
+        building,
+        "Neighborhood Shop Sign",
+        signText,
+        Vector3.new(14, 1.2, 0.3),
+        CFrame.new(center + Vector3.new(0, 8.6, 7.45)),
+        accent,
+        COLORS.warmWhite
+    )
+    for _, xOffset in ipairs({ -6, 0, 6 }) do
+        local planter = part(
+            building,
+            "Shopfront Planter",
+            Vector3.new(2.6, 0.7, 1.4),
+            CFrame.new(center + Vector3.new(xOffset, 0.55, 9.3)),
+            COLORS.wood,
+            Enum.Material.WoodPlanks
+        )
+        planter.CanCollide = false
+        local shrub = part(
+            building,
+            "Shopfront Shrub",
+            Vector3.new(1.7, 1.1, 1.1),
+            CFrame.new(center + Vector3.new(xOffset, 1.35, 9.3)),
+            COLORS.green,
+            Enum.Material.Grass
+        )
+        shrub.Shape = Enum.PartType.Ball
+        shrub.CanCollide = false
+    end
+    building.PrimaryPart = building:FindFirstChild("Shop Foundation")
+    return building
+end
+
 local function createLowPolyPerson(parent, name, position, shirtColor, pantsColor, hairColor)
     local person = Instance.new("Model")
     person.Name = name
@@ -365,8 +511,8 @@ function WorldBuilder.build(locationId, origin)
     part(
         exterior,
         "Neighborhood Ground",
-        Vector3.new(180, 1, 150),
-        CFrame.new(0, -0.6, 2),
+        Vector3.new(250, 1, 250),
+        CFrame.new(0, -0.6, -30),
         Color3.fromRGB(111, 145, 111),
         Enum.Material.Grass
     )
@@ -416,6 +562,57 @@ function WorldBuilder.build(locationId, origin)
             Enum.Material.SmoothPlastic
         )
     end
+    part(
+        exterior,
+        "Commercial District Delivery Avenue",
+        Vector3.new(20, 0.2, 190),
+        CFrame.new(-99, 0.02, -48),
+        COLORS.road,
+        Enum.Material.Asphalt
+    )
+    part(
+        exterior,
+        "Commercial District Avenue Sidewalk",
+        Vector3.new(8, 0.16, 190),
+        CFrame.new(-84.5, 0.12, -48),
+        COLORS.gray,
+        Enum.Material.Concrete
+    )
+    part(
+        exterior,
+        "Delivery Avenue Center Stripe",
+        Vector3.new(0.16, 0.03, 180),
+        CFrame.new(-99, 0.14, -48),
+        COLORS.gold,
+        Enum.Material.Neon
+    )
+    for _, z in ipairs({ 30, -8, -46, -84, -122 }) do
+        createStreetlight(exterior, -90, z)
+    end
+    for x = -88, -78, 2 do
+        part(
+            exterior,
+            "Commercial Avenue Crosswalk Stripe",
+            Vector3.new(0.85, 0.035, 5),
+            CFrame.new(x, 0.16, 43),
+            COLORS.warmWhite,
+            Enum.Material.SmoothPlastic
+        )
+    end
+    createNeighborhoodStorefront(
+        exterior,
+        "Maple Corner Florist Shell",
+        Vector3.new(54, 0, -72),
+        COLORS.green,
+        "MAPLE CORNER\nFLOWERS & GIFTS"
+    )
+    createNeighborhoodStorefront(
+        exterior,
+        "Riverside Bookshop Shell",
+        Vector3.new(79, 0, -72),
+        COLORS.coral,
+        "RIVERSIDE\nBOOKS & PAPER"
+    )
 
     -- 44 x 36 storefront; entry opening remains visible from the parking approach.
     part(

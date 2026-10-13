@@ -238,6 +238,11 @@ See `docs/decisions/README.md` for accepted ownership policy. Remaining decision
 - Migration must map the current flat profile to the stable `neighborhood` location exactly once, preserve cash and all gameplay state, and reject duplicate/unknown location IDs or exceeded branch limits. Cross-server lease behavior remains per owner profile.
 - Schema v37 now writes a `locations.neighborhood` snapshot for normalized location-owned fields, checks it against the existing flat compatibility fields on load, and exposes a server-only defensive copy through `ProfileService.getLocation`. The current ShiftService continues to use the flat projection; there is still only one allowed location.
 - See ADR-0055 and `operations/PHASE57_MULTI_STORE_FOUNDATION.md`. Do not describe multi-store gameplay as implemented until two locations can be played independently and the migration/race/rejoin checklist passes.
+
+## Phase 58 commercial neighborhood buildout
+- The neighborhood ground now covers the plaza extent, and a delivery avenue meets the main road at a marked pedestrian crossing. Five original streetlights and two glass-front decorative shop shells fill the commercial block.
+- The shells are environmental scenery only: they have no prompts, ownership records, inventory, customers or economy behavior. Purchasable lots and branch management remain part of the pending multi-store runtime.
+- All scenery is generated from Roblox parts/materials, is contained in the location model and moves with its server-approved origin.
 # Cooperative ownership and cashier extension
 - One owner profile remains the persistence boundary. Per-server membership grants temporary action permissions but does not load a guest's profile into the owner's economy.
 - Server role map: Owner (all), Manager (all shift actions including staff hiring), Cashier (checkout), Stocker (stock), Maintenance (cart recovery).

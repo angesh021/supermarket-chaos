@@ -84,6 +84,8 @@ G0 was approved on 2026-10-12. The user authorized continued phase implementatio
 - [x] Phase 57 world foundation: allow `WorldBuilder` to build a validated server-ID-named model at an explicit origin while preserving the legacy `neighborhood` world name at origin.
 - [ ] Studio verification of v36-to-v37 preservation, default/session-only profile, exact neighborhood snapshot, and rejection of unknown/divergent location records; see `operations/PHASE57_MULTI_STORE_FOUNDATION.md`.
 - [ ] Phase 57 multi-store runtime: split shift/world state and helper permissions by server-owned location ID, then add an independently managed second branch. See `operations/PHASE57_MULTI_STORE_FOUNDATION.md`.
+- [x] Phase 58 neighborhood buildout: extend the ground to the existing plaza edge, connect a delivery avenue to the main road, add crosswalk/streetlights and two decorative neighboring storefront shells; no economy or ownership state is attached.
+- [ ] Studio review of the extended plaza ground, avenue/sidewalk connection, crosswalk clearance, lamp collisions/light, storefront signage, and camera/mobile fit; see `operations/PHASE58_COMMERCIAL_DISTRICT.md`.
 - [ ] Studio verification of fleet prerequisites, purchase/trucks, one-vs-three automatic orders, pause control, manual/automatic races, v33-to-v34 migration and save/rejoin; see `operations/PHASE54_DELIVERY_FLEET.md`.
 - [ ] Studio verification of satisfaction thresholds, patience timing, event pauses, cashier parity and rejoin; see `operations/PHASE38_LOYALTY_AND_PATIENCE.md`.
 - [x] Phase 33: score customer satisfaction from preference fulfillment/price tiers and expose the bounded rating in the HUD; see `operations/PHASE33_CUSTOMER_SATISFACTION.md`.
