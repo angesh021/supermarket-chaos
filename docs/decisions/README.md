@@ -119,7 +119,7 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Status:** Accepted — 2026-10-12.
 - **Context:** Fixed retail prices left no store-management choice, while arbitrary client-selected prices would make checkout and persistence unsafe.
 - **Decision:** Let the owner or authorized Manager cycle each SKU through a server-derived 80%, 100%, and 125% price option. Persist the exact allow-listed integer per SKU and use it in basket display and checkout.
-- **Consequences:** Profile schema v15 stores four prices; schemas v1–v14 use catalog prices. Customers do not yet respond to price through demand or satisfaction.
+- **Consequences:** Profile schema v15 stores four prices; schemas v1–v14 use catalog prices. Phase 33 later connects premium pricing to the separate satisfaction score, but prices still do not change customer demand or sale probability.
 - **Verification:** See `docs/operations/PHASE22_PRODUCT_PRICING.md`; Studio role, transaction, tag and migration checks remain pending.
 
 ## ADR-0021 — Keep price response bounded and reconstructable
@@ -191,6 +191,13 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Decision:** Keep the four existing SKU shelf models, prompts and price tags server-owned. Let Owner/Manager move each on a bounded two-stud retail grid and rotate it by 90 degrees. Persist only product-keyed coordinates/orientations in profile schema v19 and derive customer browse targets from those positions.
 - **Consequences:** v1-v18 profiles receive the known starter positions. Server validation blocks malformed records, out-of-bounds placement, product shelf overlap and fixed expansion bays. No new economy charge or arbitrary object placement is introduced; checkout positioning, floor expansion, plots and new department construction remain future work.
 - **Verification:** See `docs/operations/PHASE32_RETAIL_LAYOUT.md`; Studio controls, migration, collision, routing and save/rejoin checks remain pending.
+
+## ADR-0031 — Score customer satisfaction without changing checkout accounting
+- **Status:** Accepted — 2026-10-12.
+- **Context:** Weighted product preferences and price tiers create visible fulfillment differences, but players had no persistent signal showing whether the store met demand.
+- **Decision:** Persist an integer satisfaction score from 0 to 100, initialize legacy profiles at 75, raise it by 3 for complete preferred quantities, lower it by 6 for partial/fallback baskets, and subtract 2 per premium-priced SKU. Apply the bounded delta only inside a successful server sale and show the score to authorized store members.
+- **Consequences:** Profile schema v20 adds one validated score. It does not alter cash, stock, sales, rush eligibility or rewards. Loyalty, demand, substitution, patience and reputation effects remain future work.
+- **Verification:** See `docs/operations/PHASE33_CUSTOMER_SATISFACTION.md`; Studio transaction, migration, rejoin and privacy checks remain pending.
 
 ## ADR-0009 — Keep product inventory and supplier orders SKU-specific
 - **Status:** Accepted — 2026-10-12.

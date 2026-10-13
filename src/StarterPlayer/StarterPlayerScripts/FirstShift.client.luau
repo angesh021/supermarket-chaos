@@ -140,7 +140,7 @@ local function makeStat(name, heading, value, x, background, accent)
     local tile = Instance.new("Frame")
     tile.Name = name
     tile.Position = UDim2.fromScale(x, 0)
-    tile.Size = UDim2.fromScale(0.315, 1)
+    tile.Size = UDim2.fromScale(0.24, 1)
     tile.BackgroundColor3 = background
     tile.BorderSizePixel = 0
     tile.Parent = stats
@@ -173,10 +173,12 @@ local function makeStat(name, heading, value, x, background, accent)
 end
 
 local cashValue = makeStat("CashStat", "CASH", "$0", 0, COLORS.green, Color3.fromRGB(48, 112, 61))
-local stockValue =
-    makeStat("StockStat", "CIT/BER/APP/CER", "0/0/0/0", 0.342, COLORS.blue, COLORS.teal)
-stockValue.TextSize = 11
-local salesValue = makeStat("SalesStat", "SALES", "0", 0.684, COLORS.gold, COLORS.coral)
+local stockValue = makeStat("StockStat", "C/B/A/C", "0/0/0/0", 0.253, COLORS.blue, COLORS.teal)
+stockValue.TextSize = 9
+local salesValue = makeStat("SalesStat", "SALES", "0", 0.506, COLORS.gold, COLORS.coral)
+local satisfactionValue =
+    makeStat("SatisfactionStat", "RATING", "75%", 0.759, COLORS.green, Color3.fromRGB(48, 112, 61))
+satisfactionValue.TextSize = 13
 
 local feedback = Instance.new("TextLabel")
 feedback.Name = "Feedback"
@@ -558,6 +560,10 @@ local function update(state)
         state.cerealStock or 0
     )
     salesValue.Text = tostring(state.sales or 0)
+    satisfactionValue.Text = string.format("%d%%", state.customerSatisfaction or 0)
+    satisfactionValue.TextColor3 = (state.customerSatisfaction or 0) >= 65
+            and Color3.fromRGB(48, 112, 61)
+        or ((state.customerSatisfaction or 0) >= 35 and COLORS.deepTeal or COLORS.coral)
     feedback.Text = tostring(state.message or "")
     if feedback.Text == "" and (state.employeePayroll or 0) > 0 then
         feedback.Text = string.format("STAFF PAYROLL: $%d per shift", state.employeePayroll)

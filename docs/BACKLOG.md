@@ -48,7 +48,9 @@ G0 was approved on 2026-10-12. The user authorized continued phase implementatio
 - [x] Phase 29: add a persistent warehouse shelf editor with server-validated placement, movement, rotation, collision limits and removal; see `operations/PHASE29_WAREHOUSE_LAYOUT_EDITOR.md`.
 - [x] Phase 30: add reproducible weighted customer shopping preferences with visible customer labels; see `operations/PHASE30_CUSTOMER_PREFERENCES.md`.
 - [ ] Add more departments and main-floor customization; warehouse layout editing is implemented but not full store construction.
-- [ ] Add customer satisfaction, product substitution and patience effects to the Phase 30 preference profiles.
+- [x] Add a persisted server-owned customer satisfaction score tied to fulfillment and premium pricing; see Phase 33.
+- [ ] Add customer loyalty, product substitution and patience effects to the preference profiles.
+- [x] Phase 33: score customer satisfaction from preference fulfillment/price tiers and expose the bounded rating in the HUD; see `operations/PHASE33_CUSTOMER_SATISFACTION.md`.
 - [ ] Studio verification of cleaner hire/migration, save/rejoin, automatic cleanup and player/employee races.
 
 ## Phase 4 — Customer operations (checkout queue increment implemented)

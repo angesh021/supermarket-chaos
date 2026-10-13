@@ -142,6 +142,7 @@ local function snapshot(message, recipient)
         stage = current.stage,
         objective = objective,
         cash = hasStoreAccess and current.cash or 0,
+        customerSatisfaction = hasStoreAccess and current.customerSatisfaction or 0,
         stock = hasStoreAccess and current.stock or 0,
         berryStock = hasStoreAccess and current.berryStock or 0,
         goldenAppleStock = hasStoreAccess and current.goldenAppleStock or 0,

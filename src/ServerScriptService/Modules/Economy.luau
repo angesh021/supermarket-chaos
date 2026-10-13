@@ -135,6 +135,7 @@ function Economy.newState(profile, playerSeed)
     return {
         stage = savedShift.stage or "Cart",
         cash = profile.balance or 0,
+        customerSatisfaction = profile.customerSatisfaction or 75,
         stock = savedShift.stock or 0,
         berryStock = savedShift.berryStock or 0,
         goldenAppleStock = savedShift.goldenAppleStock or 0,
@@ -542,8 +543,23 @@ function Economy.getNextCheckoutBasket(state)
         table.insert(labels, string.format("%s x%d", item.displayName, item.quantity))
     end
     local preferredProductIds = {}
+    local preferredCounts = {}
     for _, productId in ipairs(preferredProducts) do
         table.insert(preferredProductIds, productId)
+        preferredCounts[productId] = (preferredCounts[productId] or 0) + 1
+    end
+    local preferenceSatisfied = true
+    for productId, quantity in pairs(preferredCounts) do
+        if (counts[productId] or 0) < quantity then
+            preferenceSatisfied = false
+            break
+        end
+    end
+    local satisfactionDelta = preferenceSatisfied and 3 or -6
+    for _, item in ipairs(items) do
+        if item.unitPrice > Economy.PRODUCTS[item.productId].salePrice then
+            satisfactionDelta -= 2
+        end
     end
     return {
         items = items,
@@ -551,6 +567,8 @@ function Economy.getNextCheckoutBasket(state)
         displayName = #labels > 0 and table.concat(labels, " + ") or "No shelf stock",
         preferredProductIds = preferredProductIds,
         preferenceName = intent.name,
+        preferenceSatisfied = preferenceSatisfied,
+        satisfactionDelta = satisfactionDelta,
     }
 end
 
@@ -639,6 +657,14 @@ function Economy.sellProduct(state, now)
     end
     state.sales += 1
     state.cash += basket.total
+    local previousSatisfaction = math.min(math.max(state.customerSatisfaction or 75, 0), 100)
+    state.customerSatisfaction =
+        math.min(math.max(previousSatisfaction + basket.satisfactionDelta, 0), 100)
+    local satisfactionFeedback = string.format(
+        " Customer satisfaction %s%d.",
+        basket.satisfactionDelta > 0 and "+" or "",
+        basket.satisfactionDelta
+    )
     if state.sales == state.chaosPlan.spillAt then
         state.stage = "Spill"
         return true,
@@ -646,7 +672,7 @@ function Economy.sellProduct(state, now)
                 "Basket complete! +$%d for %s. A customer dropped groceries—clean up the spill!",
                 basket.total,
                 basket.displayName
-            )
+            ) .. satisfactionFeedback
     end
     if state.sales == state.chaosPlan.powerOutageAt then
         state.powerOutageUntil = now + Economy.CHAOS_EVENTS.PowerOutage.duration
@@ -656,7 +682,7 @@ function Economy.sellProduct(state, now)
                 "Basket complete! +$%d for %s. The power is out—restore it at the breaker!",
                 basket.total,
                 basket.displayName
-            )
+            ) .. satisfactionFeedback
     end
     if
         state.sales == Economy.CHAOS_EVENTS.CustomerRush.triggerSales
@@ -672,7 +698,7 @@ function Economy.sellProduct(state, now)
                 basket.total,
                 basket.displayName,
                 Economy.CUSTOMER_RUSH_EXTRA_CUSTOMERS
-            )
+            ) .. satisfactionFeedback
     end
     if state.customerRushUntil > 0 and state.sales >= Economy.MAX_CUSTOMERS_PER_SHIFT then
         state.cash += Economy.CUSTOMER_RUSH_REWARD
@@ -682,7 +708,7 @@ function Economy.sellProduct(state, now)
             string.format(
                 "Rush cleared! +$%d bonus. All customers served; close out your shift.",
                 Economy.CUSTOMER_RUSH_REWARD
-            )
+            ) .. satisfactionFeedback
     end
     if state.customerRushUntil == 0 and state.sales >= Economy.CUSTOMERS_PER_SHIFT then
         state.stage = "CloseShift"
@@ -691,7 +717,7 @@ function Economy.sellProduct(state, now)
                 "Basket complete! +$%d for %s. All customers served. Close out your shift.",
                 basket.total,
                 basket.displayName
-            )
+            ) .. satisfactionFeedback
     end
     return true,
         string.format(
@@ -699,7 +725,7 @@ function Economy.sellProduct(state, now)
             basket.total,
             basket.displayName,
             Economy.getCustomerTarget(state) - state.sales
-        )
+        ) .. satisfactionFeedback
 end
 
 function Economy.expireCustomerRush(state, now)

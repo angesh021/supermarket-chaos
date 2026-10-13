@@ -6,7 +6,7 @@ local ProfileService = {}
 local LayoutService = require(script.Parent.LayoutService)
 local RetailLayoutService = require(script.Parent.RetailLayoutService)
 
-local SCHEMA_VERSION = 19
+local SCHEMA_VERSION = 20
 local SESSION_LEASE_SECONDS = 180
 local MAX_RETRIES = 3
 local STORE_NAME = "SupermarketChaos_PlayerProfiles_v1"
@@ -79,6 +79,7 @@ local function defaultProfile()
             sunriseCereal = 16,
         },
         completedShifts = 0,
+        customerSatisfaction = 75,
         lifetimeSales = 0,
     }
 end
@@ -139,6 +140,19 @@ local function normalizeProfile(value)
     profile.balance = nonNegativeInteger(value.balance, 0)
     profile.completedShifts = nonNegativeInteger(value.completedShifts, 0)
     profile.lifetimeSales = nonNegativeInteger(value.lifetimeSales, 0)
+    if
+        value.customerSatisfaction ~= nil
+        and (
+            type(value.customerSatisfaction) ~= "number"
+            or value.customerSatisfaction ~= value.customerSatisfaction
+            or value.customerSatisfaction % 1 ~= 0
+            or value.customerSatisfaction < 0
+            or value.customerSatisfaction > 100
+        )
+    then
+        return nil, "Stored customer satisfaction is outside the supported range."
+    end
+    profile.customerSatisfaction = value.customerSatisfaction or 75
     if value.productPrices ~= nil and type(value.productPrices) ~= "table" then
         return nil, "Stored product prices are malformed."
     end
@@ -465,6 +479,7 @@ local function copyProfile(profile)
             sunriseCereal = profile.productPrices.sunriseCereal,
         },
         completedShifts = profile.completedShifts,
+        customerSatisfaction = profile.customerSatisfaction,
         lifetimeSales = profile.lifetimeSales,
     }
     for index, item in ipairs(profile.warehouseLayout.items) do
@@ -691,6 +706,7 @@ function ProfileService.saveProgress(player, state, eventName)
     profile.ownedUpgrades.aisleExpansion = state.aisleExpansionPurchased
     profile.warehouseLayout = state.warehouseLayout
     profile.retailLayout = RetailLayoutService.normalize(state.retailLayout)
+    profile.customerSatisfaction = math.min(math.max(state.customerSatisfaction or 75, 0), 100)
     profile.hiredEmployees.cashier = state.cashierHired
     profile.hiredEmployees.stocker = state.stockerHired
     profile.hiredEmployees.cleaner = state.cleanerHired
