@@ -1177,6 +1177,50 @@ function WorldBuilder.build()
         end
     end
     local stockerHired = false
+    local cleanerHiringBoard = label(
+        interior,
+        "Cleaner Hiring Board",
+        "HIRE A CLEANER  $120",
+        Vector3.new(5, 2, 0.45),
+        CFrame.new(5.5, 3.4, -18.4),
+        COLORS.gold,
+        COLORS.deepTeal
+    )
+    local cleanerHirePrompt =
+        prompt(cleanerHiringBoard, "Hire Cleaner ($120)", "Staff Board", "HireCleaner", 10)
+    local cleanerModel = createLowPolyPerson(
+        interior,
+        "Store Cleaner",
+        Vector3.new(6.5, 0.45, 6.5),
+        COLORS.blue,
+        COLORS.deepTeal,
+        COLORS.gray
+    )
+    local broomHandle = part(
+        cleanerModel,
+        "Cleaner Broom Handle",
+        Vector3.new(0.14, 2.2, 0.14),
+        CFrame.new(7.25, 1.65, 6.5) * CFrame.Angles(0, 0, math.rad(-16)),
+        COLORS.wood,
+        Enum.Material.Wood
+    )
+    broomHandle.CanCollide = false
+    local broomHead = part(
+        cleanerModel,
+        "Cleaner Broom Head",
+        Vector3.new(0.9, 0.24, 0.45),
+        CFrame.new(7.55, 0.6, 6.5),
+        COLORS.gold,
+        Enum.Material.SmoothPlastic
+    )
+    broomHead.CanCollide = false
+    for _, item in ipairs(cleanerModel:GetDescendants()) do
+        if item:IsA("BasePart") then
+            item.Transparency = 1
+            item.CanCollide = false
+        end
+    end
+    local cleanerHired = false
     local stockPrompt = prompt(shelf.PrimaryPart, "Stock Shelf", "Citrus Pop", "Stock", 9)
     local shiftBoard = label(
         interior,
@@ -1598,6 +1642,7 @@ function WorldBuilder.build()
         upgradeMarker.Enabled = stage == "Upgrade"
         cashierHirePrompt.Enabled = stage == "Complete" and not cashierHired
         stockerHirePrompt.Enabled = stage == "Complete" and not stockerHired
+        cleanerHirePrompt.Enabled = stage == "Complete" and not cleanerHired
         warehousePrompt.Enabled = stage == "Complete" and not warehousePurchased
         if orderDeliveryPrompt then
             orderDeliveryPrompt.Enabled = warehousePurchased and deliveryQuantity == 0
@@ -1679,6 +1724,16 @@ function WorldBuilder.build()
             for _, item in ipairs(stockerModel:GetDescendants()) do
                 if item:IsA("BasePart") then
                     item.Transparency = stockerHired and 0 or 1
+                end
+            end
+        end,
+        cleanerHirePrompt = cleanerHirePrompt,
+        setCleanerHired = function(hired)
+            cleanerHired = hired == true
+            cleanerHirePrompt.Enabled = not cleanerHired and currentStage == "Complete"
+            for _, item in ipairs(cleanerModel:GetDescendants()) do
+                if item:IsA("BasePart") then
+                    item.Transparency = cleanerHired and 0 or 1
                 end
             end
         end,

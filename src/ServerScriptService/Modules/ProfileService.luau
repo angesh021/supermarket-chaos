@@ -4,7 +4,7 @@ local HttpService = game:GetService("HttpService")
 
 local ProfileService = {}
 
-local SCHEMA_VERSION = 5
+local SCHEMA_VERSION = 6
 local SESSION_LEASE_SECONDS = 180
 local MAX_RETRIES = 3
 local STORE_NAME = "SupermarketChaos_PlayerProfiles_v1"
@@ -43,6 +43,7 @@ local function defaultProfile()
         hiredEmployees = {
             cashier = false,
             stocker = false,
+            cleaner = false,
         },
         warehouseInventory = {
             citrusPop = 12,
@@ -137,15 +138,17 @@ local function normalizeProfile(value)
                 value.hiredEmployees.cashier ~= nil
                 and type(value.hiredEmployees.cashier) ~= "boolean"
             )
+            or (value.hiredEmployees.stocker ~= nil and type(value.hiredEmployees.stocker) ~= "boolean")
             or (
-                value.hiredEmployees.stocker ~= nil
-                and type(value.hiredEmployees.stocker) ~= "boolean"
+                value.hiredEmployees.cleaner ~= nil
+                and type(value.hiredEmployees.cleaner) ~= "boolean"
             )
         then
             return nil, "Stored employee flag is malformed."
         end
         profile.hiredEmployees.cashier = value.hiredEmployees.cashier == true
         profile.hiredEmployees.stocker = value.hiredEmployees.stocker == true
+        profile.hiredEmployees.cleaner = value.hiredEmployees.cleaner == true
     end
     if value.warehouseInventory ~= nil and type(value.warehouseInventory) ~= "table" then
         return nil, "Stored warehouse inventory is malformed."
@@ -230,6 +233,7 @@ local function copyProfile(profile)
         hiredEmployees = {
             cashier = profile.hiredEmployees.cashier,
             stocker = profile.hiredEmployees.stocker,
+            cleaner = profile.hiredEmployees.cleaner,
         },
         warehouseInventory = {
             citrusPop = profile.warehouseInventory.citrusPop,
@@ -439,6 +443,7 @@ function ProfileService.saveProgress(player, state, eventName)
     profile.ownedUpgrades.warehouse = state.warehousePurchased
     profile.hiredEmployees.cashier = state.cashierHired
     profile.hiredEmployees.stocker = state.stockerHired
+    profile.hiredEmployees.cleaner = state.cleanerHired
     profile.warehouseInventory.citrusPop = state.backstock
     profile.warehouseInventory.shipmentReadyAt = state.shipmentReadyAt
     profile.warehouseInventory.shipmentQuantity = state.shipmentQuantity

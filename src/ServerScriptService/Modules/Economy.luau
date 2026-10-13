@@ -7,6 +7,7 @@ Economy.SHIFT_REWARD = 20
 Economy.UPGRADE_COST = 45
 Economy.CASHIER_COST = 100
 Economy.STOCKER_COST = 80
+Economy.CLEANER_COST = 120
 Economy.WAREHOUSE_COST = 200
 Economy.DELIVERY_COST = 60
 Economy.DELIVERY_QUANTITY = 24
@@ -40,6 +41,7 @@ function Economy.newState(profile)
         warehousePurchased = upgrades.warehouse or false,
         cashierHired = (profile.hiredEmployees and profile.hiredEmployees.cashier) or false,
         stockerHired = (profile.hiredEmployees and profile.hiredEmployees.stocker) or false,
+        cleanerHired = (profile.hiredEmployees and profile.hiredEmployees.cleaner) or false,
         backstock = warehouseInventory.citrusPop or 12,
         shipmentReadyAt = warehouseInventory.shipmentReadyAt or 0,
         shipmentQuantity = warehouseInventory.shipmentQuantity or 0,
@@ -212,6 +214,18 @@ function Economy.hireStocker(state)
     state.cash -= Economy.STOCKER_COST
     state.stockerHired = true
     return true, "Stock clerk hired! They will restock Citrus Pop automatically."
+end
+
+function Economy.hireCleaner(state)
+    if state.stage ~= "Complete" or state.cleanerHired then
+        return false, "The cleaner position is not available right now."
+    end
+    if state.cash < Economy.CLEANER_COST then
+        return false, string.format("You need $%d to hire a cleaner.", Economy.CLEANER_COST)
+    end
+    state.cash -= Economy.CLEANER_COST
+    state.cleanerHired = true
+    return true, "Cleaner hired! They will handle checkout spills automatically."
 end
 
 function Economy.buyWarehouse(state)

@@ -37,3 +37,10 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Decision:** The checkout spill is represented by the versioned `Spill` shift stage. The server owns eligibility, role authorization, cleanup reward and resume transition. Profile schema v5 admits this stage; older profile shapes migrate through the existing normalizer.
 - **Consequences:** The event has no client remote, deadline or destructive failure state. If cleanup is delayed, the queue waits safely until an authorized player resumes it. Customer Rush and Power Outage require separate eligibility and recovery rules before implementation.
 - **Verification:** See `docs/operations/PHASE9_CHAOS.md`; persistence and Studio runtime checks remain pending.
+
+## ADR-0008 — Route employee automation through existing economy transitions
+- **Status:** Accepted — 2026-10-12.
+- **Context:** New employees should reduce repetitive work without receiving client authority over currency, inventory, or stage.
+- **Decision:** A persistent Cleaner flag unlocks a five-second spill response. It calls the same server-owned cleanup transition as a player; the first valid cleanup changes the stage and makes any racing response a no-op.
+- **Consequences:** Profile schema v6 adds only a validated employee boolean. No employee remote, independent reward code, wage loop, or client-driven automation is introduced.
+- **Verification:** See `docs/operations/PHASE10_EMPLOYEES.md`; Studio migration, purchase, persistence, and race checks remain pending.

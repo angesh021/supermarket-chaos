@@ -32,7 +32,9 @@ G0 was approved on 2026-10-12. The user authorized continued phase implementatio
 - [x] Cashier automatically serves a stocked customer after a short delay; sale uses the existing server economy.
 - [x] Hire a persistent stock clerk for $80; the clerk automatically stocks the introductory product after the cart objective.
 - [ ] Studio verification of hire, save/rejoin, automatic service and helper permissions.
-- [ ] Add further staff roles, automation settings, departments and customization.
+- [x] Add a persistent cleaner role for $120; it automatically resolves the checkout spill through the normal economy transition.
+- [ ] Add delivery/customer-assistant roles, automation settings, departments and customization.
+- [ ] Studio verification of cleaner hire/migration, save/rejoin, automatic cleanup and player/employee races.
 
 ## Phase 4 — Customer operations (checkout queue increment implemented)
 - [x] Show a bounded three-customer checkout queue with varied original procedural appearances.

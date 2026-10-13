@@ -15,6 +15,7 @@
 | STORE-EXP-002 | Persistent warehouse backstock, priced delivery order and exactly-once receipt | `decisions/ADR-0005-warehouse-delivery-loop.md`, `architecture/ARCHITECTURE.md` | `operations/PHASE7_DELIVERY.md` | Implemented; Studio verification pending |
 | CUSTOMER-OPS-001 | Three-customer bounded checkout queue with server-priced sales and saved shift reconstruction | `decisions/README.md`, `architecture/ARCHITECTURE.md` | `operations/PHASE8_CUSTOMERS.md` | Implemented; Studio verification pending |
 | CHAOS-OPS-001 | Checkout spill event with role-gated cleanup, server reward, and saved recovery stage | `decisions/README.md`, `security/THREAT_MODEL.md` | `operations/PHASE9_CHAOS.md` | Implemented; Studio verification pending |
+| EMPLOYEE-OPS-002 | Persistent cleaner hire and exactly-once automated spill cleanup | `decisions/README.md`, `security/THREAT_MODEL.md` | `operations/PHASE10_EMPLOYEES.md` | Implemented; Studio verification pending |
 | OPS-01 | Reproducible local setup and quality checks | `operations/BEGINNER_SETUP.md`, `operations/QUALITY.md` | Fresh setup and CI run | In progress |
 
 No requirement is marked verified until the documented check is actually run and its evidence is recorded.

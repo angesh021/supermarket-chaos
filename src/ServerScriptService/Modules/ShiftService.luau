@@ -33,6 +33,7 @@ local ROLE_ACTIONS = {
         Complete = true,
         HireCashier = true,
         HireStocker = true,
+        HireCleaner = true,
         Warehouse = true,
         OrderDelivery = true,
         ReceiveDelivery = true,
@@ -311,6 +312,35 @@ function ShiftService.init(event, membershipRemotes)
         tryCashierSale(4)
     end
 
+    local cleanerScheduleVersion = 0
+    local function scheduleCleaner()
+        cleanerScheduleVersion += 1
+        local scheduleVersion = cleanerScheduleVersion
+        if not state or not state.cleanerHired or state.stage ~= "Spill" then
+            return
+        end
+        task.delay(5, function()
+            if
+                scheduleVersion ~= cleanerScheduleVersion
+                or not ownerReady
+                or not ownerPlayer
+                or not state
+                or not state.cleanerHired
+                or state.stage ~= "Spill"
+                or ProfileService.getSaveStatus(ownerPlayer) == "lock lost"
+                or ProfileService.getSaveStatus(ownerPlayer) == "save pending"
+            then
+                return
+            end
+            local ok, message = Economy.cleanSpill(state)
+            if ok then
+                world.setSpillVisible(false)
+                commit("spillCleaned")
+                broadcast("The cleaner handled the spill. " .. message)
+            end
+        end)
+    end
+
     local scheduledDeliveryAt
     local function scheduleDeliveryArrival()
         if not state or state.shipmentQuantity <= 0 or state.shipmentReadyAt <= 0 then
@@ -341,6 +371,7 @@ function ShiftService.init(event, membershipRemotes)
         broadcast()
         scheduleStocker()
         scheduleCashierSale()
+        scheduleCleaner()
         scheduleDeliveryArrival()
     end
 
@@ -459,6 +490,15 @@ function ShiftService.init(event, membershipRemotes)
         local ok, message = Economy.hireStocker(state)
         if ok then
             world.setStockerHired(true)
+            commit("employeeHired")
+        end
+        broadcast(message)
+    end)
+
+    bind("HireCleaner", world.cleanerHirePrompt, 12, function()
+        local ok, message = Economy.hireCleaner(state)
+        if ok then
+            world.setCleanerHired(true)
             commit("employeeHired")
         end
         broadcast(message)
@@ -611,6 +651,7 @@ function ShiftService.init(event, membershipRemotes)
             world.setDeliveryState(state.shipmentReadyAt, state.shipmentQuantity)
             world.setCashierHired(state.cashierHired)
             world.setStockerHired(state.stockerHired)
+            world.setCleanerHired(state.cleanerHired)
             world.setStockVisual(state.stock)
             world.setStage(state.stage)
             world.setCustomerCount(math.max(0, Economy.CUSTOMERS_PER_SHIFT - state.sales))
@@ -619,6 +660,7 @@ function ShiftService.init(event, membershipRemotes)
             end
             scheduleCashierSale()
             scheduleStocker()
+            scheduleCleaner()
             scheduleDeliveryArrival()
             broadcast(
                 status == "session only" and "Data saving is off; this session will not persist."
