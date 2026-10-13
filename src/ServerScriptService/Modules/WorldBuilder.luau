@@ -899,6 +899,7 @@ function WorldBuilder.build(locationId, origin)
     retailDepartmentFolder.Parent = interior
     local retailDepartmentShelves = {}
     local retailShelfPositions = {}
+    local retailShelfPivotHeights = {}
     local bakeryPurchased = false
     local freezerPurchased = false
     local bakeryModel
@@ -916,6 +917,7 @@ function WorldBuilder.build(locationId, origin)
         model:SetAttribute("RetailProductId", productId)
         retailDepartmentShelves[productId] = model
         retailShelfPositions[productId] = { x = x, z = z, rotation = 0 }
+        retailShelfPivotHeights[productId] = 1.2
         return model
     end
     local shelf = createDepartmentShelf("citrusPop", "Citrus Pop Shelf", -10, -1, 6, "CITRUS POP")
@@ -1858,6 +1860,9 @@ function WorldBuilder.build(locationId, origin)
             return
         end
         local visibleCount = math.max(0, math.min(24, math.floor(tonumber(count) or 0)))
+        local placement = retailShelfPositions.cinnamonTwists or { x = 16, z = -29, rotation = 0 }
+        local fixtureCFrame = CFrame.new(placement.x, 0, placement.z)
+            * CFrame.Angles(0, math.rad(placement.rotation), 0)
         for index = 1, math.min(visibleCount, 12) do
             local column = (index - 1) % 6
             local row = math.floor((index - 1) / 6)
@@ -1865,7 +1870,7 @@ function WorldBuilder.build(locationId, origin)
                 bakeryModel,
                 "Cinnamon Twist Display",
                 Vector3.new(0.62, 0.28, 0.38),
-                CFrame.new(15.2 + column * 0.72, 2.05 + row * 0.34, -29),
+                fixtureCFrame * CFrame.new(-2.8 + column * 0.72, 2.05 + row * 0.34, 0),
                 index % 2 == 0 and COLORS.orange or COLORS.gold,
                 Enum.Material.SmoothPlastic
             )
@@ -1891,6 +1896,9 @@ function WorldBuilder.build(locationId, origin)
             return
         end
         local visibleCount = math.max(0, math.min(24, math.floor(tonumber(count) or 0)))
+        local placement = retailShelfPositions.frozenMeals or { x = 6, z = -29, rotation = 0 }
+        local fixtureCFrame = CFrame.new(placement.x, 0, placement.z)
+            * CFrame.Angles(0, math.rad(placement.rotation), 0)
         for index = 1, math.min(visibleCount, 12) do
             local column = (index - 1) % 6
             local row = math.floor((index - 1) / 6)
@@ -1898,7 +1906,7 @@ function WorldBuilder.build(locationId, origin)
                 freezerModel,
                 "Frozen Meal Pack Display",
                 Vector3.new(0.62, 0.42, 0.5),
-                CFrame.new(3.25 + column * 0.92, 2.25 + row * 0.48, -29),
+                fixtureCFrame * CFrame.new(-2.75 + column * 0.92, 2.25 + row * 0.48, 0),
                 index % 2 == 0 and COLORS.blue or COLORS.paleGreen,
                 Enum.Material.SmoothPlastic
             )
@@ -4235,7 +4243,7 @@ function WorldBuilder.build(locationId, origin)
             bakeryModel,
             "Bakery Display Counter",
             Vector3.new(6.2, 1.4, 2.2),
-            CFrame.new(17.1, 1.05, -29),
+            CFrame.new(16, 1.05, -29),
             COLORS.wood,
             Enum.Material.WoodPlanks
         )
@@ -4270,15 +4278,18 @@ function WorldBuilder.build(locationId, origin)
             bakeryModel,
             "Pastry Display Anchor",
             Vector3.new(5.4, 0.25, 1.5),
-            CFrame.new(17.1, 1.85, -29),
+            CFrame.new(16, 1.85, -29),
             COLORS.gold,
             Enum.Material.SmoothPlastic
         )
         displayAnchor:SetAttribute("PlayerPurchased", true)
         displayAnchor.CanCollide = false
         bakeryModel.PrimaryPart = displayAnchor
-        retailShelfPositions.cinnamonTwists = { x = 17.1, z = -29, rotation = 0 }
-        createPriceTag("cinnamonTwists", "Cinnamon Twists", bakeryModel, 17.1, -29)
+        bakeryModel:SetAttribute("RetailProductId", "cinnamonTwists")
+        retailDepartmentShelves.cinnamonTwists = bakeryModel
+        retailShelfPositions.cinnamonTwists = { x = 16, z = -29, rotation = 0 }
+        retailShelfPivotHeights.cinnamonTwists = 1.85
+        createPriceTag("cinnamonTwists", "Cinnamon Twists", bakeryModel, 16, -29)
         cinnamonTwistStockPrompt.Parent = displayAnchor
         cinnamonTwistStockPrompt.Enabled = false
         setCinnamonTwistStockVisual(0)
@@ -4327,7 +4338,10 @@ function WorldBuilder.build(locationId, origin)
         )
         freezerSign:SetAttribute("PlayerPurchased", true)
         freezerModel.PrimaryPart = freezerModel:FindFirstChild("Freezer Case Base")
+        freezerModel:SetAttribute("RetailProductId", "frozenMeals")
+        retailDepartmentShelves.frozenMeals = freezerModel
         retailShelfPositions.frozenMeals = { x = 6, z = -29, rotation = 0 }
+        retailShelfPivotHeights.frozenMeals = 0.95
         createPriceTag("frozenMeals", "Freezer Meals", freezerModel, 6, -29)
         local displayAnchor = part(
             freezerModel,
@@ -4879,7 +4893,14 @@ function WorldBuilder.build(locationId, origin)
             if type(checkout) == "table" then
                 refreshCheckoutPositions(checkout.x, checkout.z, checkout.rotation, true)
             end
+            local allPositions = {}
             for productId, shelfPosition in pairs(layout.shelves) do
+                allPositions[productId] = shelfPosition
+            end
+            for productId, shelfPosition in pairs(layout.departments or {}) do
+                allPositions[productId] = shelfPosition
+            end
+            for productId, shelfPosition in pairs(allPositions) do
                 local model = retailDepartmentShelves[productId]
                 if model and type(shelfPosition) == "table" then
                     local x = shelfPosition.x
@@ -4890,8 +4911,9 @@ function WorldBuilder.build(locationId, origin)
                         and type(z) == "number"
                         and (rotation == 0 or rotation == 90)
                     then
+                        local pivotHeight = retailShelfPivotHeights[productId] or 1.2
                         model:PivotTo(
-                            CFrame.new(x, 1.2, z) * CFrame.Angles(0, math.rad(rotation), 0)
+                            CFrame.new(x, pivotHeight, z) * CFrame.Angles(0, math.rad(rotation), 0)
                         )
                         retailShelfPositions[productId] = { x = x, z = z, rotation = rotation }
                     end

@@ -961,6 +961,13 @@ local function copyProfile(profile)
         z = profile.retailLayout.checkout.z,
         rotation = profile.retailLayout.checkout.rotation,
     }
+    for productId, placement in pairs(profile.retailLayout.departments or {}) do
+        copy.retailLayout.departments[productId] = {
+            x = placement.x,
+            z = placement.z,
+            rotation = placement.rotation,
+        }
+    end
     copy.locations = cloneData(profile.locations)
     return copy
 end

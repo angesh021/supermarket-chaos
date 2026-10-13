@@ -40,4 +40,4 @@ Profile schema v19 adds a compact version-1 retail layout. Existing profiles mig
 
 ## Verification status and limits
 
-Static formatting, lint, Rojo build and diff checks are recorded in project status. Roblox Studio layout, customer navigation, profile migration/rejoin, prompt visibility and touch behavior remain unverified. The layout zone reserves the existing expansion bays and intentionally supports only the four current SKU shelves; checkout placement, purchasable plots, floor expansion and additional department construction remain future increments.
+Static formatting, lint, Rojo build and diff checks are recorded in project status. Roblox Studio layout, customer navigation, profile migration/rejoin, prompt visibility and touch behavior remain unverified. Phase 63 extends layout version 3 to move a purchased bakery or freezer in the rear wing; see `PHASE63_EXPANSION_DEPARTMENT_LAYOUT.md`. Arbitrary client-created furniture and new department types remain future increments.

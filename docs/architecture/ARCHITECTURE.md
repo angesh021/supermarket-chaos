@@ -139,6 +139,12 @@ Currency and stock changes occur only after server-side validation. Transactions
 - `ShiftService` authorizes Owner/Manager through its shared prompt gate; `WorldBuilder` creates the fixture in one fixed, reviewed slot and reconstructs it on profile load. Arbitrary placement and rotation are future work.
 - See `operations/PHASE27_HOUSEHOLD_AISLE_EXPANSION.md`; Studio purchase, multiplayer and save/rejoin checks remain pending.
 
+## Phase 63 movable expansion departments
+- Retail layout v3 adds compact placements for the bakery and freezer. Older v1/v2 layouts normalize to fixed starter coordinates.
+- Owner/Manager layout edits remain gated by completed shift, purchase ownership, proximity, request bounds and collision validation. Server-built fixture models carry prompts, price tags, signs and stocked visuals when moved/rotated.
+- Customer browse targets are recalculated from the saved product fixture position. Unknown IDs, arbitrary instances, invalid grid coordinates and cross-location requests are rejected.
+- See `operations/PHASE63_EXPANSION_DEPARTMENT_LAYOUT.md`; Studio movement, routing, migration, permissions and mobile checks remain pending.
+
 ## Phase 4 employee payroll
 - `Economy.getShiftPayroll` totals fixed wages from server-owned employee hire flags. Automation pause state does not alter employment.
 - `Economy.closeShift` credits the existing shift bonus and deducts the computed wages exactly once after validating the closeout stage/flag. Existing profile serialization persists only the resulting balance; schema v17 is unchanged.

@@ -1115,6 +1115,8 @@ function ShiftService.init(event, membershipRemotes, options)
             action = "Open",
             locationId = locationId,
             layout = state.retailLayout,
+            bakeryPurchased = state.bakeryPurchased,
+            freezerPurchased = state.freezerPurchased,
             floorExpansionOwned = state.floorExpansionPurchased,
         })
     end)
@@ -2031,26 +2033,52 @@ function ShiftService.init(event, membershipRemotes, options)
             return reject("Choose one of the installed product department shelves.")
         end
         local shelf = state.retailLayout.shelves[productId]
-        if not shelf then
-            return reject("Choose one of the installed product department shelves.")
+        local department = state.retailLayout.departments[productId]
+        local valid, reason
+        if RetailLayoutService.isExpansionProductId(productId) then
+            if not department then
+                return reject("Build this department before moving it.")
+            end
+            valid, reason = RetailLayoutService.canPlaceDepartment(
+                state.retailLayout,
+                productId,
+                request.x,
+                request.z,
+                request.rotation,
+                state.floorExpansionPurchased,
+                state.bakeryPurchased,
+                state.freezerPurchased,
+                productId
+            )
+            if not valid then
+                return reject(reason)
+            end
+            department.x = request.x
+            department.z = request.z
+            department.rotation = request.rotation
+        else
+            if not shelf then
+                return reject("Choose one of the installed product department shelves.")
+            end
+            valid, reason = RetailLayoutService.canPlace(
+                state.retailLayout.shelves,
+                productId,
+                request.x,
+                request.z,
+                request.rotation,
+                state.retailLayout.checkout,
+                state.floorExpansionPurchased,
+                state.bakeryPurchased,
+                state.freezerPurchased,
+                state.retailLayout.departments
+            )
+            if not valid then
+                return reject(reason)
+            end
+            shelf.x = request.x
+            shelf.z = request.z
+            shelf.rotation = request.rotation
         end
-        local valid, reason = RetailLayoutService.canPlace(
-            state.retailLayout.shelves,
-            productId,
-            request.x,
-            request.z,
-            request.rotation,
-            state.retailLayout.checkout,
-            state.floorExpansionPurchased,
-            state.bakeryPurchased,
-            state.freezerPurchased
-        )
-        if not valid then
-            return reject(reason)
-        end
-        shelf.x = request.x
-        shelf.z = request.z
-        shelf.rotation = request.rotation
         world.setRetailLayout(state.retailLayout)
         local saved =
             ProfileService.saveProgress(ownerPlayer, state, "retailLayoutChanged", locationId)

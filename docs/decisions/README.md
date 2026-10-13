@@ -339,6 +339,11 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Consequences:** Shift/world state and session role grants stay location-scoped. Both runtimes serialize writes through one player profile lease.
 - **Verification:** See `docs/operations/PHASE62_UPTOWN_BRANCH_RUNTIME.md`.
 
+## ADR-0060: Move built expansion departments
+- **Decision:** Allow an Owner/Manager to reposition and rotate an already-purchased bakery or freezer using retail layout version 3.
+- **Consequences:** Server-built fixture models carry their current prompts, signs, stock visuals and pricing tags; coordinates remain bounded to the expanded store floor and persist per location.
+- **Verification:** See `docs/operations/PHASE63_EXPANSION_DEPARTMENT_LAYOUT.md`.
+
 ## ADR-0009 — Keep product inventory and supplier orders SKU-specific
 - **Status:** Accepted — 2026-10-12.
 - **Context:** The retail loop needs visible department variety and product-specific stock behavior while keeping stock and money authoritative.

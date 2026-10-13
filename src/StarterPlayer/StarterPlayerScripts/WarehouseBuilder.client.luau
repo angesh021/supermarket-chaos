@@ -171,7 +171,10 @@ local function raycastPointer()
         table.insert(exclude, ghost)
     end
     if mode then
-        local world = workspace:FindFirstChild("SupermarketChaosWorld")
+        local locationId = player:GetAttribute("ActiveStoreLocation") or "neighborhood"
+        local worldName = locationId == "neighborhood" and "SupermarketChaosWorld"
+            or "SupermarketChaosWorld_" .. locationId
+        local world = workspace:FindFirstChild(worldName)
         local exterior = world and world:FindFirstChild("Exterior")
         local warehouse = exterior and exterior:FindFirstChild("Purchased Warehouse Annex")
         local fixtures = warehouse and warehouse:FindFirstChild("Custom Warehouse Fixtures")

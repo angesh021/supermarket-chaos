@@ -13,6 +13,8 @@ local products = {
     { id = "berryBites", name = "Berry Bites" },
     { id = "goldenApples", name = "Golden Apples" },
     { id = "sunriseCereal", name = "Sunrise Cereal" },
+    { id = "cinnamonTwists", name = "Bakery" },
+    { id = "frozenMeals", name = "Freezer" },
 }
 
 local gui = Instance.new("ScreenGui")
@@ -25,13 +27,13 @@ gui.Parent = player:WaitForChild("PlayerGui")
 local panel = Instance.new("Frame")
 panel.AnchorPoint = Vector2.new(0.5, 0.5)
 panel.Position = UDim2.fromScale(0.5, 0.5)
-panel.Size = UDim2.new(0.9, 0, 0, 350)
+panel.Size = UDim2.new(0.9, 0, 0, 430)
 panel.BackgroundColor3 = Color3.fromRGB(249, 239, 216)
 panel.BorderSizePixel = 0
 panel.Parent = gui
 local sizeConstraint = Instance.new("UISizeConstraint")
-sizeConstraint.MinSize = Vector2.new(250, 350)
-sizeConstraint.MaxSize = Vector2.new(330, 350)
+sizeConstraint.MinSize = Vector2.new(250, 430)
+sizeConstraint.MaxSize = Vector2.new(330, 430)
 sizeConstraint.Parent = panel
 local corner = Instance.new("UICorner")
 corner.CornerRadius = UDim.new(0, 12)
@@ -66,7 +68,7 @@ local instructions = makeLabel(
 instructions.TextWrapped = true
 local status = makeLabel(
     "Choose a department shelf.",
-    UDim2.fromOffset(14, 309),
+    UDim2.fromOffset(14, 390),
     UDim2.new(1, -28, 0, 28),
     12,
     true
@@ -94,7 +96,8 @@ end
 local productButtons = {}
 local checkoutButton =
     makeButton("Checkout lane + queue", UDim2.new(0.06, 0, 0, 86), UDim2.new(0.88, 0, 0, 32))
-for index, product in ipairs(products) do
+for index = 1, 4 do
+    local product = products[index]
     local button = makeButton(
         product.name,
         UDim2.new(0.06, 0, 0, 125 + (index - 1) * 36),
@@ -102,10 +105,21 @@ for index, product in ipairs(products) do
     )
     productButtons[product.id] = button
 end
+local expansionButtons = {}
+for index, product in ipairs({ products[5], products[6] }) do
+    local button = makeButton(
+        product.name .. " Department",
+        UDim2.new(0.06, 0, 0, 269 + (index - 1) * 36),
+        UDim2.new(0.88, 0, 0, 32)
+    )
+    button.Visible = false
+    productButtons[product.id] = button
+    expansionButtons[product.id] = button
+end
 local moveButton =
-    makeButton("Move selected fixture", UDim2.new(0.06, 0, 0, 270), UDim2.new(0.47, 0, 0, 34))
+    makeButton("Move selected fixture", UDim2.new(0.06, 0, 0, 350), UDim2.new(0.47, 0, 0, 34))
 local rotateButton =
-    makeButton("Rotate 90°", UDim2.new(0.55, 0, 0, 270), UDim2.new(0.39, 0, 0, 34))
+    makeButton("Rotate 90°", UDim2.new(0.55, 0, 0, 350), UDim2.new(0.39, 0, 0, 34))
 local closeButton = makeButton("Close", UDim2.new(0.78, 0, 0, 10), UDim2.new(0.16, 0, 0, 28))
 
 local selectedProductId
@@ -115,6 +129,22 @@ local rotation = 0
 local moveMode = false
 local pointerPosition
 local ghost
+
+local function fixtureSize(productId, rotationValue)
+    local width, depth, height
+    if productId == "cinnamonTwists" then
+        width, depth, height = 8, 8.6, 7
+    elseif productId == "frozenMeals" then
+        width, depth, height = 8.4, 7.6, 7
+    else
+        width = productId == "goldenApples" and 4 or 6
+        depth, height = 2.2, 7
+    end
+    if rotationValue == 90 then
+        width, depth = depth, width
+    end
+    return Vector3.new(width, height, depth)
+end
 
 local function destroyGhost()
     if ghost then
@@ -153,7 +183,7 @@ local function ensureGhost()
     ghost.Material = Enum.Material.ForceField
     ghost.Transparency = 0.48
     ghost.Size = selectedCheckout and Vector3.new(8, 7, 11.5)
-        or Vector3.new(selectedProductId == "goldenApples" and 4 or 6, 7, 2.2)
+        or fixtureSize(selectedProductId, rotation)
     ghost.Parent = workspace
 end
 
@@ -200,7 +230,10 @@ local function raycastPointer(excludeShelves)
         table.insert(exclude, ghost)
     end
     if excludeShelves then
-        local world = workspace:FindFirstChild("SupermarketChaosWorld")
+        local locationId = player:GetAttribute("ActiveStoreLocation") or "neighborhood"
+        local worldName = locationId == "neighborhood" and "SupermarketChaosWorld"
+            or "SupermarketChaosWorld_" .. locationId
+        local world = workspace:FindFirstChild(worldName)
         local interior = world and world:FindFirstChild("StoreInterior")
         local departmentShelves = interior and interior:FindFirstChild("Retail Department Shelves")
         if departmentShelves then
@@ -209,6 +242,14 @@ local function raycastPointer(excludeShelves)
         local checkoutLane = interior and interior:FindFirstChild("Checkout Lane")
         if checkoutLane then
             table.insert(exclude, checkoutLane)
+        end
+        local bakery = interior and interior:FindFirstChild("Bakery Department")
+        if bakery then
+            table.insert(exclude, bakery)
+        end
+        local freezer = interior and interior:FindFirstChild("Frozen Foods Department")
+        if freezer then
+            table.insert(exclude, freezer)
         end
     end
     params.FilterDescendantsInstances = exclude
@@ -223,7 +264,7 @@ for productId, button in pairs(productButtons) do
         rotation = 0
         rotateButton.Text = "Rotate 90°"
         ensureGhost()
-        ghost.Size = Vector3.new(productId == "goldenApples" and 4 or 6, 7, 2.2)
+        ghost.Size = fixtureSize(productId, rotation)
         status.Text = "Selected " .. button.Text .. ". Choose Move selected shelf."
     end)
 end
@@ -246,8 +287,7 @@ rotateButton.Activated:Connect(function()
     rotation = rotation == 0 and 90 or 0
     rotateButton.Text = rotation == 0 and "Rotate 90°" or "Rotate 0°"
     if ghost and selectedProductId then
-        local width = selectedProductId == "goldenApples" and 4 or 6
-        ghost.Size = rotation == 0 and Vector3.new(width, 7, 2.2) or Vector3.new(2.2, 7, width)
+        ghost.Size = fixtureSize(selectedProductId, rotation)
     end
     if ghost and selectedCheckout then
         ghost.Size = rotation == 0 and Vector3.new(8, 7, 11.5) or Vector3.new(11.5, 7, 8)
@@ -277,7 +317,10 @@ local function onPointerDown(input, processed)
         return
     end
     if moveMode then
-        local minX, maxX = selectedCheckout and -14 or -12, selectedCheckout and 14 or 12
+        local expansionDepartment = selectedProductId == "cinnamonTwists"
+            or selectedProductId == "frozenMeals"
+        local minX = selectedCheckout and -14 or (expansionDepartment and -16 or -12)
+        local maxX = selectedCheckout and 14 or (expansionDepartment and 16 or 12)
         local minZ, maxZ
         if selectedCheckout then
             minZ, maxZ = 6, 12
@@ -379,6 +422,8 @@ layoutEvent.OnClientEvent:Connect(function(message)
         selectedProductId = nil
         selectedCheckout = false
         floorExpansionOwned = message.floorExpansionOwned == true
+        expansionButtons.cinnamonTwists.Visible = message.bakeryPurchased == true
+        expansionButtons.frozenMeals.Visible = message.freezerPurchased == true
         rotation = 0
         setMoveMode(false)
         gui.Enabled = true

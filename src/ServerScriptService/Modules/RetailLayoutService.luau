@@ -1,12 +1,21 @@
 -- Pure validation for movable customer-facing department shelves.
 local RetailLayoutService = {}
 
-RetailLayoutService.VERSION = 2
+RetailLayoutService.VERSION = 3
+RetailLayoutService.CORE_PRODUCT_IDS = {
+    "citrusPop",
+    "berryBites",
+    "goldenApples",
+    "sunriseCereal",
+}
+RetailLayoutService.EXPANSION_PRODUCT_IDS = { "cinnamonTwists", "frozenMeals" }
 RetailLayoutService.PRODUCT_IDS = {
     "citrusPop",
     "berryBites",
     "goldenApples",
     "sunriseCereal",
+    "cinnamonTwists",
+    "frozenMeals",
 }
 
 local DEFAULT_SHELVES = {
@@ -16,6 +25,10 @@ local DEFAULT_SHELVES = {
     sunriseCereal = { x = 0, z = -9, rotation = 0 },
 }
 local DEFAULT_CHECKOUT = { x = 14, z = 8, rotation = 0 }
+local DEFAULT_EXPANSION_DEPARTMENTS = {
+    cinnamonTwists = { x = 16, z = -29, rotation = 0 },
+    frozenMeals = { x = 6, z = -29, rotation = 0 },
+}
 
 local function finiteNumber(value)
     return type(value) == "number" and value == value and value > -math.huge and value < math.huge
@@ -23,6 +36,24 @@ end
 
 function RetailLayoutService.isProductId(value)
     for _, productId in ipairs(RetailLayoutService.PRODUCT_IDS) do
+        if productId == value then
+            return true
+        end
+    end
+    return false
+end
+
+function RetailLayoutService.isExpansionProductId(value)
+    for _, productId in ipairs(RetailLayoutService.EXPANSION_PRODUCT_IDS) do
+        if productId == value then
+            return true
+        end
+    end
+    return false
+end
+
+function RetailLayoutService.isCoreProductId(value)
+    for _, productId in ipairs(RetailLayoutService.CORE_PRODUCT_IDS) do
         if productId == value then
             return true
         end
@@ -60,18 +91,8 @@ local function validRetailZone(x, z, expansionPurchased)
     return expansionPurchased == true and validGrid(x, -12, 12) and validGrid(z, -33, -21)
 end
 
-local function canPlace(
-    shelves,
-    productId,
-    x,
-    z,
-    rotation,
-    excludedProductId,
-    expansionPurchased,
-    bakeryPurchased,
-    freezerPurchased
-)
-    if not RetailLayoutService.isProductId(productId) then
+local function canPlace(shelves, productId, x, z, rotation, excludedProductId, expansionPurchased)
+    if not RetailLayoutService.isCoreProductId(productId) then
         return false, "Choose one of the four installed product departments."
     end
     if not validRetailZone(x, z, expansionPurchased) then
@@ -84,31 +105,6 @@ local function canPlace(
     local minimumFloorZ = expansionPurchased == true and z < -17 and -39.5 or -18.5
     if x - halfX < -20.5 or x + halfX > 20.5 or z - halfZ < minimumFloorZ or z + halfZ > 16.5 then
         return false, "The rotated shelf must stay inside the store floor."
-    end
-    if
-        bakeryPurchased == true
-        and x - halfX < 20.4
-        and x + halfX > 13.8
-        and z - halfZ < -26.5
-        and z + halfZ > -31.5
-    then
-        return false, "Keep the bakery display and counter clear."
-    end
-    if
-        freezerPurchased == true
-        and x - halfX < 10.2
-        and x + halfX > 1.8
-        and z - halfZ < -25.2
-        and z + halfZ > -32.8
-    then
-        return false, "Keep the freezer cases and aisle clear."
-    end
-
-    -- Fixed expansion bays occupy these reserved positions regardless of purchase state.
-    for _, expansionX in ipairs({ -16, 16 }) do
-        if overlaps(x, z, productId, rotation, expansionX, -8, "citrusPop", 0) then
-            return false, "Keep the original and household expansion bays clear."
-        end
     end
     for otherProductId, other in pairs(shelves) do
         if otherProductId ~= excludedProductId and otherProductId ~= productId then
@@ -214,6 +210,18 @@ function RetailLayoutService.default()
             z = DEFAULT_CHECKOUT.z,
             rotation = DEFAULT_CHECKOUT.rotation,
         },
+        departments = {
+            cinnamonTwists = {
+                x = DEFAULT_EXPANSION_DEPARTMENTS.cinnamonTwists.x,
+                z = DEFAULT_EXPANSION_DEPARTMENTS.cinnamonTwists.z,
+                rotation = DEFAULT_EXPANSION_DEPARTMENTS.cinnamonTwists.rotation,
+            },
+            frozenMeals = {
+                x = DEFAULT_EXPANSION_DEPARTMENTS.frozenMeals.x,
+                z = DEFAULT_EXPANSION_DEPARTMENTS.frozenMeals.z,
+                rotation = DEFAULT_EXPANSION_DEPARTMENTS.frozenMeals.rotation,
+            },
+        },
     }
 end
 
@@ -223,7 +231,7 @@ function RetailLayoutService.normalize(value, expansionPurchased, bakeryPurchase
     end
     if
         type(value) ~= "table"
-        or (value.version ~= 1 and value.version ~= RetailLayoutService.VERSION)
+        or (value.version ~= 1 and value.version ~= 2 and value.version ~= RetailLayoutService.VERSION)
         or type(value.shelves) ~= "table"
     then
         return nil, "Stored retail layout is malformed."
@@ -231,16 +239,51 @@ function RetailLayoutService.normalize(value, expansionPurchased, bakeryPurchase
     local keyCount = 0
     for productId in pairs(value.shelves) do
         keyCount += 1
-        if not RetailLayoutService.isProductId(productId) then
+        if not RetailLayoutService.isCoreProductId(productId) then
             return nil, "Stored retail layout contains an unknown product department."
         end
     end
-    if keyCount ~= #RetailLayoutService.PRODUCT_IDS then
+    if keyCount ~= #RetailLayoutService.CORE_PRODUCT_IDS then
         return nil, "Stored retail layout is missing a product department."
     end
 
     local normalized = RetailLayoutService.default()
-    for _, productId in ipairs(RetailLayoutService.PRODUCT_IDS) do
+    if value.departments ~= nil and type(value.departments) ~= "table" then
+        return nil, "Stored expansion departments are malformed."
+    end
+    local storedDepartments = type(value.departments) == "table" and value.departments or {}
+    local departmentCount = 0
+    for productId in pairs(storedDepartments) do
+        departmentCount += 1
+        if not RetailLayoutService.isExpansionProductId(productId) then
+            return nil, "Stored layout contains an unknown expansion department."
+        end
+    end
+    if departmentCount > #RetailLayoutService.EXPANSION_PRODUCT_IDS then
+        return nil, "Stored layout contains too many expansion departments."
+    end
+    for _, productId in ipairs(RetailLayoutService.EXPANSION_PRODUCT_IDS) do
+        local source = storedDepartments[productId] or DEFAULT_EXPANSION_DEPARTMENTS[productId]
+        if
+            type(source) ~= "table"
+            or not finiteNumber(source.x)
+            or not finiteNumber(source.z)
+            or (source.rotation ~= 0 and source.rotation ~= 90)
+        then
+            return nil, "Stored expansion department position is malformed."
+        end
+        for key in pairs(source) do
+            if key ~= "x" and key ~= "z" and key ~= "rotation" then
+                return nil, "Stored expansion department contains an unsupported field."
+            end
+        end
+        normalized.departments[productId] = {
+            x = source.x,
+            z = source.z,
+            rotation = source.rotation,
+        }
+    end
+    for _, productId in ipairs(RetailLayoutService.CORE_PRODUCT_IDS) do
         local source = value.shelves[productId]
         if type(source) ~= "table" then
             return nil, "Stored retail shelf is malformed."
@@ -255,7 +298,7 @@ function RetailLayoutService.normalize(value, expansionPurchased, bakeryPurchase
         end
         normalized.shelves[productId] = shelf
     end
-    for _, productId in ipairs(RetailLayoutService.PRODUCT_IDS) do
+    for _, productId in ipairs(RetailLayoutService.CORE_PRODUCT_IDS) do
         local shelf = normalized.shelves[productId]
         local valid, reason = canPlace(
             normalized.shelves,
@@ -264,9 +307,7 @@ function RetailLayoutService.normalize(value, expansionPurchased, bakeryPurchase
             shelf.z,
             shelf.rotation,
             productId,
-            expansionPurchased,
-            bakeryPurchased,
-            freezerPurchased
+            expansionPurchased
         )
         if not valid then
             return nil, reason
@@ -292,7 +333,7 @@ function RetailLayoutService.normalize(value, expansionPurchased, bakeryPurchase
             return nil, checkoutReason
         end
     end
-    for _, productId in ipairs(RetailLayoutService.PRODUCT_IDS) do
+    for _, productId in ipairs(RetailLayoutService.CORE_PRODUCT_IDS) do
         local shelf = normalized.shelves[productId]
         local shelfValid, shelfReason = RetailLayoutService.canPlace(
             normalized.shelves,
@@ -303,13 +344,123 @@ function RetailLayoutService.normalize(value, expansionPurchased, bakeryPurchase
             normalized.checkout,
             expansionPurchased,
             bakeryPurchased,
-            freezerPurchased
+            freezerPurchased,
+            normalized.departments
         )
         if not shelfValid then
             return nil, shelfReason
         end
     end
+    for productId, purchased in pairs({
+        cinnamonTwists = bakeryPurchased == true,
+        frozenMeals = freezerPurchased == true,
+    }) do
+        if purchased then
+            local valid, reason = RetailLayoutService.canPlaceDepartment(
+                normalized,
+                productId,
+                normalized.departments[productId].x,
+                normalized.departments[productId].z,
+                normalized.departments[productId].rotation,
+                expansionPurchased,
+                bakeryPurchased,
+                freezerPurchased,
+                productId
+            )
+            if not valid then
+                return nil, reason
+            end
+        end
+    end
     return normalized
+end
+
+local function departmentFootprint(productId, rotation)
+    local width, depth =
+        productId == "cinnamonTwists" and 8 or 8.4, productId == "cinnamonTwists" and 8.6 or 7.6
+    if rotation == 90 then
+        width, depth = depth, width
+    end
+    return width / 2, depth / 2
+end
+
+function RetailLayoutService.canPlaceDepartment(
+    layout,
+    productId,
+    x,
+    z,
+    rotation,
+    expansionPurchased,
+    bakeryPurchased,
+    freezerPurchased,
+    excludedProductId
+)
+    if not RetailLayoutService.isExpansionProductId(productId) then
+        return false, "Choose a built bakery or freezer department."
+    end
+    if not expansionPurchased then
+        return false, "Build the rear floor expansion first."
+    end
+    if productId == "cinnamonTwists" and not bakeryPurchased then
+        return false, "Build the bakery before moving its department."
+    end
+    if productId == "frozenMeals" and not freezerPurchased then
+        return false, "Build the freezer before moving its department."
+    end
+    if
+        not finiteNumber(x)
+        or not finiteNumber(z)
+        or x % 1 ~= 0
+        or z % 1 ~= 0
+        or x < -16
+        or x > 16
+        or (x + 16) % 2 ~= 0
+        or z < -33
+        or z > -21
+        or (z + 33) % 2 ~= 0
+        or (rotation ~= 0 and rotation ~= 90)
+    then
+        return false, "Choose a snapped position and 0 or 90 degree rotation inside the rear floor."
+    end
+    local halfX, halfZ = departmentFootprint(productId, rotation)
+    if x - halfX < -20.5 or x + halfX > 20.5 or z - halfZ < -39.5 or z + halfZ > -18.5 then
+        return false, "Keep the department fixture inside the expanded floor."
+    end
+    local fixtureLayout = layout.departments
+    local checkoutMinX, checkoutMaxX, checkoutMinZ, checkoutMaxZ =
+        checkoutEnvelope(layout.checkout.x, layout.checkout.z, layout.checkout.rotation)
+    if
+        x - halfX < checkoutMaxX + 0.25
+        and x + halfX > checkoutMinX - 0.25
+        and z - halfZ < checkoutMaxZ + 0.25
+        and z + halfZ > checkoutMinZ - 0.25
+    then
+        return false, "Keep expansion departments clear of checkout and its queue."
+    end
+    for _, coreProductId in ipairs(RetailLayoutService.CORE_PRODUCT_IDS) do
+        local shelf = layout.shelves[coreProductId]
+        local otherHalfX, otherHalfZ = halfFootprint(coreProductId, shelf.rotation)
+        if
+            math.abs(x - shelf.x) < halfX + otherHalfX + 0.25
+            and math.abs(z - shelf.z) < halfZ + otherHalfZ + 0.25
+        then
+            return false, "Keep expansion departments clear of other product shelves."
+        end
+    end
+    for otherProductId, other in pairs(fixtureLayout) do
+        local otherOwned = otherProductId == "cinnamonTwists" and bakeryPurchased
+            or otherProductId == "frozenMeals" and freezerPurchased
+        if otherOwned and otherProductId ~= excludedProductId then
+            local otherX, otherZ = departmentFootprint(otherProductId, other.rotation)
+            if
+                math.abs(x - other.x) < halfX + otherX + 0.25
+                and math.abs(z - other.z) < halfZ + otherZ + 0.25
+            then
+                return false, "Keep the department fixtures from overlapping one another."
+            end
+        end
+    end
+    return true
 end
 
 function RetailLayoutService.canPlace(
@@ -321,21 +472,27 @@ function RetailLayoutService.canPlace(
     checkout,
     expansionPurchased,
     bakeryPurchased,
-    freezerPurchased
+    freezerPurchased,
+    departments
 )
-    local valid, reason = canPlace(
-        shelves,
-        productId,
-        x,
-        z,
-        rotation,
-        productId,
-        expansionPurchased,
-        bakeryPurchased,
-        freezerPurchased
-    )
+    local valid, reason =
+        canPlace(shelves, productId, x, z, rotation, productId, expansionPurchased)
     if not valid then
         return false, reason
+    end
+    for departmentId, placement in pairs(departments or {}) do
+        local departmentOwned = departmentId == "cinnamonTwists" and bakeryPurchased == true
+            or departmentId == "frozenMeals" and freezerPurchased == true
+        if departmentOwned then
+            local halfX, halfZ = departmentFootprint(departmentId, placement.rotation)
+            local shelfHalfX, shelfHalfZ = halfFootprint(productId, rotation)
+            if
+                math.abs(x - placement.x) < halfX + shelfHalfX + 0.25
+                and math.abs(z - placement.z) < halfZ + shelfHalfZ + 0.25
+            then
+                return false, "Keep product shelves clear of the built expansion departments."
+            end
+        end
     end
     if type(checkout) == "table" then
         local minX, maxX, minZ, maxZ = checkoutEnvelope(checkout.x, checkout.z, checkout.rotation)

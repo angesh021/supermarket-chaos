@@ -65,6 +65,7 @@
 | [Supplier partnership verification](operations/PHASE56_SUPPLIER_PARTNERSHIP.md) | Persistent supplier agreement and discounted inbound deliveries |
 | [Multi-store foundation](operations/PHASE57_MULTI_STORE_FOUNDATION.md) | Target architecture, safe profile migration and verification gate |
 | [Uptown branch runtime](operations/PHASE62_UPTOWN_BRANCH_RUNTIME.md) | Server-priced branch purchase, isolated store state, shared wallet and multiplayer checks |
+| [Expansion department layout](operations/PHASE63_EXPANSION_DEPARTMENT_LAYOUT.md) | Move and rotate owned bakery/freezer fixtures with server-side bounds and persistence |
 | [Commercial district review](operations/PHASE58_COMMERCIAL_DISTRICT.md) | Connected avenue, neighborhood storefronts and Studio visual checks |
 
 Keep this index and linked documents current as implementation changes. See [AGENTS.md](../AGENTS.md) for repository rules.
