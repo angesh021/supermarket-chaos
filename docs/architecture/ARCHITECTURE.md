@@ -284,6 +284,7 @@ See `docs/decisions/README.md` for accepted ownership policy. Remaining decision
 - Phase 68 derives facility operating costs from the active server state and applies them in the existing guarded shift-close transition after payroll. Only the resulting cash persists; owned upgrades remain the source of truth, and no new profile field or client charge input is used.
 - Phase 70 extends retail layout v5 to v6 by adding a server-allow-listed product ID to each constructed aisle. Legacy aisles without a department migrate to Citrus Pop. `WorldBuilder` divides each SKU's visible stock across the original shelf and assigned aisles; each inventory-backed display count sums to the existing server quantity. No SKU, stock transition or checkout behavior is added.
 - Phase 71 derives each customer browse waypoint from the active basket, current stock allocation and saved retail transforms. When an assigned aisle has stock, customers browse its front; otherwise they use the primary product shelf. This changes presentation/navigation only, with no new persistence or economy state.
+- Phase 73 builds shopper baskets as visual descendants of scripted customer models. Basket contents are generic props; the economy does not read them. Customer product choice, inventory deduction and payouts continue to come from server-owned Economy state.
 
 # Cooperative ownership and cashier extension
 - One owner profile remains the persistence boundary. Per-server membership grants temporary action permissions but does not load a guest's profile into the owner's economy.

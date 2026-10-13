@@ -23,6 +23,7 @@
 | [Customer Rush verification](operations/PHASE13_CUSTOMER_RUSH.md) | Bounded bonus queue, reward, timeout and persistence checks |
 | [Customer basket verification](operations/PHASE14_CUSTOMER_BASKETS.md) | Mixed and multi-item checkout, stock fallback and rejoin checks |
 | [Aisle wayfinding verification](operations/PHASE72_AISLE_WAYFINDING.md) | Overhead retail department signs, fixture movement, warehouse and palette checks |
+| [Shopper basket verification](operations/PHASE73_SHOPPER_BASKETS.md) | Procedural customer baskets, moving queues, checkout invariance and plaza visitors |
 | [Storefront style verification](operations/PHASE15_STOREFRONT_STYLE.md) | Persistent visual upgrade, price, permissions and migration checks |
 | [Customer event reaction verification](operations/PHASE16_CUSTOMER_EVENT_REACTIONS.md) | Spill, outage, rush and queue-recovery presentation checks |
 | [Golden Apples verification](operations/PHASE17_GOLDEN_APPLES.md) | Produce stock, basket sales, shipment and v11 migration checks |

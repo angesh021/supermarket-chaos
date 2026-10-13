@@ -449,7 +449,15 @@ local function createNeighborhoodStorefront(parent, name, center, accent, signTe
     return building
 end
 
-local function createLowPolyPerson(parent, name, position, shirtColor, pantsColor, hairColor)
+local function createLowPolyPerson(
+    parent,
+    name,
+    position,
+    shirtColor,
+    pantsColor,
+    hairColor,
+    isShopper
+)
     local person = Instance.new("Model")
     person.Name = name
     person.Parent = parent
@@ -506,6 +514,50 @@ local function createLowPolyPerson(parent, name, position, shirtColor, pantsColo
         )
     end
     bodyPart("Smile", Vector3.new(0.24, 0.055, 0.05), Vector3.new(0, 3.22, 0.53), COLORS.coral)
+    if isShopper then
+        local basketColor = Color3.fromRGB(196, 73, 59)
+        local basketOffset = Vector3.new(0, 1.02, 0.53)
+        local function basketPart(partName, size, offset, color, material)
+            return bodyPart(
+                partName,
+                size,
+                basketOffset + offset,
+                color or basketColor,
+                material or Enum.Material.SmoothPlastic
+            )
+        end
+        basketPart("Customer Hand Basket Base", Vector3.new(0.92, 0.12, 0.66), Vector3.zero)
+        for _, side in ipairs({ -1, 1 }) do
+            basketPart(
+                "Customer Hand Basket Side",
+                Vector3.new(0.1, 0.44, 0.66),
+                Vector3.new(side * 0.41, 0.26, 0)
+            )
+        end
+        for _, side in ipairs({ -1, 1 }) do
+            basketPart(
+                "Customer Hand Basket End",
+                Vector3.new(0.82, 0.44, 0.1),
+                Vector3.new(0, 0.26, side * 0.28)
+            )
+        end
+        basketPart(
+            "Customer Hand Basket Handle",
+            Vector3.new(0.1, 0.54, 0.1),
+            Vector3.new(0, 0.48, -0.04),
+            COLORS.gray,
+            Enum.Material.Metal
+        )
+        for index, itemColor in ipairs({ COLORS.green, COLORS.gold, COLORS.blue }) do
+            local item = basketPart(
+                "Customer Basket Grocery",
+                Vector3.new(0.22, 0.22, 0.24),
+                Vector3.new(-0.24 + (index - 1) * 0.24, 0.24, 0.12),
+                itemColor
+            )
+            item:SetAttribute("ProductDisplay", true)
+        end
+    end
     return person
 end
 
@@ -1361,7 +1413,8 @@ function WorldBuilder.build(locationId, origin)
             position,
             colors[1],
             colors[2],
-            colors[3]
+            colors[3],
+            true
         )
         local head = customer:FindFirstChild("Head")
         local customerBillboard = Instance.new("BillboardGui")
@@ -3949,7 +4002,8 @@ function WorldBuilder.build(locationId, origin)
             Vector3.new(-80, 0.45, 22),
             colors[1],
             colors[2],
-            colors[3]
+            colors[3],
+            true
         )
         local head = visitor:FindFirstChild("Head")
         local billboard = Instance.new("BillboardGui")

@@ -20,6 +20,7 @@ No production assets have been imported. Register each nontrivial asset with:
 - Phase 50 Little Sprout Garden storefront, potted herbs, gardener, sign and connector use original procedural Roblox Parts, SurfaceGuis and built-in materials; no external asset IDs or third-party code are used.
 - Phase 51 uses color changes to existing original procedural plaza Parts and SurfaceGuis; no external visual assets or third-party code are used.
 - Phase 52 visitors are original procedural Roblox Part models with built-in materials and generated nameplates; no external assets or third-party code are used.
+- Phase 73 shopper hand baskets and generic grocery contents are original procedural Roblox Parts made from built-in materials; no external asset IDs or third-party code were added.
 - Phase 53 adds no visual assets; visitor purchases reuse the Phase 52 procedural models and existing shop displays.
 - Phase 54 two-truck delivery fleet uses original procedural Roblox Parts and built-in materials; no external asset IDs or third-party code are used.
 - Phase 55 regional distribution center, storage racks, pallets and signage use original procedural Roblox Parts and built-in materials; no external asset IDs or third-party code are used.
