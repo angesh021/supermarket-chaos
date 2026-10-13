@@ -41,7 +41,9 @@ G0 was approved on 2026-10-12. The user authorized continued phase implementatio
 - [x] Phase 5 persistence increment: serialize each player's gameplay/autosave/release DataStore writes; add a manual contention and recovery checklist.
 - [ ] Phase 5 manual verification of the save guard, active-session lease, outage fallback and recovery.
 - [x] Phase 6 UI increment: touch devices get a collapsed top-center objective card, a centered resizable team panel, and larger role controls.
+- [x] Phase 6 visual increment: make the procedural storefront, department layout, produce/refrigeration, checkout, cart return, signage and character silhouettes read clearly as a neighborhood supermarket.
 - [ ] Phase 6: device emulation/touch QA, performance review, external beta, staging and release approval.
+- [ ] Review the new visual pass in Studio from exterior approach, entrance, aisle and checkout camera positions; refine any collision, sightline or mobile issues.
 - [x] Phase 7 first increment: server-authoritative $200 warehouse annex purchase, physical buildout and per-player persistence.
 - [ ] Phase 7 follow-up: warehouse inventory, delivery loop, more departments and Studio verification of purchase/save/rejoin.
 - [ ] Later phases: broader economy, seasonal/live operations, production commerce and release work remain gated by the specification, Studio validation and explicit release approval.

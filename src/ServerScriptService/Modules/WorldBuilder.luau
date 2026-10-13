@@ -12,6 +12,9 @@ local COLORS = {
     gray = Color3.fromRGB(164, 172, 169),
     blue = Color3.fromRGB(153, 202, 216),
     road = Color3.fromRGB(55, 61, 63),
+    ink = Color3.fromRGB(36, 48, 49),
+    orange = Color3.fromRGB(239, 146, 73),
+    paleGreen = Color3.fromRGB(190, 211, 151),
 }
 
 local function part(parent, name, size, cframe, color, material, transparency)
@@ -63,38 +66,170 @@ local function label(parent, name, text, size, cframe, color, textColor)
     return board
 end
 
-local function createShelf(parent, name, x, z, width)
+local function createShelf(parent, name, x, z, width, department)
     local shelf = Instance.new("Model")
     shelf.Name = name
     shelf.Parent = parent
-    local function fixture(partName, size, y, color, material)
-        return part(shelf, partName, size, CFrame.new(x, y, z), color, material)
+    local function fixture(partName, size, offset, color, material)
+        return part(shelf, partName, size, CFrame.new(x, 0, z) * CFrame.new(offset), color, material)
     end
-    fixture("Base", Vector3.new(width, 0.6, 2.2), 1.2, COLORS.wood, Enum.Material.Wood)
-    fixture("BackPanel", Vector3.new(width, 5.4, 0.35), 4.0, COLORS.cream)
-    for level = 1, 3 do
+    fixture("Wooden Kick Plate", Vector3.new(width, 0.6, 2.2), Vector3.new(0, 1.2, 0), COLORS.wood, Enum.Material.WoodPlanks)
+    fixture("Retail Gondola Back", Vector3.new(width, 5.4, 0.35), Vector3.new(0, 4, 0), COLORS.cream, Enum.Material.Metal)
+    for _, side in ipairs({ -1, 1 }) do
         fixture(
-            "Shelf",
-            Vector3.new(width + 0.15, 0.22, 2.0),
-            1.9 + level * 1.3,
-            COLORS.warmWhite,
+            "Gondola Upright",
+            Vector3.new(0.18, 5.9, 0.25),
+            Vector3.new(side * (width / 2 - 0.12), 4, 0.1),
+            COLORS.gray,
             Enum.Material.Metal
         )
     end
+    for level = 1, 3 do
+        local shelfY = 1.9 + level * 1.3
+        fixture(
+            "Shelf",
+            Vector3.new(width + 0.15, 0.22, 2.0),
+            Vector3.new(0, shelfY, 0),
+            COLORS.warmWhite,
+            Enum.Material.Metal
+        )
+        fixture(
+            "Shelf Edge Price Rail",
+            Vector3.new(width, 0.16, 0.12),
+            Vector3.new(0, shelfY + 0.12, -1.02),
+            COLORS.blue,
+            Enum.Material.SmoothPlastic
+        )
+    end
     for index = 1, 6 do
-        local productColor = ({ COLORS.coral, COLORS.green, COLORS.gold, COLORS.blue })[((index - 1) % 4) + 1]
+        local productColor = ({ COLORS.coral, COLORS.green, COLORS.orange, COLORS.blue })[((index - 1) % 4) + 1]
         local px = x - width / 2 + index * (width / 7)
         for level = 1, 3 do
+            local packageY = 2.35 + level * 1.3
+            local package = part(
+                shelf,
+                (department or "Grocery") .. " Product Pack",
+                Vector3.new(0.62, 0.82, 0.58),
+                CFrame.new(px, packageY, z - 0.54),
+                productColor,
+                Enum.Material.SmoothPlastic
+            )
+            package:SetAttribute("ProductDisplay", true)
             part(
                 shelf,
-                "Citrus Pop Package",
-                Vector3.new(0.48, 0.78, 0.58),
-                CFrame.new(px, 2.35 + level * 1.3, z - 0.54),
-                productColor
+                "Package Front Label",
+                Vector3.new(0.38, 0.28, 0.025),
+                CFrame.new(px, packageY, z - 0.237),
+                COLORS.warmWhite,
+                Enum.Material.SmoothPlastic
             )
         end
     end
+    label(
+        shelf,
+        "Aisle Department Sign",
+        string.upper(department or "GROCERIES"),
+        Vector3.new(width, 1.15, 0.28),
+        CFrame.new(x, 7.35, z - 1.18),
+        COLORS.deepTeal,
+        COLORS.warmWhite
+    )
+    shelf.PrimaryPart = shelf:FindFirstChild("Wooden Kick Plate")
     return shelf
+end
+
+local function createRefrigeratedCase(parent, x, z)
+    local case = Instance.new("Model")
+    case.Name = "Glass-Door Refrigerated Drinks Case"
+    case.Parent = parent
+    part(
+        case,
+        "Refrigerator Base",
+        Vector3.new(7, 2.1, 3.3),
+        CFrame.new(x, 1.55, z),
+        COLORS.deepTeal,
+        Enum.Material.Metal
+    )
+    part(
+        case,
+        "Refrigerator Canopy",
+        Vector3.new(7.2, 0.45, 3.5),
+        CFrame.new(x, 5.3, z),
+        COLORS.teal,
+        Enum.Material.Metal
+    )
+    for level = 1, 3 do
+        part(
+            case,
+            "Refrigerated Shelf",
+            Vector3.new(6.4, 0.12, 2.45),
+            CFrame.new(x, 1.75 + level * 0.85, z - 0.25),
+            COLORS.gray,
+            Enum.Material.Metal
+        )
+        for index = 1, 6 do
+            local bottleX = x - 2.8 + (index - 1) * 1.12
+            local bottle = part(
+                case,
+                "Chilled Drink Bottle",
+                Vector3.new(0.52, 0.62, 0.5),
+                CFrame.new(bottleX, 2.05 + level * 0.85, z - 0.7),
+                ({ COLORS.orange, COLORS.green, COLORS.coral, COLORS.blue })[((index + level - 2) % 4) + 1],
+                Enum.Material.SmoothPlastic
+            )
+            part(
+                case,
+                "Bottle Cap",
+                Vector3.new(0.28, 0.12, 0.28),
+                CFrame.new(bottleX, 2.42 + level * 0.85, z - 0.7),
+                COLORS.warmWhite,
+                Enum.Material.SmoothPlastic
+            ).Shape = Enum.PartType.Cylinder
+            bottle:SetAttribute("ProductDisplay", true)
+        end
+    end
+    local glass = part(
+        case,
+        "Refrigerator Glass Doors",
+        Vector3.new(6.65, 2.45, 0.12),
+        CFrame.new(x, 3.84, z + 1.62),
+        COLORS.blue,
+        Enum.Material.Glass,
+        0.58
+    )
+    glass.CanCollide = false
+    for _, offset in ipairs({ -3.35, 0, 3.35 }) do
+        part(
+            case,
+            "Refrigerator Door Frame",
+            Vector3.new(0.12, 2.5, 0.18),
+            CFrame.new(x + offset, 3.84, z + 1.68),
+            COLORS.gray,
+            Enum.Material.Metal
+        )
+    end
+    for _, side in ipairs({ -1, 1 }) do
+        local sideGlass = part(
+            case,
+            "Refrigerator Side Glass",
+            Vector3.new(0.12, 2.4, 2.8),
+            CFrame.new(x + side * 3.45, 3.82, z),
+            COLORS.blue,
+            Enum.Material.Glass,
+            0.62
+        )
+        sideGlass.CanCollide = false
+    end
+    label(
+        case,
+        "Cold Drinks Header",
+        "COLD DRINKS",
+        Vector3.new(7, 1.1, 0.3),
+        CFrame.new(x, 6.2, z + 1.55),
+        COLORS.deepTeal,
+        COLORS.warmWhite
+    )
+    return case
 end
 
 local function createTree(parent, x, z)
@@ -115,6 +250,66 @@ local function createTree(parent, x, z)
         Enum.Material.Grass
     )
     crown.Shape = Enum.PartType.Ball
+end
+
+local function createLowPolyPerson(parent, name, position, shirtColor, pantsColor, hairColor)
+    local person = Instance.new("Model")
+    person.Name = name
+    person.Parent = parent
+    local skinColor = Color3.fromRGB(238, 192, 158)
+    local function bodyPart(partName, size, offset, color, material)
+        local body = part(
+            person,
+            partName,
+            size,
+            CFrame.new(position + offset),
+            color,
+            material or Enum.Material.SmoothPlastic
+        )
+        body.CanCollide = false
+        return body
+    end
+    bodyPart("Pants", Vector3.new(1.05, 0.45, 0.72), Vector3.new(0, 1.15, 0), pantsColor)
+    for _, side in ipairs({ -1, 1 }) do
+        bodyPart(
+            "Trouser Leg",
+            Vector3.new(0.48, 1.05, 0.58),
+            Vector3.new(side * 0.3, 0.62, 0),
+            pantsColor
+        )
+        bodyPart(
+            "Sneaker",
+            Vector3.new(0.58, 0.28, 0.78),
+            Vector3.new(side * 0.3, 0.16, 0.08),
+            COLORS.warmWhite
+        )
+        bodyPart(
+            "Sleeve and Arm",
+            Vector3.new(0.43, 1.42, 0.54),
+            Vector3.new(side * 0.9, 2.0, 0),
+            shirtColor
+        )
+        bodyPart(
+            "Hand",
+            Vector3.new(0.42, 0.38, 0.42),
+            Vector3.new(side * 0.9, 1.12, 0.02),
+            skinColor
+        )
+    end
+    bodyPart("Uniform Shirt", Vector3.new(1.38, 1.58, 0.78), Vector3.new(0, 2.02, 0), shirtColor)
+    bodyPart("Collar", Vector3.new(0.45, 0.18, 0.08), Vector3.new(0, 2.77, 0.42), COLORS.warmWhite)
+    bodyPart("Head", Vector3.new(1.12, 1.12, 1.02), Vector3.new(0, 3.45, 0), skinColor)
+    bodyPart("Hair", Vector3.new(1.18, 0.34, 1.08), Vector3.new(0, 4.05, -0.02), hairColor)
+    for _, side in ipairs({ -1, 1 }) do
+        bodyPart(
+            "Eye",
+            Vector3.new(0.11, 0.12, 0.05),
+            Vector3.new(side * 0.22, 3.5, 0.53),
+            COLORS.ink
+        )
+    end
+    bodyPart("Smile", Vector3.new(0.24, 0.055, 0.05), Vector3.new(0, 3.22, 0.53), COLORS.coral)
+    return person
 end
 
 function WorldBuilder.build()
@@ -168,6 +363,26 @@ function WorldBuilder.build()
             Enum.Material.Neon
         )
     end
+    for x = -42, 42, 14 do
+        part(
+            exterior,
+            "Parking Stall Divider",
+            Vector3.new(0.14, 0.035, 5.8),
+            CFrame.new(x, 0.14, 39),
+            COLORS.warmWhite,
+            Enum.Material.SmoothPlastic
+        )
+    end
+    for _, z in ipairs({ 36, 42 }) do
+        part(
+            exterior,
+            "Parking Stall End Line",
+            Vector3.new(84, 0.035, 0.14),
+            CFrame.new(0, 0.14, z),
+            COLORS.warmWhite,
+            Enum.Material.SmoothPlastic
+        )
+    end
 
     -- 44 x 36 storefront; entry opening remains visible from the parking approach.
     part(
@@ -207,11 +422,109 @@ function WorldBuilder.build()
         exterior,
         "Store Sign",
         "SUPERMARKET CHAOS",
-        Vector3.new(20, 2.1, 0.4),
+        Vector3.new(29, 2.1, 0.4),
         CFrame.new(0, 10.35, 16.72),
         COLORS.teal
     )
+    label(
+        exterior,
+        "Storefront Promise Sign",
+        "FRESH GROCERIES  •  LOCAL FAVORITES",
+        Vector3.new(14, 0.75, 0.28),
+        CFrame.new(0, 8.65, 17.65),
+        COLORS.cream,
+        COLORS.deepTeal
+    )
+    for _, windowX in ipairs({ -14.5, 14.5 }) do
+        part(
+            exterior,
+            "Teal Window Sill",
+            Vector3.new(13, 0.8, 0.55),
+            CFrame.new(windowX, 0.85, 17.55),
+            COLORS.deepTeal,
+            Enum.Material.Brick
+        )
+    end
     part(exterior, "Entry Canopy", Vector3.new(21, 0.6, 6), CFrame.new(0, 9.3, 20.5), COLORS.coral)
+    for _, x in ipairs({ -9.7, 9.7 }) do
+        part(
+            exterior,
+            "Canopy Support",
+            Vector3.new(0.45, 3.2, 0.45),
+            CFrame.new(x, 7.65, 22.8),
+            COLORS.deepTeal,
+            Enum.Material.Metal
+        )
+    end
+    part(
+        exterior,
+        "Canopy Front Valance",
+        Vector3.new(21, 0.7, 0.35),
+        CFrame.new(0, 8.9, 23.35),
+        COLORS.deepTeal,
+        Enum.Material.SmoothPlastic
+    )
+    for _, x in ipairs({ -7.5, -4.5, -1.5, 1.5, 4.5, 7.5 }) do
+        part(
+            exterior,
+            "Canopy Color Stripe",
+            Vector3.new(1.5, 0.62, 0.18),
+            CFrame.new(x, 8.9, 23.56),
+            COLORS.coral,
+            Enum.Material.SmoothPlastic
+        )
+    end
+    -- Fixed-open automatic sliding glass panels frame a clear walk-in entrance.
+    for _, x in ipairs({ -5.05, 5.05 }) do
+        local doorPanel = part(
+            exterior,
+            "Automatic Entrance Glass Door",
+            Vector3.new(5.7, 7.7, 0.16),
+            CFrame.new(x, 4.4, 16.78),
+            COLORS.blue,
+            Enum.Material.Glass,
+            0.58
+        )
+        doorPanel.CanCollide = false
+    end
+    for _, x in ipairs({ -2.35, 2.35 }) do
+        part(
+            exterior,
+            "Automatic Door Pull",
+            Vector3.new(0.12, 1.3, 0.1),
+            CFrame.new(x, 4.35, 16.62),
+            COLORS.gold,
+            Enum.Material.Metal
+        )
+    end
+    part(
+        exterior,
+        "Automatic Door Track",
+        Vector3.new(12, 0.22, 0.3),
+        CFrame.new(0, 8.42, 16.8),
+        COLORS.gray,
+        Enum.Material.Metal
+    )
+    for _, windowX in ipairs({ -14.5, 14.5 }) do
+        for _, mullionX in ipairs({ windowX - 4.25, windowX, windowX + 4.25 }) do
+            part(
+                exterior,
+                "Window Mullion",
+                Vector3.new(0.12, 7.8, 0.12),
+                CFrame.new(mullionX, 5.4, 16.77),
+                COLORS.gray,
+                Enum.Material.Metal
+            )
+        end
+        part(
+            exterior,
+            "Window Crossbar",
+            Vector3.new(12.8, 0.12, 0.12),
+            CFrame.new(windowX, 5.4, 16.77),
+            COLORS.gray,
+            Enum.Material.Metal
+        )
+    end
     part(
         interior,
         "Entrance Mat",
@@ -229,6 +542,43 @@ function WorldBuilder.build()
         Enum.Material.SmoothPlastic,
         0.45
     )
+    label(
+        interior,
+        "Neighborhood Market Mural",
+        "GOOD FOOD  •  GOOD NEIGHBORS",
+        Vector3.new(23, 1.8, 0.35),
+        CFrame.new(0, 8.45, -18.35),
+        COLORS.deepTeal,
+        COLORS.warmWhite
+    )
+    for _, beamZ in ipairs({ -15, -5, 5, 14 }) do
+        part(
+            interior,
+            "Exposed Ceiling Crossbeam",
+            Vector3.new(44, 0.22, 0.3),
+            CFrame.new(0, 10.65, beamZ),
+            COLORS.deepTeal,
+            Enum.Material.Metal
+        )
+    end
+    for _, wallX in ipairs({ -20.7, 20.7 }) do
+        part(
+            interior,
+            "Exposed Ceiling Side Beam",
+            Vector3.new(0.28, 0.22, 36),
+            CFrame.new(wallX, 10.65, -1),
+            COLORS.deepTeal,
+            Enum.Material.Metal
+        )
+    end
+    part(
+        interior,
+        "Back Wall Teal Wainscot",
+        Vector3.new(43, 1.1, 0.22),
+        CFrame.new(0, 0.95, -18.43),
+        COLORS.teal,
+        Enum.Material.SmoothPlastic
+    )
 
     -- Warm, high-visibility ceiling panels; point lights are sparse and non-shadow casting.
     for x = -14, 14, 7 do
@@ -239,84 +589,176 @@ function WorldBuilder.build()
                 Vector3.new(4.5, 0.18, 2),
                 CFrame.new(x, 11.7, z),
                 COLORS.warmWhite,
-                Enum.Material.Neon
+                Enum.Material.SmoothPlastic
             )
             if x == 0 and z == -3 then
                 local light = Instance.new("PointLight")
                 light.Color = Color3.fromRGB(255, 233, 190)
-                light.Brightness = 0.8
-                light.Range = 20
+                light.Brightness = 0.65
+                light.Range = 18
                 light.Shadows = false
                 light.Parent = panel
             end
         end
     end
 
-    local shelf = createShelf(interior, "Citrus Pop Shelf", -10, -1, 6)
-    createShelf(interior, "Pantry Shelf", 0, -9, 6)
-    createShelf(interior, "Cold Drinks Display", 9, -10, 7)
+    local shelf = createShelf(interior, "Citrus Pop Shelf", -10, -1, 6, "CITRUS POP")
+    createShelf(interior, "Pantry Shelf", 0, -1, 6, "SNACKS")
+    createShelf(interior, "Breakfast and Pantry Shelf", -10, -9, 6, "PANTRY")
+    createShelf(interior, "Cereal and Household Shelf", 0, -9, 6, "GROCERY")
+    createRefrigeratedCase(interior, 9, -14.5)
     part(
         interior,
         "Produce Counter",
         Vector3.new(7, 2, 3),
-        CFrame.new(-13, 1.5, 8),
+        CFrame.new(-13, 1.45, 8),
         COLORS.wood,
-        Enum.Material.Wood
+        Enum.Material.WoodPlanks
     )
-    for index = 1, 5 do
-        local fruit = part(
+    label(
+        interior,
+        "Produce Department Sign",
+        "FRESH PRODUCE",
+        Vector3.new(7, 1.15, 0.3),
+        CFrame.new(-13, 3.5, 6.35),
+        COLORS.green,
+        COLORS.warmWhite
+    )
+    for binIndex = 1, 3 do
+        local binX = -15 + (binIndex - 1) * 2
+        part(
             interior,
-            "Fresh Produce",
-            Vector3.new(0.85, 0.75, 0.85),
-            CFrame.new(-15 + index, 2.85, 7.8),
-            ({ COLORS.coral, COLORS.green, COLORS.gold })[((index - 1) % 3) + 1],
-            Enum.Material.SmoothPlastic
+            "Produce Crate",
+            Vector3.new(1.85, 0.45, 2.25),
+            CFrame.new(binX, 2.65, 8),
+            COLORS.wood,
+            Enum.Material.WoodPlanks
         )
-        fruit.Shape = Enum.PartType.Ball
+        for fruitIndex = 1, 4 do
+            local fruit = part(
+                interior,
+                "Fresh Produce",
+                Vector3.new(0.6, 0.58, 0.6),
+                CFrame.new(binX - 0.58 + (fruitIndex - 1) * 0.38, 3.15, 7.85),
+                ({ COLORS.coral, COLORS.paleGreen, COLORS.gold, COLORS.orange })[
+                    ((binIndex + fruitIndex - 2) % 4) + 1
+                ],
+                Enum.Material.SmoothPlastic
+            )
+            fruit.Shape = Enum.PartType.Ball
+        end
     end
 
-    -- Simple, recognizable checkout and a waiting customer silhouette.
+    -- A staffed register has a distinct conveyor, scanner, POS screen, and impulse-buy rack.
     local counter = part(
         interior,
         "Checkout Counter",
         Vector3.new(8, 2.5, 3.5),
         CFrame.new(14, 1.7, 8),
-        COLORS.wood,
-        Enum.Material.Wood
+        COLORS.deepTeal,
+        Enum.Material.Metal
     )
     part(
         interior,
-        "Checkout Countertop",
-        Vector3.new(8.3, 0.25, 3.8),
-        CFrame.new(14, 3.05, 8),
+        "Checkout Counter Front Panel",
+        Vector3.new(7.5, 1.55, 0.18),
+        CFrame.new(14, 1.65, 9.78),
+        COLORS.wood,
+        Enum.Material.WoodPlanks
+    )
+    part(
+        interior,
+        "Checkout Conveyor Belt",
+        Vector3.new(4.1, 0.18, 2.5),
+        CFrame.new(13.2, 3.05, 8.05),
+        COLORS.ink,
+        Enum.Material.SmoothPlastic
+    )
+    part(
+        interior,
+        "Checkout Bagging Counter",
+        Vector3.new(3.5, 0.22, 2.7),
+        CFrame.new(16.7, 3.05, 8.05),
         COLORS.warmWhite,
         Enum.Material.Marble
     )
     part(
         interior,
-        "Checkout Screen",
-        Vector3.new(1.5, 1.1, 0.3),
-        CFrame.new(14, 3.7, 6.8),
-        COLORS.teal
+        "Checkout Scanner",
+        Vector3.new(0.9, 0.12, 0.8),
+        CFrame.new(15.25, 3.2, 7.45),
+        COLORS.coral,
+        Enum.Material.Neon
     )
-    local customer = Instance.new("Model")
-    customer.Name = "Waiting Customer"
-    customer.Parent = interior
     part(
-        customer,
-        "Customer Body",
-        Vector3.new(1.7, 2.7, 1.1),
-        CFrame.new(17.5, 1.8, 4),
-        COLORS.blue
+        interior,
+        "Checkout Screen",
+        Vector3.new(1.15, 0.85, 0.18),
+        CFrame.new(12.2, 3.8, 6.65),
+        COLORS.ink,
+        Enum.Material.SmoothPlastic
     )
-    local head = part(
-        customer,
-        "Customer Head",
-        Vector3.new(1.35, 1.35, 1.35),
-        CFrame.new(17.5, 3.8, 4),
-        Color3.fromRGB(237, 190, 153)
+    local checkoutDisplay = part(
+        interior,
+        "Checkout Screen Display",
+        Vector3.new(0.92, 0.56, 0.035),
+        CFrame.new(12.2, 3.82, 6.755),
+        COLORS.paleGreen,
+        Enum.Material.Neon
     )
-    head.Shape = Enum.PartType.Ball
+    local checkoutGui = Instance.new("SurfaceGui")
+    checkoutGui.Name = "RegisterDisplayGui"
+    checkoutGui.Face = Enum.NormalId.Back
+    checkoutGui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+    checkoutGui.PixelsPerStud = 50
+    checkoutGui.Parent = checkoutDisplay
+    local checkoutText = Instance.new("TextLabel")
+    checkoutText.Size = UDim2.fromScale(1, 1)
+    checkoutText.BackgroundTransparency = 1
+    checkoutText.Text = "READY  •  SCAN ITEMS"
+    checkoutText.TextColor3 = COLORS.deepTeal
+    checkoutText.Font = Enum.Font.GothamBold
+    checkoutText.TextScaled = true
+    checkoutText.Parent = checkoutGui
+    label(
+        interior,
+        "Checkout Overhead Sign",
+        "CHECKOUT  •  LANE 01",
+        Vector3.new(7, 1.15, 0.3),
+        CFrame.new(14, 6.25, 6.1),
+        COLORS.deepTeal,
+        COLORS.warmWhite
+    )
+    local impulseRack = part(
+        interior,
+        "Checkout Candy Rack",
+        Vector3.new(1.2, 2.1, 1.25),
+        CFrame.new(19.2, 1.55, 4.5),
+        COLORS.gray,
+        Enum.Material.Metal
+    )
+    impulseRack.CanCollide = false
+    for row = 1, 3 do
+        for column = 1, 2 do
+            part(
+                interior,
+                "Checkout Treat Pack",
+                Vector3.new(0.42, 0.42, 0.4),
+                CFrame.new(18.9 + column * 0.36, 1.0 + row * 0.42, 3.9),
+                ({ COLORS.coral, COLORS.gold, COLORS.green })[row],
+                Enum.Material.SmoothPlastic
+            )
+        end
+    end
+    local customer = createLowPolyPerson(
+        interior,
+        "Waiting Customer",
+        Vector3.new(17.5, 0.45, 4),
+        COLORS.blue,
+        COLORS.deepTeal,
+        COLORS.orange
+    )
+    local head = customer:FindFirstChild("Head")
 
     local customerBillboard = Instance.new("BillboardGui")
     customerBillboard.Name = "CustomerNameplate"
@@ -388,24 +830,14 @@ function WorldBuilder.build()
         COLORS.gold
     )
     local cashierHirePrompt = prompt(hiringBoard, "Hire Cashier ($100)", "Staff Board", "HireCashier", 10)
-    local cashierModel = Instance.new("Model")
-    cashierModel.Name = "Store Cashier"
-    cashierModel.Parent = interior
-    local cashierBody = part(
-        cashierModel,
-        "Cashier Uniform",
-        Vector3.new(1.5, 2.5, 0.9),
-        CFrame.new(10.5, 1.8, 8),
-        COLORS.teal
+    local cashierModel = createLowPolyPerson(
+        interior,
+        "Store Cashier",
+        Vector3.new(10.5, 0.45, 8),
+        COLORS.teal,
+        COLORS.deepTeal,
+        COLORS.ink
     )
-    local cashierHead = part(
-        cashierModel,
-        "Cashier Head",
-        Vector3.new(1.2, 1.2, 1.2),
-        CFrame.new(10.5, 3.65, 8),
-        Color3.fromRGB(237, 190, 153)
-    )
-    cashierHead.Shape = Enum.PartType.Ball
     for _, item in ipairs(cashierModel:GetDescendants()) do
         if item:IsA("BasePart") then
             item.Transparency = 1
@@ -430,24 +862,14 @@ function WorldBuilder.build()
         "HireStocker",
         10
     )
-    local stockerModel = Instance.new("Model")
-    stockerModel.Name = "Store Stock Clerk"
-    stockerModel.Parent = interior
-    local stockerBody = part(
-        stockerModel,
-        "Stocker Uniform",
-        Vector3.new(1.4, 2.4, 0.9),
-        CFrame.new(-6.5, 1.75, -1),
-        COLORS.green
+    local stockerModel = createLowPolyPerson(
+        interior,
+        "Store Stock Clerk",
+        Vector3.new(-6.5, 0.45, -1),
+        COLORS.green,
+        COLORS.wood,
+        COLORS.deepTeal
     )
-    local stockerHead = part(
-        stockerModel,
-        "Stocker Head",
-        Vector3.new(1.15, 1.15, 1.15),
-        CFrame.new(-6.5, 3.5, -1),
-        Color3.fromRGB(237, 190, 153)
-    )
-    stockerHead.Shape = Enum.PartType.Ball
     for _, item in ipairs(stockerModel:GetDescendants()) do
         if item:IsA("BasePart") then
             item.Transparency = 1
@@ -456,7 +878,7 @@ function WorldBuilder.build()
     end
     local stockerHired = false
     local stockPrompt = prompt(
-        shelf.PrimaryPart or shelf:FindFirstChild("Base"),
+        shelf.PrimaryPart,
         "Stock Shelf",
         "Citrus Pop",
         "Stock",
@@ -592,6 +1014,70 @@ function WorldBuilder.build()
         )
         leaves.Shape = Enum.PartType.Ball
         planter:SetAttribute("Decorative", true)
+    end
+    part(
+        exterior,
+        "Cart Return Bay Pad",
+        Vector3.new(10, 0.15, 5),
+        CFrame.new(-46, 0.43, 28.5),
+        COLORS.gray,
+        Enum.Material.Concrete
+    )
+    for _, x in ipairs({ -50.5, -41.5 }) do
+        part(
+            exterior,
+            "Cart Return Shelter Post",
+            Vector3.new(0.25, 3.4, 0.25),
+            CFrame.new(x, 2.15, 30.5),
+            COLORS.deepTeal,
+            Enum.Material.Metal
+        )
+    end
+    part(
+        exterior,
+        "Cart Return Shelter Roof",
+        Vector3.new(10, 0.35, 5),
+        CFrame.new(-46, 4, 28.5),
+        COLORS.teal,
+        Enum.Material.Metal
+    )
+    label(
+        exterior,
+        "Cart Return Sign",
+        "CART RETURN",
+        Vector3.new(8, 1.1, 0.3),
+        CFrame.new(-46, 3.25, 31.1),
+        COLORS.deepTeal,
+        COLORS.warmWhite
+    )
+    for _, x in ipairs({ -49, -46, -43 }) do
+        part(
+            exterior,
+            "Parked Cart Basket",
+            Vector3.new(1.65, 0.9, 1.25),
+            CFrame.new(x, 1.55, 27.8),
+            COLORS.gray,
+            Enum.Material.Metal
+        )
+        part(
+            exterior,
+            "Parked Cart Handle",
+            Vector3.new(1.5, 0.12, 0.12),
+            CFrame.new(x, 2.15, 29.0),
+            COLORS.deepTeal,
+            Enum.Material.Metal
+        )
+        for _, wheelX in ipairs({ x - 0.62, x + 0.62 }) do
+            local wheel = part(
+                exterior,
+                "Parked Cart Wheel",
+                Vector3.new(0.3, 0.3, 0.16),
+                CFrame.new(wheelX, 0.72, 27.5),
+                COLORS.ink,
+                Enum.Material.SmoothPlastic
+            )
+            wheel.Shape = Enum.PartType.Cylinder
+        end
     end
     part(
         exterior,

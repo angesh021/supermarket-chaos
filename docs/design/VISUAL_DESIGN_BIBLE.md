@@ -35,3 +35,11 @@ Use deep teal for primary actions, warm cream surfaces, green success, coral war
 
 ## Visual gate
 Review exterior and interior in normal gameplay camera and screenshots at desktop/mobile framing. Pass only when entry, checkout, route, next action, store scale and material cohesion are readable; no placeholder geometry is presented as release art.
+
+## Procedural supermarket art pass — implemented, Studio review pending
+- The storefront now has an enlarged brand fascia, a clear walk-in glass entrance, window mullions/sills, a striped canopy, and a marked cart-return shelter.
+- The interior now reads by department: two double-sided grocery gondola rows, a glass-front chilled-drinks case, a produce island, and a checkout with a conveyor, scanner, bagging area, POS display, and impulse-buy rack.
+- Aisle headers, produce/cold-drink/checkout signs, package labels, ceiling beams, and a back-wall market message add retail cues and visual hierarchy.
+- Customer and employee blockouts use a consistent stylized human silhouette with face, hair, uniform, arms, legs and shoes. They remain anchored placeholder figures, not animated characters.
+- All additions are made from built-in Roblox Parts, Materials, SurfaceGuis and lights. They are original procedural blockout assets; no external models or textures were imported.
+- This pass has not been observed in Studio. Verify that the doors stay traversable, the cash register and department signs face the player, product rows do not overlap, and camera/mobile framing remains readable. Continue replacing placeholders with refined meshes, textures and animations only after this review.

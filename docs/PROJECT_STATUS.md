@@ -17,6 +17,7 @@ Phase 1 desktop first play and Phase 2 progression/persistence were reported pas
 - Phase 5 persistence increment serializes writes per profile across gameplay commits, 60-second autosave, player release and shutdown. The new private-Studio contention/recovery checklist is pending; this code has not been runtime-tested.
 - Phase 5 analytics increment sends first-shift milestones to Roblox AnalyticsService only in development universe `10770581249`. The API associates events with its required Player argument; the game sends no custom fields or game-owned player IDs. Funnel session IDs stay ephemeral; dashboard ingestion is unverified.
 - Phase 6 UI increment uses a collapsed top-center objective card on touch devices, a centered team panel sized to the viewport, and larger role controls. Device emulation is not yet verified.
+- Phase 6 visual increment adds recognizable storefront glazing and entry, market fascia/canopy, cart return, two stocked aisle rows, a produce island, chilled-drinks case, retail checkout details and stylized human blockouts. It uses only original procedural Roblox parts. Visual/runtime/mobile review remains pending.
 - Phase 7 warehouse increment adds a $200 purchase available at Complete, an exterior annex buildout, and per-player owned-upgrade persistence in profile schema v3. Owner/Manager authorization uses the existing server-side role, prompt-distance and rate-limit checks. Purchase/rejoin behavior is not yet verified in Studio.
 - DataStore calls are enabled only when `game.GameId` matches development universe `10770581249`. Other universes display session-only status and never write to that store.
 
@@ -31,6 +32,7 @@ Use a private development test experience in universe `10770581249`; use two or 
 7. With $200 or more and a completed shift, purchase the warehouse annex. Confirm exact charge, visible construction, and disabled purchase prompt. Try with insufficient funds, helper roles without permission, an unapproved visitor and duplicate/racing interactions; no invalid attempt may charge or build it.
 8. Leave and rejoin the development experience; confirm the warehouse remains and is not charged again. In a non-development universe, confirm the session-only fallback.
 9. Follow [Phase 5 persistence checks](operations/PHASE5_PERSISTENCE.md) for same-user lease contention, autosave overlap, normal release, shutdown and session-only fallback.
+10. Follow [Visual review](operations/VISUAL_REVIEW.md) to inspect the exterior, aisle route, products, produce, refrigerator, checkout and character scale in Studio.
 
 ## Toolchain and checks
 - Rojo 7.7.0, Selene 0.32.0 and StyLua 2.5.0 are pinned in `rokit.toml`.
