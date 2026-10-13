@@ -6,7 +6,7 @@ local ProfileService = {}
 local LayoutService = require(script.Parent.LayoutService)
 local RetailLayoutService = require(script.Parent.RetailLayoutService)
 
-local SCHEMA_VERSION = 22
+local SCHEMA_VERSION = 23
 local SESSION_LEASE_SECONDS = 180
 local MAX_RETRIES = 3
 local STORE_NAME = "SupermarketChaos_PlayerProfiles_v1"
@@ -37,6 +37,7 @@ local function defaultProfile()
             berryStock = 0,
             goldenAppleStock = 0,
             cerealStock = 0,
+            cinnamonTwistStock = 0,
             sales = 0,
             powerOutageUntil = 0,
             customerRushUntil = 0,
@@ -49,6 +50,7 @@ local function defaultProfile()
             marketStyle = false,
             aisleExpansion = false,
             floorExpansion = false,
+            bakery = false,
         },
         hiredEmployees = {
             cashier = false,
@@ -68,6 +70,7 @@ local function defaultProfile()
             berryBites = 0,
             goldenApples = 0,
             sunriseCereal = 0,
+            cinnamonTwists = 0,
             shipmentReadyAt = 0,
             shipmentProductId = "",
         },
@@ -78,6 +81,7 @@ local function defaultProfile()
             berryBites = 18,
             goldenApples = 12,
             sunriseCereal = 16,
+            cinnamonTwists = 18,
         },
         completedShifts = 0,
         customerSatisfaction = 75,
@@ -163,6 +167,7 @@ local function normalizeProfile(value)
             berryBites = { [14] = true, [18] = true, [23] = true },
             goldenApples = { [9] = true, [12] = true, [15] = true },
             sunriseCereal = { [12] = true, [16] = true, [20] = true },
+            cinnamonTwists = { [14] = true, [18] = true, [23] = true },
         }
         for productId, price in pairs(value.productPrices) do
             if
@@ -192,6 +197,7 @@ local function normalizeProfile(value)
             or (value.ownedUpgrades.floorExpansion ~= nil and type(
                 value.ownedUpgrades.floorExpansion
             ) ~= "boolean")
+            or (value.ownedUpgrades.bakery ~= nil and type(value.ownedUpgrades.bakery) ~= "boolean")
             or (
                 value.ownedUpgrades.marketStyle ~= nil
                 and type(value.ownedUpgrades.marketStyle) ~= "boolean"
@@ -204,6 +210,7 @@ local function normalizeProfile(value)
         profile.ownedUpgrades.marketStyle = value.ownedUpgrades.marketStyle == true
         profile.ownedUpgrades.aisleExpansion = value.ownedUpgrades.aisleExpansion == true
         profile.ownedUpgrades.floorExpansion = value.ownedUpgrades.floorExpansion == true
+        profile.ownedUpgrades.bakery = value.ownedUpgrades.bakery == true
     end
     if profile.ownedUpgrades.aisleExpansion and not profile.ownedUpgrades.shelfBay then
         return nil, "Stored aisle expansion exists without the first shelf bay."
@@ -211,14 +218,23 @@ local function normalizeProfile(value)
     if profile.ownedUpgrades.floorExpansion and not profile.ownedUpgrades.aisleExpansion then
         return nil, "Stored floor expansion exists without the household aisle expansion."
     end
+    if
+        profile.ownedUpgrades.bakery
+        and (not profile.ownedUpgrades.floorExpansion or not profile.ownedUpgrades.warehouse)
+    then
+        return nil, "Stored bakery exists without its rear wing and warehouse prerequisites."
+    end
     local normalizedLayout, layoutError =
         LayoutService.normalize(value.warehouseLayout, profile.ownedUpgrades.warehouse)
     if not normalizedLayout then
         return nil, layoutError
     end
     profile.warehouseLayout = normalizedLayout
-    local normalizedRetailLayout, retailLayoutError =
-        RetailLayoutService.normalize(value.retailLayout, profile.ownedUpgrades.floorExpansion)
+    local normalizedRetailLayout, retailLayoutError = RetailLayoutService.normalize(
+        value.retailLayout,
+        profile.ownedUpgrades.floorExpansion,
+        profile.ownedUpgrades.bakery
+    )
     if not normalizedRetailLayout then
         return nil, retailLayoutError
     end
@@ -286,6 +302,7 @@ local function normalizeProfile(value)
             or (inventory.berryBites ~= nil and not validCounter(inventory.berryBites))
             or (inventory.goldenApples ~= nil and not validCounter(inventory.goldenApples))
             or (inventory.sunriseCereal ~= nil and not validCounter(inventory.sunriseCereal))
+            or (inventory.cinnamonTwists ~= nil and not validCounter(inventory.cinnamonTwists))
             or (inventory.shipmentReadyAt ~= nil and not validTimestamp(inventory.shipmentReadyAt))
             or (inventory.shipmentQuantity ~= nil and not validCounter(inventory.shipmentQuantity))
             or (
@@ -295,6 +312,7 @@ local function normalizeProfile(value)
                 and inventory.shipmentProductId ~= "berryBites"
                 and inventory.shipmentProductId ~= "goldenApples"
                 and inventory.shipmentProductId ~= "sunriseCereal"
+                and inventory.shipmentProductId ~= "cinnamonTwists"
             )
         then
             return nil, "Stored warehouse inventory contains an invalid counter."
@@ -306,6 +324,8 @@ local function normalizeProfile(value)
             nonNegativeInteger(inventory.goldenApples, profile.ownedUpgrades.warehouse and 6 or 0)
         local sunriseCereal =
             nonNegativeInteger(inventory.sunriseCereal, profile.ownedUpgrades.warehouse and 6 or 0)
+        local cinnamonTwists =
+            nonNegativeInteger(inventory.cinnamonTwists, profile.ownedUpgrades.bakery and 6 or 0)
         local shipmentQuantity = nonNegativeInteger(inventory.shipmentQuantity, 0)
         local shipmentReadyAt = nonNegativeInteger(inventory.shipmentReadyAt, 0)
         if
@@ -313,13 +333,22 @@ local function normalizeProfile(value)
             or berryBites > 500
             or goldenApples > 500
             or sunriseCereal > 500
+            or cinnamonTwists > 500
             or (berryBites > 0 and profile.ownedUpgrades.warehouse ~= true)
             or (goldenApples > 0 and profile.ownedUpgrades.warehouse ~= true)
             or (sunriseCereal > 0 and profile.ownedUpgrades.warehouse ~= true)
+            or (cinnamonTwists > 0 and profile.ownedUpgrades.bakery ~= true)
             or shipmentQuantity > 60
             or (shipmentQuantity == 0) ~= (shipmentReadyAt == 0)
         then
             return nil, "Stored warehouse shipment is outside the supported limits."
+        end
+        if
+            shipmentQuantity > 0
+            and inventory.shipmentProductId == "cinnamonTwists"
+            and profile.ownedUpgrades.bakery ~= true
+        then
+            return nil, "Stored bakery shipment exists without an owned bakery."
         end
         if shipmentQuantity > 0 and profile.ownedUpgrades.warehouse ~= true then
             return nil, "Stored shipment exists without an owned warehouse."
@@ -328,15 +357,30 @@ local function normalizeProfile(value)
         profile.warehouseInventory.berryBites = berryBites
         profile.warehouseInventory.goldenApples = goldenApples
         profile.warehouseInventory.sunriseCereal = sunriseCereal
+        profile.warehouseInventory.cinnamonTwists = cinnamonTwists
         profile.warehouseInventory.shipmentReadyAt = shipmentReadyAt
         profile.warehouseInventory.shipmentQuantity = shipmentQuantity
-        profile.warehouseInventory.shipmentProductId = shipmentQuantity > 0
-                and (inventory.shipmentProductId == "sunriseCereal" and "sunriseCereal" or (inventory.shipmentProductId == "goldenApples" and "goldenApples" or (inventory.shipmentProductId == "berryBites" and "berryBites" or "citrusPop")))
-            or ""
+        if shipmentQuantity > 0 then
+            local shipmentProductId = inventory.shipmentProductId
+            if shipmentProductId == "cinnamonTwists" and profile.ownedUpgrades.bakery then
+                profile.warehouseInventory.shipmentProductId = "cinnamonTwists"
+            elseif shipmentProductId == "sunriseCereal" then
+                profile.warehouseInventory.shipmentProductId = "sunriseCereal"
+            elseif shipmentProductId == "goldenApples" then
+                profile.warehouseInventory.shipmentProductId = "goldenApples"
+            elseif shipmentProductId == "berryBites" then
+                profile.warehouseInventory.shipmentProductId = "berryBites"
+            else
+                profile.warehouseInventory.shipmentProductId = "citrusPop"
+            end
+        else
+            profile.warehouseInventory.shipmentProductId = ""
+        end
     elseif profile.ownedUpgrades.warehouse then
         profile.warehouseInventory.berryBites = 12
         profile.warehouseInventory.goldenApples = 6
         profile.warehouseInventory.sunriseCereal = 6
+        profile.warehouseInventory.cinnamonTwists = profile.ownedUpgrades.bakery and 6 or 0
     end
     if value.shift ~= nil and type(value.shift) ~= "table" then
         return nil, "Stored shift data is malformed."
@@ -364,6 +408,7 @@ local function normalizeProfile(value)
             or not validCounter(value.shift.berryStock)
             or not validCounter(value.shift.goldenAppleStock)
             or not validCounter(value.shift.cerealStock)
+            or not validCounter(value.shift.cinnamonTwistStock)
             or not validCounter(value.shift.sales)
             or not validTimestamp(value.shift.powerOutageUntil)
             or not validTimestamp(value.shift.customerRushUntil)
@@ -381,6 +426,15 @@ local function normalizeProfile(value)
         end
         if nonNegativeInteger(value.shift.cerealStock, 0) > 24 then
             return nil, "Stored Sunrise Cereal shelf stock is outside the supported limit."
+        end
+        if nonNegativeInteger(value.shift.cinnamonTwistStock, 0) > 24 then
+            return nil, "Stored bakery shelf stock is outside the supported limit."
+        end
+        if
+            nonNegativeInteger(value.shift.cinnamonTwistStock, 0) > 0
+            and profile.ownedUpgrades.bakery ~= true
+        then
+            return nil, "Stored bakery shelf stock exists without an owned bakery."
         end
         if
             nonNegativeInteger(value.shift.cerealStock, 0) > 0
@@ -414,6 +468,7 @@ local function normalizeProfile(value)
         profile.shift.berryStock = nonNegativeInteger(value.shift.berryStock, 0)
         profile.shift.goldenAppleStock = nonNegativeInteger(value.shift.goldenAppleStock, 0)
         profile.shift.cerealStock = nonNegativeInteger(value.shift.cerealStock, 0)
+        profile.shift.cinnamonTwistStock = nonNegativeInteger(value.shift.cinnamonTwistStock, 0)
         profile.shift.sales = nonNegativeInteger(value.shift.sales, 0)
         profile.shift.powerOutageUntil = nonNegativeInteger(value.shift.powerOutageUntil, 0)
         profile.shift.customerRushUntil = nonNegativeInteger(value.shift.customerRushUntil, 0)
@@ -441,6 +496,7 @@ local function copyProfile(profile)
             berryStock = profile.shift.berryStock,
             goldenAppleStock = profile.shift.goldenAppleStock,
             cerealStock = profile.shift.cerealStock,
+            cinnamonTwistStock = profile.shift.cinnamonTwistStock,
             sales = profile.shift.sales,
             powerOutageUntil = profile.shift.powerOutageUntil,
             customerRushUntil = profile.shift.customerRushUntil,
@@ -453,6 +509,7 @@ local function copyProfile(profile)
             marketStyle = profile.ownedUpgrades.marketStyle,
             aisleExpansion = profile.ownedUpgrades.aisleExpansion,
             floorExpansion = profile.ownedUpgrades.floorExpansion,
+            bakery = profile.ownedUpgrades.bakery,
         },
         hiredEmployees = {
             cashier = profile.hiredEmployees.cashier,
@@ -472,6 +529,7 @@ local function copyProfile(profile)
             berryBites = profile.warehouseInventory.berryBites,
             goldenApples = profile.warehouseInventory.goldenApples,
             sunriseCereal = profile.warehouseInventory.sunriseCereal,
+            cinnamonTwists = profile.warehouseInventory.cinnamonTwists,
             shipmentReadyAt = profile.warehouseInventory.shipmentReadyAt,
             shipmentQuantity = profile.warehouseInventory.shipmentQuantity or 0,
             shipmentProductId = profile.warehouseInventory.shipmentProductId or "",
@@ -486,6 +544,7 @@ local function copyProfile(profile)
             berryBites = profile.productPrices.berryBites,
             goldenApples = profile.productPrices.goldenApples,
             sunriseCereal = profile.productPrices.sunriseCereal,
+            cinnamonTwists = profile.productPrices.cinnamonTwists,
         },
         completedShifts = profile.completedShifts,
         customerSatisfaction = profile.customerSatisfaction,
@@ -709,6 +768,7 @@ function ProfileService.saveProgress(player, state, eventName)
     profile.shift.berryStock = state.berryStock
     profile.shift.goldenAppleStock = state.goldenAppleStock
     profile.shift.cerealStock = state.cerealStock
+    profile.shift.cinnamonTwistStock = state.cinnamonTwistStock
     profile.shift.sales = state.sales
     profile.shift.powerOutageUntil = state.powerOutageUntil
     profile.shift.customerRushUntil = state.customerRushUntil
@@ -719,9 +779,13 @@ function ProfileService.saveProgress(player, state, eventName)
     profile.ownedUpgrades.marketStyle = state.marketStylePurchased
     profile.ownedUpgrades.aisleExpansion = state.aisleExpansionPurchased
     profile.ownedUpgrades.floorExpansion = state.floorExpansionPurchased
+    profile.ownedUpgrades.bakery = state.bakeryPurchased
     profile.warehouseLayout = state.warehouseLayout
-    profile.retailLayout =
-        RetailLayoutService.normalize(state.retailLayout, state.floorExpansionPurchased)
+    profile.retailLayout = RetailLayoutService.normalize(
+        state.retailLayout,
+        state.floorExpansionPurchased,
+        state.bakeryPurchased
+    )
     profile.customerSatisfaction = math.min(math.max(state.customerSatisfaction or 75, 0), 100)
     profile.hiredEmployees.cashier = state.cashierHired
     profile.hiredEmployees.stocker = state.stockerHired
@@ -736,6 +800,7 @@ function ProfileService.saveProgress(player, state, eventName)
     profile.warehouseInventory.berryBites = state.berryBackstock
     profile.warehouseInventory.goldenApples = state.goldenAppleBackstock
     profile.warehouseInventory.sunriseCereal = state.cerealBackstock
+    profile.warehouseInventory.cinnamonTwists = state.cinnamonTwistBackstock
     profile.warehouseInventory.shipmentReadyAt = state.shipmentReadyAt
     profile.warehouseInventory.shipmentQuantity = state.shipmentQuantity
     profile.warehouseInventory.shipmentProductId = state.shipmentProductId
@@ -744,6 +809,7 @@ function ProfileService.saveProgress(player, state, eventName)
         berryBites = state.productPrices.berryBites,
         goldenApples = state.productPrices.goldenApples,
         sunriseCereal = state.productPrices.sunriseCereal,
+        cinnamonTwists = state.productPrices.cinnamonTwists,
     }
     if eventName == "sale" then
         profile.lifetimeSales += 1

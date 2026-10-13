@@ -60,7 +60,16 @@ local function validRetailZone(x, z, expansionPurchased)
     return expansionPurchased == true and validGrid(x, -12, 12) and validGrid(z, -33, -21)
 end
 
-local function canPlace(shelves, productId, x, z, rotation, excludedProductId, expansionPurchased)
+local function canPlace(
+    shelves,
+    productId,
+    x,
+    z,
+    rotation,
+    excludedProductId,
+    expansionPurchased,
+    bakeryPurchased
+)
     if not RetailLayoutService.isProductId(productId) then
         return false, "Choose one of the four installed product departments."
     end
@@ -74,6 +83,15 @@ local function canPlace(shelves, productId, x, z, rotation, excludedProductId, e
     local minimumFloorZ = expansionPurchased == true and z < -17 and -39.5 or -18.5
     if x - halfX < -20.5 or x + halfX > 20.5 or z - halfZ < minimumFloorZ or z + halfZ > 16.5 then
         return false, "The rotated shelf must stay inside the store floor."
+    end
+    if
+        bakeryPurchased == true
+        and x - halfX < 20.4
+        and x + halfX > 13.8
+        and z - halfZ < -26.5
+        and z + halfZ > -31.5
+    then
+        return false, "Keep the bakery display and counter clear."
     end
 
     -- Fixed expansion bays occupy these reserved positions regardless of purchase state.
@@ -189,7 +207,7 @@ function RetailLayoutService.default()
     }
 end
 
-function RetailLayoutService.normalize(value, expansionPurchased)
+function RetailLayoutService.normalize(value, expansionPurchased, bakeryPurchased)
     if value == nil then
         return RetailLayoutService.default()
     end
@@ -236,7 +254,8 @@ function RetailLayoutService.normalize(value, expansionPurchased)
             shelf.z,
             shelf.rotation,
             productId,
-            expansionPurchased
+            expansionPurchased,
+            bakeryPurchased
         )
         if not valid then
             return nil, reason
@@ -271,7 +290,8 @@ function RetailLayoutService.normalize(value, expansionPurchased)
             shelf.z,
             shelf.rotation,
             normalized.checkout,
-            expansionPurchased
+            expansionPurchased,
+            bakeryPurchased
         )
         if not shelfValid then
             return nil, shelfReason
@@ -287,10 +307,11 @@ function RetailLayoutService.canPlace(
     z,
     rotation,
     checkout,
-    expansionPurchased
+    expansionPurchased,
+    bakeryPurchased
 )
     local valid, reason =
-        canPlace(shelves, productId, x, z, rotation, productId, expansionPurchased)
+        canPlace(shelves, productId, x, z, rotation, productId, expansionPurchased, bakeryPurchased)
     if not valid then
         return false, reason
     end

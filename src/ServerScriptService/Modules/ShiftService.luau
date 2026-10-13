@@ -51,6 +51,7 @@ local ROLE_ACTIONS = {
         Warehouse = true,
         AisleExpansion = true,
         FloorExpansion = true,
+        BuildBakery = true,
         EditLayout = true,
         EditRetailLayout = true,
         MarketStyle = true,
@@ -59,14 +60,17 @@ local ROLE_ACTIONS = {
         OrderBerryDelivery = true,
         OrderAppleDelivery = true,
         OrderCerealDelivery = true,
+        OrderCinnamonTwistsDelivery = true,
         ReceiveDelivery = true,
         PriceCitrusPop = true,
         PriceBerryBites = true,
         PriceGoldenApples = true,
         PriceSunriseCereal = true,
+        PriceCinnamonTwists = true,
         StockBerryBites = true,
         StockGoldenApples = true,
         StockSunriseCereal = true,
+        StockCinnamonTwists = true,
     },
     Cashier = { Checkout = true },
     Stocker = {
@@ -74,6 +78,7 @@ local ROLE_ACTIONS = {
         StockBerryBites = true,
         StockGoldenApples = true,
         StockSunriseCereal = true,
+        StockCinnamonTwists = true,
     },
     Maintenance = { Cart = true, Spill = true, RestorePower = true },
 }
@@ -148,6 +153,8 @@ local function snapshot(message, recipient)
         berryStock = hasStoreAccess and current.berryStock or 0,
         goldenAppleStock = hasStoreAccess and current.goldenAppleStock or 0,
         cerealStock = hasStoreAccess and current.cerealStock or 0,
+        cinnamonTwistStock = hasStoreAccess and current.cinnamonTwistStock or 0,
+        bakeryPurchased = hasStoreAccess and current.bakeryPurchased or false,
         employeePayroll = hasStoreAccess and Economy.getShiftPayroll(current) or 0,
         sales = hasStoreAccess and current.sales or 0,
         message = message or "",
@@ -161,6 +168,7 @@ local function snapshot(message, recipient)
         berryBackstock = hasStoreAccess and current.berryBackstock or 0,
         goldenAppleBackstock = hasStoreAccess and current.goldenAppleBackstock or 0,
         cerealBackstock = hasStoreAccess and current.cerealBackstock or 0,
+        cinnamonTwistBackstock = hasStoreAccess and current.cinnamonTwistBackstock or 0,
         customerRushUntil = hasStoreAccess and current.customerRushUntil or 0,
         rushRemaining = hasStoreAccess and Economy.getRemainingCustomers(current) or 0,
         rushReward = hasStoreAccess and Economy.CUSTOMER_RUSH_REWARD or 0,
@@ -172,6 +180,7 @@ local function snapshot(message, recipient)
             berryBites = current.productPrices.berryBites,
             goldenApples = current.productPrices.goldenApples,
             sunriseCereal = current.productPrices.sunriseCereal,
+            cinnamonTwists = current.productPrices.cinnamonTwists,
         } or nil,
         customerAssistantHired = hasStoreAccess and current.customerAssistantHired or false,
     }
@@ -363,6 +372,7 @@ function ShiftService.init(event, membershipRemotes)
                 world.setBerryStockVisual(state.berryStock)
                 world.setGoldenAppleStockVisual(state.goldenAppleStock)
                 world.setCerealStockVisual(state.cerealStock)
+                world.setCinnamonTwistStockVisual(state.cinnamonTwistStock)
                 commit("stock")
                 broadcast(
                     "Stock clerk restocked "
@@ -418,6 +428,8 @@ function ShiftService.init(event, membershipRemotes)
                     world.setStockVisual(state.stock)
                     world.setBerryStockVisual(state.berryStock)
                     world.setGoldenAppleStockVisual(state.goldenAppleStock)
+                    world.setCerealStockVisual(state.cerealStock)
+                    world.setCinnamonTwistStockVisual(state.cinnamonTwistStock)
                     world.setBerryStockAvailable(
                         state.berryBackstock >= Economy.BERRY_BITES_STOCK_PER_RESTOCK
                     )
@@ -659,6 +671,13 @@ function ShiftService.init(event, membershipRemotes)
                 and state.cerealStock + Economy.SUNRISE_CEREAL_STOCK_PER_RESTOCK
                     <= Economy.SUNRISE_CEREAL_SHELF_CAPACITY
         )
+        world.setCinnamonTwistStockVisual(state.cinnamonTwistStock)
+        world.setCinnamonTwistStockAvailable(
+            state.bakeryPurchased
+                and state.cinnamonTwistBackstock >= Economy.CINNAMON_TWISTS_STOCK_PER_RESTOCK
+                and state.cinnamonTwistStock + Economy.CINNAMON_TWISTS_STOCK_PER_RESTOCK
+                    <= Economy.CINNAMON_TWISTS_SHELF_CAPACITY
+        )
         world.setCustomerCount(
             Economy.getRemainingCustomers(state),
             Economy.getCustomerTarget(state)
@@ -733,6 +752,14 @@ function ShiftService.init(event, membershipRemotes)
         broadcast(message)
     end)
 
+    bind("StockCinnamonTwists", world.cinnamonTwistStockPrompt(), 12, function()
+        local ok, message = Economy.stockCinnamonTwists(state)
+        if ok then
+            commit("bakeryStock")
+        end
+        broadcast(message)
+    end)
+
     local function bindPricePrompt(productId, actionId)
         bind(actionId, world.pricePrompt(productId), 12, function()
             local ok, message = Economy.cycleProductPrice(state, productId)
@@ -748,6 +775,7 @@ function ShiftService.init(event, membershipRemotes)
         berryBites = "PriceBerryBites",
         goldenApples = "PriceGoldenApples",
         sunriseCereal = "PriceSunriseCereal",
+        cinnamonTwists = "PriceCinnamonTwists",
     }) do
         bindPricePrompt(productId, actionId)
     end
@@ -853,6 +881,15 @@ function ShiftService.init(event, membershipRemotes)
         broadcast(message)
     end)
 
+    bind("BuildBakery", world.bakeryDepartmentPrompt, 12, function()
+        local ok, message = Economy.buyBakeryDepartment(state)
+        if ok then
+            world.addBakeryDepartment()
+            commit("bakeryBuilt")
+        end
+        broadcast(message)
+    end)
+
     bind("MarketStyle", world.marketStylePrompt, 13, function()
         local ok, message = Economy.buyMarketStyle(state)
         if ok then
@@ -922,6 +959,19 @@ function ShiftService.init(event, membershipRemotes)
                 state.shipmentProductId
             )
             commit("cerealDeliveryOrdered")
+        end
+        broadcast(message)
+    end)
+
+    bind("OrderCinnamonTwistsDelivery", world.cinnamonTwistDeliveryPrompt(), 12, function()
+        local ok, message = Economy.orderDelivery(state, os.time(), "cinnamonTwists")
+        if ok then
+            world.setDeliveryState(
+                state.shipmentReadyAt,
+                state.shipmentQuantity,
+                state.shipmentProductId
+            )
+            commit("bakeryDeliveryOrdered")
         end
         broadcast(message)
     end)
@@ -1247,7 +1297,8 @@ function ShiftService.init(event, membershipRemotes)
             request.z,
             request.rotation,
             state.retailLayout.checkout,
-            state.floorExpansionPurchased
+            state.floorExpansionPurchased,
+            state.bakeryPurchased
         )
         if not valid then
             return reject(reason)
@@ -1392,6 +1443,9 @@ function ShiftService.init(event, membershipRemotes)
             world.setMarketStyle(state.marketStylePurchased)
             marketStylePreviewing = false
             world.setWarehousePurchased(state.warehousePurchased)
+            if state.bakeryPurchased then
+                world.addBakeryDepartment()
+            end
             world.setStorageLayout(state.warehouseLayout)
             world.setRetailLayout(state.retailLayout)
             world.setDeliveryState(
@@ -1412,6 +1466,7 @@ function ShiftService.init(event, membershipRemotes)
             world.setBerryStockVisual(state.berryStock)
             world.setGoldenAppleStockVisual(state.goldenAppleStock)
             world.setCerealStockVisual(state.cerealStock)
+            world.setCinnamonTwistStockVisual(state.cinnamonTwistStock)
             world.setStockAvailable(
                 state.backstock >= Economy.CITRUS_POP_STOCK_PER_RESTOCK
                     and state.stock + Economy.CITRUS_POP_STOCK_PER_RESTOCK
@@ -1434,6 +1489,12 @@ function ShiftService.init(event, membershipRemotes)
                     and state.goldenAppleBackstock >= Economy.GOLDEN_APPLES_STOCK_PER_RESTOCK
                     and state.goldenAppleStock + Economy.GOLDEN_APPLES_STOCK_PER_RESTOCK
                         <= Economy.GOLDEN_APPLES_SHELF_CAPACITY
+            )
+            world.setCinnamonTwistStockAvailable(
+                state.bakeryPurchased
+                    and state.cinnamonTwistBackstock >= Economy.CINNAMON_TWISTS_STOCK_PER_RESTOCK
+                    and state.cinnamonTwistStock + Economy.CINNAMON_TWISTS_STOCK_PER_RESTOCK
+                        <= Economy.CINNAMON_TWISTS_SHELF_CAPACITY
             )
             world.setCustomerProduct(
                 Economy.PRODUCTS[Economy.getNextCheckoutProductId(state) or "citrusPop"].displayName

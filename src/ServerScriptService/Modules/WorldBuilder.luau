@@ -638,6 +638,12 @@ function WorldBuilder.build()
     retailDepartmentFolder.Parent = interior
     local retailDepartmentShelves = {}
     local retailShelfPositions = {}
+    local bakeryPurchased = false
+    local bakeryModel
+    local cinnamonTwistStockPrompt
+    local cinnamonTwistStockAvailable = false
+    local bakerySign
+    local stockedCinnamonTwists = {}
     local function createDepartmentShelf(productId, name, x, z, width, department)
         local model = createShelf(retailDepartmentFolder, name, x, z, width, department)
         model:SetAttribute("RetailProductId", productId)
@@ -665,6 +671,7 @@ function WorldBuilder.build()
         berryBites = 18,
         goldenApples = 12,
         sunriseCereal = 16,
+        cinnamonTwists = 18,
     }
     local function createPriceTag(productId, displayName, shelfModel, x, z)
         local tag = label(
@@ -985,6 +992,7 @@ function WorldBuilder.build()
             { id = "citrusPop", name = "Citrus Pop" },
             { id = "goldenApples", name = "Golden Apples" },
             { id = "sunriseCereal", name = "Sunrise Cereal" },
+            { id = "cinnamonTwists", name = "Cinnamon Twists" },
         }
         for _, product in ipairs(productPositions) do
             if string.find(customerBasketName, product.name, 1, true) then
@@ -1045,6 +1053,11 @@ function WorldBuilder.build()
             .. " • "
             .. string.upper(customerBasketName)
         task.wait(0.55)
+        if entry.model:GetPivot().Position.Z < -17 then
+            if not moveCustomer(entry, Vector3.new(0, 0.45, -17), 0.55, flowVersion) then
+                return
+            end
+        end
         if
             not moveCustomer(
                 entry,
@@ -1390,6 +1403,39 @@ function WorldBuilder.build()
         end
     end
 
+    local function setCinnamonTwistStockVisual(count)
+        for _, item in ipairs(stockedCinnamonTwists) do
+            item:Destroy()
+        end
+        stockedCinnamonTwists = {}
+        if not bakeryModel then
+            return
+        end
+        local visibleCount = math.max(0, math.min(24, math.floor(tonumber(count) or 0)))
+        for index = 1, math.min(visibleCount, 12) do
+            local column = (index - 1) % 6
+            local row = math.floor((index - 1) / 6)
+            local pastry = part(
+                bakeryModel,
+                "Cinnamon Twist Display",
+                Vector3.new(0.62, 0.28, 0.38),
+                CFrame.new(15.2 + column * 0.72, 2.05 + row * 0.34, -29),
+                index % 2 == 0 and COLORS.orange or COLORS.gold,
+                Enum.Material.SmoothPlastic
+            )
+            pastry.Shape = Enum.PartType.Cylinder
+            pastry:SetAttribute("ProductDisplay", true)
+            table.insert(stockedCinnamonTwists, pastry)
+        end
+        if bakerySign then
+            local surface = bakerySign:FindFirstChildOfClass("SurfaceGui")
+            local textLabel = surface and surface:FindFirstChildOfClass("TextLabel")
+            if textLabel then
+                textLabel.Text = string.format("BAKERY  •  %d FRESH", visibleCount)
+            end
+        end
+    end
+
     local hiringBoard = label(
         interior,
         "Staff Hiring Board",
@@ -1655,6 +1701,17 @@ function WorldBuilder.build()
     local floorExpansionPrompt =
         prompt(floorExpansionPad, "Build Rear Wing ($500)", "Store Expansion", "FloorExpansion", 10)
     floorExpansionPrompt.Enabled = false
+    local bakeryExpansionPad = part(
+        interior,
+        "Bakery Department Pad",
+        Vector3.new(4.5, 0.5, 4.5),
+        CFrame.new(-16, 0.5, -24),
+        COLORS.coral,
+        Enum.Material.Neon
+    )
+    local bakeryDepartmentPrompt =
+        prompt(bakeryExpansionPad, "Build Bakery ($350)", "New Department", "BuildBakery", 10)
+    bakeryDepartmentPrompt.Enabled = false
     local floorExpansionSign = label(
         interior,
         "Rear Department Expansion Sign",
@@ -1985,6 +2042,7 @@ function WorldBuilder.build()
     local berryDeliveryOrderPrompt
     local appleDeliveryOrderPrompt
     local cerealDeliveryOrderPrompt
+    local cinnamonTwistDeliveryOrderPrompt
     local deliveryProductId = "citrusPop"
     local deliveryReadyAt = 0
     local deliveryQuantity = 0
@@ -2025,6 +2083,14 @@ function WorldBuilder.build()
     cerealDeliveryOrderPrompt =
         prompt(orderBoard, "Order Cereal ($45)", "Warehouse Board", "OrderCerealDelivery", 10)
     cerealDeliveryOrderPrompt.Enabled = false
+    cinnamonTwistDeliveryOrderPrompt = prompt(
+        orderBoard,
+        "Order Cinnamon Twists ($50)",
+        "Warehouse Board",
+        "OrderCinnamonTwistsDelivery",
+        10
+    )
+    cinnamonTwistDeliveryOrderPrompt.Enabled = false
     deliveryCrate = Instance.new("Model")
     deliveryCrate.Name = "Warehouse Delivery Crate"
     deliveryCrate.Parent = exterior
@@ -2216,16 +2282,20 @@ function WorldBuilder.build()
     local function setDeliveryState(readyAt, quantity, productId)
         deliveryReadyAt = readyAt or 0
         deliveryQuantity = quantity or 0
-        deliveryProductId = productId == "sunriseCereal" and "sunriseCereal"
+        deliveryProductId = productId == "cinnamonTwists" and "cinnamonTwists"
             or (
-                productId == "goldenApples" and "goldenApples"
-                or (productId == "berryBites" and "berryBites" or "citrusPop")
+                productId == "sunriseCereal" and "sunriseCereal"
+                or (
+                    productId == "goldenApples" and "goldenApples"
+                    or (productId == "berryBites" and "berryBites" or "citrusPop")
+                )
             )
         local productInfoById = {
             citrusPop = { name = "CITRUS POP", units = "CANS" },
             berryBites = { name = "BERRY BITES", units = "PACKS" },
             goldenApples = { name = "GOLDEN APPLES", units = "APPLES" },
             sunriseCereal = { name = "SUNRISE CEREAL", units = "BOXES" },
+            cinnamonTwists = { name = "CINNAMON TWISTS", units = "PASTRIES" },
         }
         local productInfo = productInfoById[deliveryProductId]
         if not warehousePurchased or not deliveryBoardLabel then
@@ -2282,6 +2352,94 @@ function WorldBuilder.build()
         if cerealDeliveryOrderPrompt then
             cerealDeliveryOrderPrompt.Enabled = deliveryQuantity == 0
         end
+        if cinnamonTwistDeliveryOrderPrompt then
+            cinnamonTwistDeliveryOrderPrompt.Enabled = bakeryPurchased and deliveryQuantity == 0
+        end
+    end
+
+    local function addBakeryDepartment()
+        if bakeryPurchased then
+            return
+        end
+        if not floorExpansionPurchased or not warehousePurchased then
+            return
+        end
+        bakeryPurchased = true
+        bakeryExpansionPad.Transparency = 1
+        bakeryExpansionPad.CanCollide = false
+        bakeryDepartmentPrompt.Enabled = false
+        bakeryModel = Instance.new("Model")
+        bakeryModel.Name = "Bakery Department"
+        bakeryModel.Parent = interior
+        part(
+            bakeryModel,
+            "Bakery Display Counter",
+            Vector3.new(6.2, 1.4, 2.2),
+            CFrame.new(17.1, 1.05, -29),
+            COLORS.wood,
+            Enum.Material.WoodPlanks
+        )
+        local oven = part(
+            bakeryModel,
+            "Bakery Oven",
+            Vector3.new(3.6, 3.4, 2.4),
+            CFrame.new(18.1, 2.2, -35),
+            COLORS.gray,
+            Enum.Material.Metal
+        )
+        part(
+            bakeryModel,
+            "Oven Window",
+            Vector3.new(2.1, 1.45, 0.12),
+            CFrame.new(18.1, 2.35, -33.76),
+            COLORS.orange,
+            Enum.Material.Neon
+        )
+        bakerySign = label(
+            bakeryModel,
+            "Bakery Department Sign",
+            "BAKERY  •  FRESH DAILY",
+            Vector3.new(7, 1.1, 0.3),
+            CFrame.new(16, 5, -29),
+            COLORS.coral,
+            COLORS.warmWhite
+        )
+        bakerySign:SetAttribute("PlayerPurchased", true)
+        oven:SetAttribute("PlayerPurchased", true)
+        local displayAnchor = part(
+            bakeryModel,
+            "Pastry Display Anchor",
+            Vector3.new(5.4, 0.25, 1.5),
+            CFrame.new(17.1, 1.85, -29),
+            COLORS.gold,
+            Enum.Material.SmoothPlastic
+        )
+        displayAnchor:SetAttribute("PlayerPurchased", true)
+        displayAnchor.CanCollide = false
+        bakeryModel.PrimaryPart = displayAnchor
+        retailShelfPositions.cinnamonTwists = { x = 17.1, z = -29, rotation = 0 }
+        createPriceTag("cinnamonTwists", "Cinnamon Twists", bakeryModel, 17.1, -29)
+        cinnamonTwistStockPrompt =
+            prompt(displayAnchor, "Stock Display", "Cinnamon Twists", "StockCinnamonTwists", 9)
+        cinnamonTwistStockPrompt.Enabled = false
+        setCinnamonTwistStockVisual(0)
+        updateCustomerBasketPositions()
+    end
+
+    local function setCinnamonTwistStockAvailable(available)
+        cinnamonTwistStockAvailable = available == true
+        if cinnamonTwistStockPrompt then
+            cinnamonTwistStockPrompt.Enabled = cinnamonTwistStockAvailable
+                and bakeryPurchased
+                and currentStage ~= "Cart"
+                and currentStage ~= "Upgrade"
+                and currentStage ~= "Loading"
+                and currentStage ~= "OwnerOffline"
+                and currentStage ~= "PowerOutage"
+                and currentStage ~= "Spill"
+                and currentStage ~= "CloseShift"
+                and currentStage ~= "Complete"
+        end
     end
 
     local function setStage(stage)
@@ -2328,6 +2486,28 @@ function WorldBuilder.build()
         end
         floorExpansionPad.Transparency = floorExpansionPurchased and 1 or 0
         floorExpansionPad.CanCollide = not floorExpansionPurchased
+        bakeryDepartmentPrompt.Enabled = stage == "Complete"
+            and floorExpansionPurchased
+            and warehousePurchased
+            and not bakeryPurchased
+        local bakeryPadVisible = floorExpansionPurchased
+            and warehousePurchased
+            and not bakeryPurchased
+        bakeryExpansionPad.Transparency = bakeryPadVisible and 0 or 1
+        bakeryExpansionPad.CanCollide = bakeryPadVisible
+        local bakeryStockAllowed = cinnamonTwistStockAvailable
+            and bakeryPurchased
+            and stage ~= "Cart"
+            and stage ~= "Upgrade"
+            and stage ~= "Loading"
+            and stage ~= "OwnerOffline"
+            and stage ~= "PowerOutage"
+            and stage ~= "Spill"
+            and stage ~= "CloseShift"
+            and stage ~= "Complete"
+        if cinnamonTwistStockPrompt then
+            cinnamonTwistStockPrompt.Enabled = bakeryStockAllowed
+        end
         local signSurface = upgradeSign:FindFirstChildOfClass("SurfaceGui")
         local signText = signSurface and signSurface:FindFirstChildOfClass("TextLabel")
         if signText then
@@ -2396,6 +2576,11 @@ function WorldBuilder.build()
         if cerealDeliveryOrderPrompt then
             cerealDeliveryOrderPrompt.Enabled = warehousePurchased and deliveryQuantity == 0
         end
+        if cinnamonTwistDeliveryOrderPrompt then
+            cinnamonTwistDeliveryOrderPrompt.Enabled = warehousePurchased
+                and bakeryPurchased
+                and deliveryQuantity == 0
+        end
         if deliveryPrompt then
             deliveryPrompt.Enabled = warehousePurchased
                 and deliveryQuantity > 0
@@ -2427,6 +2612,13 @@ function WorldBuilder.build()
         setGoldenAppleStockVisual = setGoldenAppleStockVisual,
         cerealStockPrompt = cerealStockPrompt,
         setCerealStockVisual = setCerealStockVisual,
+        cinnamonTwistStockPrompt = function()
+            return cinnamonTwistStockPrompt
+        end,
+        setCinnamonTwistStockVisual = setCinnamonTwistStockVisual,
+        setCinnamonTwistStockAvailable = setCinnamonTwistStockAvailable,
+        bakeryDepartmentPrompt = bakeryDepartmentPrompt,
+        addBakeryDepartment = addBakeryDepartment,
         pricePrompt = function(productId)
             return pricePrompts[productId]
         end,
@@ -2486,12 +2678,21 @@ function WorldBuilder.build()
         cerealDeliveryPrompt = function()
             return cerealDeliveryOrderPrompt
         end,
+        cinnamonTwistDeliveryPrompt = function()
+            return cinnamonTwistDeliveryOrderPrompt
+        end,
         setCustomerProduct = function(displayName)
             customerProductName = displayName or "Citrus Pop"
             local productId = customerProductName == "Berry Bites" and "berryBites"
                 or (
                     customerProductName == "Golden Apples" and "goldenApples"
-                    or (customerProductName == "Sunrise Cereal" and "sunriseCereal" or "citrusPop")
+                    or (
+                        customerProductName == "Sunrise Cereal" and "sunriseCereal"
+                        or (
+                            customerProductName == "Cinnamon Twists" and "cinnamonTwists"
+                            or "citrusPop"
+                        )
+                    )
                 )
             customerProductPositions = { customerBrowsePosition(productId) }
         end,

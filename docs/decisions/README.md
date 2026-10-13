@@ -209,6 +209,11 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Consequences:** Profile schema v22 stores the purchase and migrates older profiles with the wing disabled. Customer routes use the fixed opening; the existing product inventory and checkout remain authoritative.
 - **Verification:** See `docs/operations/PHASE35_REAR_FLOOR_EXPANSION.md`.
 
+## ADR-0034: Add a persistent, fixed bakery department
+- **Decision:** Add a `$350` bakery after the rear wing and warehouse. Build its fixture server-side and connect Cinnamon Twists to saved stock, price, supplier delivery, customer baskets and checkout.
+- **Consequences:** Profile schema v23 migrates old profiles with bakery ownership off; shelf layout validation reserves the bakery fixture.
+- **Verification:** See `docs/operations/PHASE36_BAKERY_DEPARTMENT.md`.
+
 ## ADR-0009 — Keep product inventory and supplier orders SKU-specific
 - **Status:** Accepted — 2026-10-12.
 - **Context:** The retail loop needs visible department variety and product-specific stock behavior while keeping stock and money authoritative.
