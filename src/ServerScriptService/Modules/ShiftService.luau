@@ -114,6 +114,12 @@ local function snapshot(message, recipient)
     elseif current.stage == "CustomerRush" then
         objective = "Customer rush: serve the remaining shoppers before the timer ends."
     end
+    if current.stage == "Complete" and hasStoreAccess then
+        objective = string.format(
+            "Shift complete • staff payroll $%d per shift. Visit the shift board to continue.",
+            Economy.getShiftPayroll(current)
+        )
+    end
     if not isOwner and not isHelper then
         if ownerPlayer then
             objective = "This store belongs to " .. ownerPlayer.DisplayName .. "."
@@ -131,6 +137,7 @@ local function snapshot(message, recipient)
         berryStock = hasStoreAccess and current.berryStock or 0,
         goldenAppleStock = hasStoreAccess and current.goldenAppleStock or 0,
         cerealStock = hasStoreAccess and current.cerealStock or 0,
+        employeePayroll = hasStoreAccess and Economy.getShiftPayroll(current) or 0,
         sales = hasStoreAccess and current.sales or 0,
         message = message or "",
         upgradePurchased = current.upgradePurchased,

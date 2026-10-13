@@ -157,6 +157,13 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Consequences:** This visibly grows the store and exercises purchase, prerequisite, permission and persistence paths. Free placement, rotation, plot ownership and editable inventory layout remain future work.
 - **Verification:** See `docs/operations/PHASE27_HOUSEHOLD_AISLE_EXPANSION.md`; Studio and DataStore checks remain pending.
 
+## ADR-0026 — Settle fixed employee wages during shift closeout
+- **Status:** Accepted — 2026-10-12.
+- **Context:** The economy had employee purchase costs but no recurring operating expense, so the store owner could not see the ongoing cost of staffing.
+- **Decision:** Assign each hired role a small fixed wage per completed shift. Credit the existing shift bonus and deduct total wages within the one guarded server closeout transition. Pausing automation does not waive wages.
+- **Consequences:** The current balance remains the single persisted monetary source; no wage debt or profile schema field is introduced. More detailed schedules and other operating expenses remain future work.
+- **Verification:** See `docs/operations/PHASE28_SHIFT_PAYROLL.md`; Studio transaction, HUD and persistence checks remain pending.
+
 ## ADR-0009 — Keep product inventory and supplier orders SKU-specific
 - **Status:** Accepted — 2026-10-12.
 - **Context:** The retail loop needs visible department variety and product-specific stock behavior while keeping stock and money authoritative.

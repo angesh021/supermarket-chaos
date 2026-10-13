@@ -559,12 +559,17 @@ local function update(state)
     )
     salesValue.Text = tostring(state.sales or 0)
     feedback.Text = tostring(state.message or "")
+    if feedback.Text == "" and (state.employeePayroll or 0) > 0 then
+        feedback.Text = string.format("STAFF PAYROLL: $%d per shift", state.employeePayroll)
+    end
     messageRevision += 1
     local thisRevision = messageRevision
     if feedback.Text ~= "" then
         task.delay(5, function()
             if messageRevision == thisRevision then
-                feedback.Text = ""
+                feedback.Text = (state.employeePayroll or 0) > 0
+                        and string.format("STAFF PAYROLL: $%d per shift", state.employeePayroll)
+                    or ""
             end
         end)
     end

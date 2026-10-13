@@ -44,6 +44,7 @@ G0 was approved on 2026-10-12. The user authorized continued phase implementatio
 - [x] Add a persistent Customer Assistant employee who speeds customer browsing without changing checkout authority; see `operations/PHASE25_CUSTOMER_ASSISTANT.md`.
 - [x] Add a development-only repeat-shift funnel using server-confirmed milestones and ephemeral IDs; see `operations/PHASE26_REPEAT_SHIFT_ANALYTICS.md`.
 - [x] Phase 27: add a persistent, server-priced second fixed household aisle slot behind the first shelf expansion; see `operations/PHASE27_HOUSEHOLD_AISLE_EXPANSION.md`.
+- [x] Phase 28: charge fixed employee wages once per completed shift and surface payroll in the existing HUD status line; see `operations/PHASE28_SHIFT_PAYROLL.md`.
 - [ ] Add delivery/customer-assistant roles, departments and further customization.
 - [ ] Studio verification of cleaner hire/migration, save/rejoin, automatic cleanup and player/employee races.
 
@@ -91,4 +92,4 @@ G0 was approved on 2026-10-12. The user authorized continued phase implementatio
 - [ ] Studio verification of the palette preview/reset, purchase, role permissions and save/rejoin; see `operations/PHASE19_STOREFRONT_PREVIEW.md`.
 - [ ] Studio verification of delivery-worker hire/migration, SKU receipts, pause/resume, player races and save/rejoin; see `operations/PHASE20_DELIVERY_WORKER.md`.
 - [ ] Studio verification of cereal stocking, order/receipt, basket math, HUD and v1–v13 migration; see `operations/PHASE21_SUNRISE_CEREAL.md`.
-- [ ] Later phases: broader economy, seasonal/live operations, production commerce and release work remain gated by the specification, Studio validation and explicit release approval.
+- [ ] Later phases: broader economy (including scheduled operations costs), seasonal/live operations, production commerce and release work remain gated by the specification, Studio validation and explicit release approval.

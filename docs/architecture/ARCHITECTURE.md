@@ -139,6 +139,12 @@ Currency and stock changes occur only after server-side validation. Transactions
 - `ShiftService` authorizes Owner/Manager through its shared prompt gate; `WorldBuilder` creates the fixture in one fixed, reviewed slot and reconstructs it on profile load. Arbitrary placement and rotation are future work.
 - See `operations/PHASE27_HOUSEHOLD_AISLE_EXPANSION.md`; Studio purchase, multiplayer and save/rejoin checks remain pending.
 
+## Phase 4 employee payroll
+- `Economy.getShiftPayroll` totals fixed wages from server-owned employee hire flags. Automation pause state does not alter employment.
+- `Economy.closeShift` credits the existing shift bonus and deducts the computed wages exactly once after validating the closeout stage/flag. Existing profile serialization persists only the resulting balance; schema v17 is unchanged.
+- `ShiftService` exposes a computed per-shift estimate only to store members; the existing HUD status line displays it without an additional panel.
+- See `operations/PHASE28_SHIFT_PAYROLL.md`; Studio transaction and save/rejoin checks remain pending.
+
 ## Open technical decisions
 See `docs/decisions/README.md` for accepted ownership policy. Remaining decisions include multi-store/guest permissions, production Studio place configuration, analytics implementation/privacy review, and any changes to persistence recovery. Verify platform APIs against official documentation when implementation starts.
 # Cooperative ownership and cashier extension

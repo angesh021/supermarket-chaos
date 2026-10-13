@@ -13,6 +13,13 @@ Economy.CUSTOMER_ASSISTANT_COST = 160
 Economy.WAREHOUSE_COST = 200
 Economy.MARKET_STYLE_COST = 180
 Economy.AISLE_EXPANSION_COST = 220
+Economy.EMPLOYEE_WAGES = {
+    cashier = 4,
+    stocker = 4,
+    cleaner = 3,
+    deliveryWorker = 3,
+    customerAssistant = 2,
+}
 Economy.DELIVERY_COST = 60
 Economy.DELIVERY_QUANTITY = 24
 Economy.BACKSTOCK_CAPACITY = 500
@@ -159,6 +166,16 @@ function Economy.getProductPrice(state, productId)
         return nil
     end
     return (state.productPrices and state.productPrices[productId]) or product.salePrice
+end
+
+function Economy.getShiftPayroll(state)
+    local total = 0
+    for employeeId, wage in pairs(Economy.EMPLOYEE_WAGES) do
+        if state[employeeId .. "Hired"] then
+            total += wage
+        end
+    end
+    return total
 end
 
 function Economy.cycleProductPrice(state, productId)
@@ -699,12 +716,27 @@ function Economy.closeShift(state)
     end
     state.shiftClosed = true
     state.cash += Economy.SHIFT_REWARD
+    local payroll = Economy.getShiftPayroll(state)
+    state.cash -= payroll
+    local netReward = Economy.SHIFT_REWARD - payroll
+    local closeMessage
+    if payroll > 0 then
+        closeMessage = string.format(
+            "Shift complete! +$%d bonus, -$%d staff payroll (net +$%d).",
+            Economy.SHIFT_REWARD,
+            payroll,
+            netReward
+        )
+    else
+        closeMessage = state.upgradePurchased and "Shift complete! +$20."
+            or "First shift complete! +$20."
+    end
     if state.upgradePurchased then
         state.stage = "Complete"
-        return true, "Shift complete! +$20. Your store is ready for another shift."
+        return true, closeMessage .. " Your store is ready for another shift."
     end
     state.stage = "Upgrade"
-    return true, "First shift complete! +$20. Add a shelf bay to grow the store."
+    return true, closeMessage .. " Add a shelf bay to grow the store."
 end
 
 function Economy.restartShift(state)
