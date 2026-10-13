@@ -9,6 +9,7 @@ Phase 1 desktop first play and Phase 2 progression/persistence were reported pas
 - Phase 2 architecture: per-player profile and lease; first player owns the server's single physical store.
 
 ## Implemented; Studio verification pending
+- Phase 42 hardens warehouse and retail layout RemoteEvents: every attempt consumes the 0.4-second per-player cooldown before validation, cooldown requests are dropped without a reply, and action-specific top-level fields are bounded to at most five. Existing role, distance, grid, collision and persistence checks still gate mutations. Studio adversarial request verification is pending.
 - Phase 41 adds server-built automatic sliding entrance doors. Player characters open them through a local touch sensor; procedural customers open them explicitly during arrival/exit. Fixed, non-collidable glass panels and a generation-guarded close timer keep the entrance passable. No economy or persistence state changes; Studio sensor/tween behavior is pending.
 - Phase 3 membership: a visitor requests to help; owner approves with Manager, Cashier, Stocker or Maintenance, declines, or removes a member. Maximum four players, including the owner.
 - Server validates the owner for member management, request frequency, player membership, role IDs, current objective, prompt range, and role permission before allowing an interaction. Helpers contribute to the owner's shift; only the owner's profile is saved.
@@ -102,8 +103,10 @@ Use a private development test experience in universe `10770581249`; use two or 
 40. Follow [Phase 39 storefront palette checks](operations/PHASE39_STOREFRONT_PALETTE_CHOICES.md) for preview cycling/cancel, the three looks, purchase, legacy migration, role permissions and save/rejoin.
 41. Follow [Phase 40 freezer checks](operations/PHASE40_FREEZER_DEPARTMENT.md) for prerequisites, purchase, reserved footprint, stocking visuals, delivery, price tiers, customer routing, substitution, employee actions, permissions and v24 migration/save/rejoin.
 42. Follow [Phase 41 automatic entrance door checks](operations/PHASE41_AUTOMATIC_ENTRANCE_DOORS.md) for player sensor triggers, customer entry/exit timing, repeated traffic, passable failure behavior and multiplayer observation.
+43. Follow [Phase 42 layout remote hardening checks](operations/PHASE42_LAYOUT_REMOTE_HARDENING.md) for malformed/flood payloads, unauthorized clients, valid layout edits, mutation rejection and cooldown cleanup.
 
 ## Toolchain and checks
+- For Phase 42, pinned StyLua `--check src`, Selene (`0 errors, 0 warnings, 0 parse errors`), Rojo 7.7.0 build to `%TEMP%\\supermarket-chaos-phase42.rbxlx`, and `git diff --check` passed on 2026-10-13. Roblox Studio malformed remote flooding, response bounds, valid layout actions and multiplayer authorization have not been run.
 - For Phase 41, pinned StyLua `--check src`, Selene (`0 errors, 0 warnings, 0 parse errors`), Rojo 7.7.0 build to `%TEMP%\\supermarket-chaos-phase41.rbxlx`, and `git diff --check` passed on 2026-10-13 (Git reported line-ending normalization warnings only). Roblox Studio door appearance, sensor/tween behavior, customer route timing and multiplayer observation have not been run.
 - Rojo 7.7.0, Selene 0.32.0 and StyLua 2.5.0 are pinned in `rokit.toml`.
 - The `rojo`, `selene` and `stylua` launch shims returned `ERROR home directory not found`; invoking the pinned binaries directly from `.rokit/tool-storage` worked. `stylua --check src` passed, `selene src` reported 0 errors/0 warnings/0 parse errors, and `rojo build default.project.json -o %TEMP%\supermarket-chaos.rbxlx` succeeded. `git diff --check` passed with Windows line-ending normalization warnings.

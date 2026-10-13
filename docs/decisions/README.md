@@ -239,6 +239,11 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Consequences:** Panels remain non-collidable; a generation-guarded timer controls closing without persistence or gameplay state.
 - **Verification:** See `docs/operations/PHASE41_AUTOMATIC_ENTRANCE_DOORS.md`.
 
+## ADR-0040: Bound layout remote request shapes and replies
+- **Decision:** Rate-limit layout attempts before payload validation, silently drop requests during cooldown and allow only action-specific fields.
+- **Consequences:** Invalid/flood requests cannot amplify rejection traffic; valid server-authoritative layout actions and profile storage remain unchanged.
+- **Verification:** See `docs/operations/PHASE42_LAYOUT_REMOTE_HARDENING.md`.
+
 ## ADR-0009 — Keep product inventory and supplier orders SKU-specific
 - **Status:** Accepted — 2026-10-12.
 - **Context:** The retail loop needs visible department variety and product-specific stock behavior while keeping stock and money authoritative.

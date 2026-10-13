@@ -302,6 +302,20 @@ local function bind(actionId, promptObject, maxDistance, callback)
     end)
 end
 
+local function hasOnlyKeys(value, allowedKeys)
+    if type(value) ~= "table" then
+        return false
+    end
+    local count = 0
+    for key in pairs(value) do
+        count += 1
+        if count > 5 or type(key) ~= "string" or #key > 24 or allowedKeys[key] ~= true then
+            return false
+        end
+    end
+    return count > 0
+end
+
 function ShiftService.init(event, membershipRemotes)
     stateEvent = event
     joinRequestEvent = membershipRemotes.joinRequest
@@ -1199,15 +1213,27 @@ function ShiftService.init(event, membershipRemotes)
             layoutRequestEvent:FireClient(player, { action = "Rejected", message = message })
         end
 
-        if type(request) ~= "table" then
-            return reject("That layout request is invalid.")
-        end
         local now = os.clock()
         local previousRequest = layoutActionTimes[player]
         if previousRequest and now - previousRequest < 0.4 then
-            return reject("Please wait before changing the layout again.")
+            return
         end
         layoutActionTimes[player] = now
+
+        if type(request) ~= "table" or type(request.action) ~= "string" or #request.action > 16 then
+            return reject("That layout request is invalid.")
+        end
+        local allowedKeys
+        if request.action == "PlaceShelf" then
+            allowedKeys = { action = true, x = true, z = true, rotation = true }
+        elseif request.action == "MoveShelf" then
+            allowedKeys = { action = true, id = true, x = true, z = true, rotation = true }
+        elseif request.action == "RemoveShelf" then
+            allowedKeys = { action = true, id = true }
+        end
+        if not allowedKeys or not hasOnlyKeys(request, allowedKeys) then
+            return reject("That layout request is invalid.")
+        end
 
         local role = player == ownerPlayer and "Owner" or storeMembers[player.UserId]
         if
@@ -1300,18 +1326,31 @@ function ShiftService.init(event, membershipRemotes)
             retailLayoutRequestEvent:FireClient(player, { action = "Rejected", message = message })
         end
 
-        if
-            type(request) ~= "table"
-            or (request.action ~= "MoveShelf" and request.action ~= "MoveCheckout")
-        then
-            return reject("That retail layout request is invalid.")
-        end
         local now = os.clock()
         local previousRequest = retailLayoutActionTimes[player]
         if previousRequest and now - previousRequest < 0.4 then
-            return reject("Please wait before moving another department shelf.")
+            return
         end
         retailLayoutActionTimes[player] = now
+
+        if type(request) ~= "table" or type(request.action) ~= "string" or #request.action > 16 then
+            return reject("That retail layout request is invalid.")
+        end
+        local allowedKeys
+        if request.action == "MoveShelf" then
+            allowedKeys = {
+                action = true,
+                productId = true,
+                x = true,
+                z = true,
+                rotation = true,
+            }
+        elseif request.action == "MoveCheckout" then
+            allowedKeys = { action = true, x = true, z = true, rotation = true }
+        end
+        if not allowedKeys or not hasOnlyKeys(request, allowedKeys) then
+            return reject("That retail layout request is invalid.")
+        end
 
         local role = player == ownerPlayer and "Owner" or storeMembers[player.UserId]
         if
