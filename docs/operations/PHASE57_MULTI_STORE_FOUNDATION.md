@@ -12,7 +12,7 @@ Architecture decisions, schema v37-to-v39 profile foundations, and unique world-
 - Profile writes from two location runtimes remain serialized under one player lease. Rejoin restores both locations; a second server cannot take the same profile lease.
 
 ## Remaining implementation increments
-1. Add the synchronized shared company wallet, a server-priced branch purchase and the fixed uptown plot.
+1. Add the server-priced branch purchase and fixed uptown plot, using the Phase 61 synchronized company wallet.
 2. Extract one location runtime from the singleton `ShiftService`, and scope action authorization and client snapshots to that runtime.
 3. Add per-location membership grants and test same-owner writes, branch switching, rejoin and unauthorized cross-branch actions.
 
@@ -21,7 +21,7 @@ Architecture decisions, schema v37-to-v39 profile foundations, and unique world-
 - Server-owned runtime lookup must resolve the location before checking its Owner/Manager/Cashier/Stocker permissions, current prompt, distance and cooldown.
 - The DataStore key and session lease remain per player. A single serialized profile writer prevents two branches from overwriting one another.
 - Schema v39 allows exactly two known location IDs, keeps balance at the company profile root and validates the optional second snapshot through normal profile normalization. See `operations/PHASE60_LOCATION_PROFILE_STORAGE.md` for migration and malformed-record checks.
-- Migration preserves a backup/recovery path until v36-to-v37 data is validated in a private development experience. Production publishing and Robux commerce remain disabled.
+- Migration preserves a recovery path until v36-to-v39 data is validated in a private development experience. Production publishing and Robux commerce remain disabled.
 
 ## Manual verification gate
 No branch purchase checklist can be run yet. Once the implementation steps above are complete, verify in the private development universe:
@@ -31,11 +31,11 @@ No branch purchase checklist can be run yet. Once the implementation steps above
 4. Grant a helper Manager access to one branch only. Verify they can manage it and cannot use another branch's prompts/remotes.
 5. Start a second server for the same player and confirm the existing per-profile lease rejects conflicting ownership or writes.
 
-### Schema v37 migration check (available before the branch runtime)
+### Legacy location migration check
 1. Load a known v36 profile and record balance, shift stage/sales, all SKU inventory and shipment, upgrades, employees, layouts, business stock/sales and progression counters.
-2. Let the profile save through the development DataStore. Confirm the profile reports schema v37 and contains exactly one `locations.neighborhood` record.
+2. Let the profile save through the development DataStore. Confirm the profile reports schema v39 and contains exactly one `locations.neighborhood` record until a branch is purchased.
 3. Rejoin and compare the recorded values. Balance and location state must be unchanged; the snapshot must agree with the legacy fields used by the current runtime.
 4. Confirm a fresh/session-only profile also has the default neighborhood record and remains playable when DataStore access is unavailable.
-5. In an isolated local migration harness, change the record to contain an unknown ID, duplicate/unexpected location, or a value divergent from the flat profile. Confirm normalization rejects it without silently selecting or merging a location.
+5. In an isolated local migration harness, add an unknown ID, a third location, a malformed `uptown` record, or a `neighborhood` value divergent from the flat profile. Confirm normalization rejects it without silently selecting or merging a location.
 
 No Studio result is claimed until these steps are observed and recorded.
