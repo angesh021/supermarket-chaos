@@ -73,6 +73,13 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Consequences:** Profile schema v10 adds `ownedUpgrades.marketStyle`; schemas v1–v9 default to the original palette. This is a first customization step, not arbitrary editing. No product/economy changes or external assets are introduced.
 - **Verification:** See `docs/operations/PHASE15_STOREFRONT_STYLE.md`; purchase, visual and migration checks await Studio verification.
 
+## ADR-0014 — Derive customer reactions from the active shift stage
+- **Status:** Accepted — 2026-10-12.
+- **Context:** Customers should visibly acknowledge operational chaos without gaining authority over the event or checkout.
+- **Decision:** Set customer queue billboard text from the current server-owned `Spill`, `PowerOutage`, and `CustomerRush` stages, and restore normal labels when the stage resolves.
+- **Consequences:** Reactions are presentation-only, use existing stage updates and queue recovery, and require no remotes, profile fields, or migration. Animation/audio/patience behaviors remain future work.
+- **Verification:** See `docs/operations/PHASE16_CUSTOMER_EVENT_REACTIONS.md`; Studio reaction and recovery checks await verification.
+
 ## ADR-0009 — Keep product inventory and supplier orders SKU-specific
 - **Status:** Accepted — 2026-10-12.
 - **Context:** The retail loop needs visible department variety and product-specific stock behavior while keeping stock and money authoritative.

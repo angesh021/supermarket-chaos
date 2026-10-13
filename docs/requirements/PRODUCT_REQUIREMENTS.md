@@ -106,3 +106,7 @@ Instrument funnel events for first interaction, first stock, first sale, first u
 - After completing a shift, the owner or authorized Manager may purchase a fixed `$180` storefront style using server-owned fictional currency.
 - The server validates stage, role, proximity, rate, balance and prior ownership. It persists the owned-style flag and applies a visible palette to the fascia, store sign, canopy and interior header.
 - Legacy profile schemas default to the original palette. The style persists across shifts and rejoins without affecting economy or inventory. See `operations/PHASE15_STOREFRONT_STYLE.md`.
+
+### Phase 4 customer reaction increment
+- Active customers display a short reaction for checkout spill, power outage and rush stages, returning to queue labels after recovery.
+- Reactions follow server-provided stage state and never affect checkout, rewards, inventory or persistence. See `operations/PHASE16_CUSTOMER_EVENT_REACTIONS.md`.

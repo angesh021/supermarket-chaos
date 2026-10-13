@@ -77,6 +77,11 @@ Currency and stock changes occur only after server-side validation. Transactions
 - Profile schema v10 persists `ownedUpgrades.marketStyle`; older schemas normalize to false. `WorldBuilder` changes a fixed set of fascia, sign, canopy and header colors and disables its purchase prompt after ownership. The palette is reapplied on profile load and is independent of shift restart.
 - See `operations/PHASE15_STOREFRONT_STYLE.md`; Studio purchase, appearance, migration and rejoin checks remain pending.
 
+## Phase 4 customer event reaction increment
+- `WorldBuilder.setStage` changes visible queue labels for `Spill`, `PowerOutage` and `CustomerRush`. Customer route completion and queue recovery consult the same stage-derived label helper.
+- Reactions are client-visible world presentation driven by server state. They do not alter `Economy`, persistence, deadlines or interaction permissions and add no remotes or profile fields.
+- See `operations/PHASE16_CUSTOMER_EVENT_REACTIONS.md`; Studio appearance and route recovery checks remain pending.
+
 ## Open technical decisions
 See `docs/decisions/README.md` for accepted ownership policy. Remaining decisions include multi-store/guest permissions, production Studio place configuration, analytics implementation/privacy review, and any changes to persistence recovery. Verify platform APIs against official documentation when implementation starts.
 # Cooperative ownership and cashier extension

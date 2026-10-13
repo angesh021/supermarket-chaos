@@ -895,6 +895,17 @@ function WorldBuilder.build()
     local customerBasketName = "Citrus Pop x1"
     local customerProductPosition = Vector3.new(-10, 0.45, 4)
     local customerProductPositions = { customerProductPosition }
+    local function customerQueueStatus(queueNumber)
+        if currentStage == "Spill" then
+            return "WAITING • SPILL"
+        elseif currentStage == "PowerOutage" then
+            return "WAITING • POWER OUT"
+        elseif currentStage == "CustomerRush" then
+            return "RUSH CUSTOMER"
+        end
+        return queueNumber == 1 and "NEXT CUSTOMER" or "IN QUEUE"
+    end
+
     local function browseCustomerBasket(entry, speed, flowVersion)
         for _, position in ipairs(customerProductPositions) do
             if not moveCustomer(entry, position, speed, flowVersion) then
@@ -931,7 +942,7 @@ function WorldBuilder.build()
         if not moveCustomer(entry, queuePosition, 0.65, flowVersion) then
             return
         end
-        entry.label.Text = queueNumber == 1 and "NEXT CUSTOMER" or "IN QUEUE"
+        entry.label.Text = customerQueueStatus(queueNumber)
         if queueNumber == 1 then
             checkoutReady = true
             register.Enabled = currentStage == "Checkout" or currentStage == "CustomerRush"
@@ -955,7 +966,7 @@ function WorldBuilder.build()
                 return
             end
         end
-        entry.label.Text = queueNumber == 1 and "NEXT CUSTOMER" or "IN QUEUE"
+        entry.label.Text = customerQueueStatus(queueNumber)
         if queueNumber == 1 then
             checkoutReady = true
             register.Enabled = currentStage == "Checkout" or currentStage == "CustomerRush"
@@ -991,7 +1002,7 @@ function WorldBuilder.build()
                 local queueNumber = index - served
                 local targetPosition = customerPositions[queueNumber]
                 entry.model:PivotTo(entry.homePivot + (targetPosition - entry.homePosition))
-                entry.label.Text = queueNumber == 1 and "NEXT CUSTOMER" or "IN QUEUE"
+                entry.label.Text = customerQueueStatus(queueNumber)
             end
             for _, item in ipairs(entry.model:GetDescendants()) do
                 if item:IsA("BasePart") then
@@ -1815,6 +1826,13 @@ function WorldBuilder.build()
 
     local function setStage(stage)
         currentStage = stage
+        local served = customerTotal - (remainingCustomers or 0)
+        for index, entry in ipairs(customerModels) do
+            local queueNumber = index - served
+            if remainingCustomers and queueNumber > 0 and queueNumber <= remainingCustomers then
+                entry.label.Text = customerQueueStatus(queueNumber)
+            end
+        end
         cartPrompt.Enabled = stage == "Cart"
         stockPrompt.Enabled = stage == "Stock"
         berryStockPrompt.Enabled = berryStockAvailable

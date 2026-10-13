@@ -42,7 +42,8 @@ G0 was approved on 2026-10-12. The user authorized continued phase implementatio
 - [x] Serve customers through the existing server economy transaction; close the shift only when the queue is cleared.
 - [x] Reconstruct remaining queue positions from the persisted shift sales count after rejoin.
 - [x] Script bounded entrance, aisle browse, checkout queue and exit waypoints; add a 12-second queue recovery path.
-- [ ] Add customer reactions to chaos events and broader, weighted shopping preferences.
+- [ ] Add broader, weighted shopping preferences; event reactions are implemented in Phase 16.
+- [x] Phase 16: add stage-derived customer reactions for spill, outage and rush with normal labels restored after recovery; see `operations/PHASE16_CUSTOMER_EVENT_REACTIONS.md`.
 - [x] Phase 14: add deterministic Citrus Pop/Berry Bites basket preferences, stock-aware fulfillment, atomic multi-item checkout and basket display; see `operations/PHASE14_CUSTOMER_BASKETS.md`.
 - [ ] Studio verification of three sales, queue visibility, cashier automation, helper races, and rejoin mid-queue.
 
@@ -55,6 +56,7 @@ G0 was approved on 2026-10-12. The user authorized continued phase implementatio
 - [ ] Studio verification of the Customer Rush queue, payout, timeout, cashier behavior and save/rejoin; see `operations/PHASE13_CUSTOMER_RUSH.md`.
 - [ ] Studio verification of customer baskets, mixed/double-item totals, stock fallback, role races and save/rejoin; see `operations/PHASE14_CUSTOMER_BASKETS.md`.
 - [ ] Studio verification of storefront style price, roles, visible changes, v1–v9 migration and save/rejoin; see `operations/PHASE15_STOREFRONT_STYLE.md`.
+- [ ] Studio verification of customer reactions and label restoration during route recovery and save/rejoin; see `operations/PHASE16_CUSTOMER_EVENT_REACTIONS.md`.
 - [ ] Studio verification of Power Outage, including early/manual recovery, auto recovery, save/rejoin and helper roles; see `operations/PHASE12_POWER_OUTAGE.md`.
 - [ ] Studio verification of role permissions, reward idempotency, save/rejoin and cashier behavior during the event.
 
