@@ -150,6 +150,39 @@ local function createShelf(parent, name, x, z, width, department, rotation)
         COLORS.deepTeal,
         COLORS.warmWhite
     )
+    local aisleHeader = part(
+        shelf,
+        "Suspended Aisle Wayfinding Sign",
+        Vector3.new(width, 0.88, 0.22),
+        CFrame.new(x, 9.05, z - 1.12),
+        COLORS.deepTeal,
+        Enum.Material.SmoothPlastic
+    )
+    aisleHeader:SetAttribute("MarketPaletteRole", "DepartmentSign")
+    local aisleHeaderGui = Instance.new("SurfaceGui")
+    aisleHeaderGui.Name = "AisleWayfindingGui"
+    aisleHeaderGui.Face = Enum.NormalId.Back
+    aisleHeaderGui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+    aisleHeaderGui.PixelsPerStud = 40
+    aisleHeaderGui.Parent = aisleHeader
+    local aisleHeaderText = Instance.new("TextLabel")
+    aisleHeaderText.Size = UDim2.fromScale(1, 1)
+    aisleHeaderText.BackgroundTransparency = 1
+    aisleHeaderText.Text = string.upper(department or "GROCERIES")
+    aisleHeaderText.TextColor3 = COLORS.warmWhite
+    aisleHeaderText.Font = Enum.Font.GothamBold
+    aisleHeaderText.TextScaled = true
+    aisleHeaderText.Parent = aisleHeaderGui
+    for _, side in ipairs({ -1, 1 }) do
+        part(
+            shelf,
+            "Aisle Wayfinding Sign Support",
+            Vector3.new(0.12, 0.9, 0.12),
+            CFrame.new(x + side * (width / 2 - 0.2), 8.55, z - 1.12),
+            COLORS.gray,
+            Enum.Material.Metal
+        )
+    end
     shelf.PrimaryPart = shelf:FindFirstChild("Wooden Kick Plate")
     shelf:PivotTo(origin * CFrame.new(0, 1.2, 0))
     return shelf
