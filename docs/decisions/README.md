@@ -66,6 +66,13 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Consequences:** A two-unit basket consumes two units but increments customer sales once. Out-of-stock preferences can reduce to the available items, with a one-item fallback when no preferred item is available. Existing schema v9 needs no migration. The behavior remains deterministic and does not model discounts or customer-specific negotiation.
 - **Verification:** See `docs/operations/PHASE14_CUSTOMER_BASKETS.md`; checkout, fallback, race and save/rejoin cases await Studio verification.
 
+## ADR-0013 — Persist one server-purchased storefront palette
+- **Status:** Accepted — 2026-10-12.
+- **Context:** Store growth should be visible in the environment, and the master specification identifies store customization as a Phase 2 foundation.
+- **Decision:** Offer one fixed Coastal Market palette for `$180` at a physical pad after shift completion. Validate and charge on the server, persist a boolean ownership flag, and apply it to selected original procedural storefront parts.
+- **Consequences:** Profile schema v10 adds `ownedUpgrades.marketStyle`; schemas v1–v9 default to the original palette. This is a first customization step, not arbitrary editing. No product/economy changes or external assets are introduced.
+- **Verification:** See `docs/operations/PHASE15_STOREFRONT_STYLE.md`; purchase, visual and migration checks await Studio verification.
+
 ## ADR-0009 — Keep product inventory and supplier orders SKU-specific
 - **Status:** Accepted — 2026-10-12.
 - **Context:** The retail loop needs visible department variety and product-specific stock behavior while keeping stock and money authoritative.

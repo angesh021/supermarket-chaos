@@ -437,9 +437,16 @@ function WorldBuilder.build()
         Enum.Material.Glass,
         0.38
     )
-    part(interior, "Front Header", Vector3.new(44, 3, 1), CFrame.new(0, 10.5, 17), COLORS.teal)
-    part(exterior, "Teal Fascia", Vector3.new(47, 3.2, 1.4), CFrame.new(0, 10.3, 17.5), COLORS.teal)
-    label(
+    local frontHeader =
+        part(interior, "Front Header", Vector3.new(44, 3, 1), CFrame.new(0, 10.5, 17), COLORS.teal)
+    local storefrontFascia = part(
+        exterior,
+        "Teal Fascia",
+        Vector3.new(47, 3.2, 1.4),
+        CFrame.new(0, 10.3, 17.5),
+        COLORS.teal
+    )
+    local storefrontSign = label(
         exterior,
         "Store Sign",
         "SUPERMARKET CHAOS",
@@ -466,7 +473,13 @@ function WorldBuilder.build()
             Enum.Material.Brick
         )
     end
-    part(exterior, "Entry Canopy", Vector3.new(21, 0.6, 6), CFrame.new(0, 9.3, 20.5), COLORS.coral)
+    local entryCanopy = part(
+        exterior,
+        "Entry Canopy",
+        Vector3.new(21, 0.6, 6),
+        CFrame.new(0, 9.3, 20.5),
+        COLORS.coral
+    )
     for _, x in ipairs({ -9.7, 9.7 }) do
         part(
             exterior,
@@ -477,7 +490,7 @@ function WorldBuilder.build()
             Enum.Material.Metal
         )
     end
-    part(
+    local canopyValance = part(
         exterior,
         "Canopy Front Valance",
         Vector3.new(21, 0.7, 0.35),
@@ -1358,6 +1371,44 @@ function WorldBuilder.build()
     markerCorner.CornerRadius = UDim.new(0, 10)
     markerCorner.Parent = markerText
 
+    local stylePad = part(
+        interior,
+        "Storefront Style Pad",
+        Vector3.new(5.5, 0.55, 5.5),
+        CFrame.new(-17.5, 0.52, 12.5),
+        COLORS.green,
+        Enum.Material.Neon
+    )
+    local stylePrompt =
+        prompt(stylePad, "Install Coastal Style ($180)", "Storefront Refresh", "MarketStyle", 10)
+    stylePrompt.Enabled = false
+    local styleSign = label(
+        interior,
+        "Storefront Style Sign",
+        "COASTAL MARKET\n$180",
+        Vector3.new(5, 2.7, 0.4),
+        CFrame.new(-17.5, 4.3, 9.4),
+        COLORS.green
+    )
+    local marketStylePurchased = false
+    local function setMarketStyle(purchased)
+        marketStylePurchased = purchased == true
+        stylePad.Color = marketStylePurchased and COLORS.deepTeal or COLORS.green
+        styleSign.Color = marketStylePurchased and COLORS.teal or COLORS.green
+        storefrontFascia.Color = marketStylePurchased and COLORS.green or COLORS.teal
+        storefrontSign.Color = marketStylePurchased and COLORS.green or COLORS.teal
+        entryCanopy.Color = marketStylePurchased and COLORS.gold or COLORS.coral
+        canopyValance.Color = marketStylePurchased and COLORS.teal or COLORS.deepTeal
+        frontHeader.Color = marketStylePurchased and COLORS.green or COLORS.teal
+        local surface = styleSign:FindFirstChildOfClass("SurfaceGui")
+        local signText = surface and surface:FindFirstChildOfClass("TextLabel")
+        if signText then
+            signText.Text = marketStylePurchased and "COASTAL MARKET\nINSTALLED"
+                or "COASTAL MARKET\n$180"
+        end
+        stylePrompt.Enabled = not marketStylePurchased and currentStage == "Complete"
+    end
+
     -- A single anchored cart root is tweened only while the opening event is active.
     local cart = Instance.new("Model")
     cart.Name = "Runaway Shopping Cart"
@@ -1777,6 +1828,7 @@ function WorldBuilder.build()
         spillPrompt.Enabled = stage == "Spill"
         powerPrompt.Enabled = stage == "PowerOutage"
         upgradePrompt.Enabled = stage == "Upgrade"
+        stylePrompt.Enabled = stage == "Complete" and not marketStylePurchased
         restartPrompt.Enabled = stage == "Complete"
         upgradeMarker.Enabled = stage == "Upgrade"
         cashierHirePrompt.Enabled = stage == "Complete" and not cashierHired
@@ -1856,6 +1908,8 @@ function WorldBuilder.build()
         cashierHirePrompt = cashierHirePrompt,
         stockerHirePrompt = stockerHirePrompt,
         warehousePrompt = warehousePrompt,
+        marketStylePrompt = stylePrompt,
+        setMarketStyle = setMarketStyle,
         orderDeliveryPrompt = function()
             return orderDeliveryPrompt
         end,

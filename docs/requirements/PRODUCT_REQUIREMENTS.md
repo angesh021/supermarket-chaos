@@ -101,3 +101,8 @@ Instrument funnel events for first interaction, first stock, first sale, first u
 - Price each item from the server catalog and atomically apply all basket deductions and credits as one customer sale; customer-count events remain based on customers served.
 - Show basket contents to the player and route mixed baskets past both departments. Presentation cannot change basket composition or transaction outcome.
 - Reconstruct the next customer intent from saved sale count and current inventory without adding redundant profile data. See `operations/PHASE14_CUSTOMER_BASKETS.md`.
+
+### Phase 2 customization increment
+- After completing a shift, the owner or authorized Manager may purchase a fixed `$180` storefront style using server-owned fictional currency.
+- The server validates stage, role, proximity, rate, balance and prior ownership. It persists the owned-style flag and applies a visible palette to the fascia, store sign, canopy and interior header.
+- Legacy profile schemas default to the original palette. The style persists across shifts and rejoins without affecting economy or inventory. See `operations/PHASE15_STOREFRONT_STYLE.md`.

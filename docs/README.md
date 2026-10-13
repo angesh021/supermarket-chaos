@@ -22,5 +22,6 @@
 | [Power outage verification](operations/PHASE12_POWER_OUTAGE.md) | Persisted outage, breaker roles, timeout and recovery checks |
 | [Customer Rush verification](operations/PHASE13_CUSTOMER_RUSH.md) | Bounded bonus queue, reward, timeout and persistence checks |
 | [Customer basket verification](operations/PHASE14_CUSTOMER_BASKETS.md) | Mixed and multi-item checkout, stock fallback and rejoin checks |
+| [Storefront style verification](operations/PHASE15_STOREFRONT_STYLE.md) | Persistent visual upgrade, price, permissions and migration checks |
 
 Keep this index and linked documents current as implementation changes. See [AGENTS.md](../AGENTS.md) for repository rules.

@@ -72,6 +72,11 @@ Currency and stock changes occur only after server-side validation. Transactions
 - The next intent is reconstructed from the persisted sales count and current saved inventory. Profile schema v9 does not change. The world route and HUD only display the server decision and cannot control it.
 - See `operations/PHASE14_CUSTOMER_BASKETS.md`; runtime pricing, stock, routing and rejoin checks remain pending.
 
+## Phase 2 storefront customization increment
+- `Economy.buyMarketStyle` checks the completed-shift state, existing ownership and fixed `$180` cost. `ShiftService` enforces Owner/Manager authorization, prompt distance, save readiness and interaction rate before calling the domain transition.
+- Profile schema v10 persists `ownedUpgrades.marketStyle`; older schemas normalize to false. `WorldBuilder` changes a fixed set of fascia, sign, canopy and header colors and disables its purchase prompt after ownership. The palette is reapplied on profile load and is independent of shift restart.
+- See `operations/PHASE15_STOREFRONT_STYLE.md`; Studio purchase, appearance, migration and rejoin checks remain pending.
+
 ## Open technical decisions
 See `docs/decisions/README.md` for accepted ownership policy. Remaining decisions include multi-store/guest permissions, production Studio place configuration, analytics implementation/privacy review, and any changes to persistence recovery. Verify platform APIs against official documentation when implementation starts.
 # Cooperative ownership and cashier extension

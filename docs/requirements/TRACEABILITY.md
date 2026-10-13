@@ -20,6 +20,7 @@
 | CHAOS-OPS-003 | Persisted checkout power outage after second sale, role-gated breaker recovery and 30-second automatic fallback | `decisions/README.md`, `security/THREAT_MODEL.md` | `operations/PHASE12_POWER_OUTAGE.md` | Implemented; Studio verification pending |
 | CHAOS-OPS-004 | Five-customer bounded rush with two bonus shoppers, persisted 60-second deadline, one-time reward and no-penalty timeout | `decisions/README.md`, `security/THREAT_MODEL.md` | `operations/PHASE13_CUSTOMER_RUSH.md` | Implemented; Studio verification pending |
 | CUSTOMER-OPS-002 | Five bounded customer basket patterns, server-priced multi-item checkout, stock fallback, department route and deterministic rejoin reconstruction | `decisions/README.md`, `architecture/ARCHITECTURE.md` | `operations/PHASE14_CUSTOMER_BASKETS.md` | Implemented; Studio verification pending |
+| STORE-CUSTOM-001 | Server-purchased persistent Coastal Market palette with v10 migration and visible storefront changes | `decisions/README.md`, `security/THREAT_MODEL.md` | `operations/PHASE15_STOREFRONT_STYLE.md` | Implemented; Studio verification pending |
 | OPS-01 | Reproducible local setup and quality checks | `operations/BEGINNER_SETUP.md`, `operations/QUALITY.md` | Fresh setup and CI run | In progress |
 
 No requirement is marked verified until the documented check is actually run and its evidence is recorded.

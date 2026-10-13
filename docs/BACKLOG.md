@@ -20,6 +20,7 @@ G0 was approved on 2026-10-12. The user authorized continued phase implementatio
 - [x] Resume saved shift state and start repeat shifts from the shift board.
 - [x] User confirmed the requested Studio progression and persistence tests passed.
 - [ ] Extend the upgrade catalog, product inventory and store customization.
+- [x] Phase 15: add a persistent, server-purchased Coastal Market storefront palette and v10 migration; see `operations/PHASE15_STOREFRONT_STYLE.md`.
 
 ## Phase 3 — Cooperative multiplayer
 - [x] Join request and owner approval/decline/removal workflow.
@@ -53,6 +54,7 @@ G0 was approved on 2026-10-12. The user authorized continued phase implementatio
 - [x] Add Customer Rush after the normal three sales: two bonus customers, a persisted 60-second deadline, server-priced checkout, a one-time `$20` clear bonus and safe no-bonus timeout.
 - [ ] Studio verification of the Customer Rush queue, payout, timeout, cashier behavior and save/rejoin; see `operations/PHASE13_CUSTOMER_RUSH.md`.
 - [ ] Studio verification of customer baskets, mixed/double-item totals, stock fallback, role races and save/rejoin; see `operations/PHASE14_CUSTOMER_BASKETS.md`.
+- [ ] Studio verification of storefront style price, roles, visible changes, v1–v9 migration and save/rejoin; see `operations/PHASE15_STOREFRONT_STYLE.md`.
 - [ ] Studio verification of Power Outage, including early/manual recovery, auto recovery, save/rejoin and helper roles; see `operations/PHASE12_POWER_OUTAGE.md`.
 - [ ] Studio verification of role permissions, reward idempotency, save/rejoin and cashier behavior during the event.
 

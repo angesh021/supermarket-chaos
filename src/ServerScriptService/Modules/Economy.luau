@@ -9,6 +9,7 @@ Economy.CASHIER_COST = 100
 Economy.STOCKER_COST = 80
 Economy.CLEANER_COST = 120
 Economy.WAREHOUSE_COST = 200
+Economy.MARKET_STYLE_COST = 180
 Economy.DELIVERY_COST = 60
 Economy.DELIVERY_QUANTITY = 24
 Economy.BACKSTOCK_CAPACITY = 500
@@ -95,6 +96,7 @@ function Economy.newState(profile)
         customerRushUntil = savedShift.customerRushUntil or 0,
         upgradePurchased = upgrades.shelfBay or false,
         warehousePurchased = upgrades.warehouse or false,
+        marketStylePurchased = upgrades.marketStyle or false,
         cashierHired = (profile.hiredEmployees and profile.hiredEmployees.cashier) or false,
         stockerHired = (profile.hiredEmployees and profile.hiredEmployees.stocker) or false,
         cleanerHired = (profile.hiredEmployees and profile.hiredEmployees.cleaner) or false,
@@ -537,6 +539,19 @@ function Economy.buyWarehouse(state)
         state.berryBackstock = 12
     end
     return true, "Warehouse annex purchased! Your retail empire is expanding."
+end
+
+function Economy.buyMarketStyle(state)
+    if state.stage ~= "Complete" or state.marketStylePurchased then
+        return false, "The storefront style package is not available right now."
+    end
+    if state.cash < Economy.MARKET_STYLE_COST then
+        return false,
+            string.format("You need $%d to refresh the storefront.", Economy.MARKET_STYLE_COST)
+    end
+    state.cash -= Economy.MARKET_STYLE_COST
+    state.marketStylePurchased = true
+    return true, "Coastal Market style installed! Your storefront has a fresh new look."
 end
 
 return Economy

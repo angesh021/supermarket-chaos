@@ -4,7 +4,7 @@ local HttpService = game:GetService("HttpService")
 
 local ProfileService = {}
 
-local SCHEMA_VERSION = 9
+local SCHEMA_VERSION = 10
 local SESSION_LEASE_SECONDS = 180
 local MAX_RETRIES = 3
 local STORE_NAME = "SupermarketChaos_PlayerProfiles_v1"
@@ -42,6 +42,7 @@ local function defaultProfile()
         ownedUpgrades = {
             shelfBay = false,
             warehouse = false,
+            marketStyle = false,
         },
         hiredEmployees = {
             cashier = false,
@@ -124,15 +125,17 @@ local function normalizeProfile(value)
                 value.ownedUpgrades.shelfBay ~= nil
                 and type(value.ownedUpgrades.shelfBay) ~= "boolean"
             )
+            or (value.ownedUpgrades.warehouse ~= nil and type(value.ownedUpgrades.warehouse) ~= "boolean")
             or (
-                value.ownedUpgrades.warehouse ~= nil
-                and type(value.ownedUpgrades.warehouse) ~= "boolean"
+                value.ownedUpgrades.marketStyle ~= nil
+                and type(value.ownedUpgrades.marketStyle) ~= "boolean"
             )
         then
             return nil, "Stored upgrade flag is malformed."
         end
         profile.ownedUpgrades.shelfBay = value.ownedUpgrades.shelfBay == true
         profile.ownedUpgrades.warehouse = value.ownedUpgrades.warehouse == true
+        profile.ownedUpgrades.marketStyle = value.ownedUpgrades.marketStyle == true
     end
     if value.hiredEmployees ~= nil and type(value.hiredEmployees) ~= "table" then
         return nil, "Stored employee data is malformed."
@@ -286,6 +289,7 @@ local function copyProfile(profile)
         ownedUpgrades = {
             shelfBay = profile.ownedUpgrades.shelfBay,
             warehouse = profile.ownedUpgrades.warehouse,
+            marketStyle = profile.ownedUpgrades.marketStyle,
         },
         hiredEmployees = {
             cashier = profile.hiredEmployees.cashier,
@@ -503,6 +507,7 @@ function ProfileService.saveProgress(player, state, eventName)
     profile.shift.shiftClosed = state.shiftClosed
     profile.ownedUpgrades.shelfBay = state.upgradePurchased
     profile.ownedUpgrades.warehouse = state.warehousePurchased
+    profile.ownedUpgrades.marketStyle = state.marketStylePurchased
     profile.hiredEmployees.cashier = state.cashierHired
     profile.hiredEmployees.stocker = state.stockerHired
     profile.hiredEmployees.cleaner = state.cleanerHired

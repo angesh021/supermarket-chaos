@@ -36,6 +36,7 @@ local ROLE_ACTIONS = {
         HireStocker = true,
         HireCleaner = true,
         Warehouse = true,
+        MarketStyle = true,
         OrderDelivery = true,
         OrderBerryDelivery = true,
         ReceiveDelivery = true,
@@ -598,6 +599,15 @@ function ShiftService.init(event, membershipRemotes)
         broadcast(message)
     end)
 
+    bind("MarketStyle", world.marketStylePrompt, 13, function()
+        local ok, message = Economy.buyMarketStyle(state)
+        if ok then
+            world.setMarketStyle(state.marketStylePurchased)
+            commit("marketStyle")
+        end
+        broadcast(message)
+    end)
+
     bind("OrderDelivery", world.orderDeliveryPrompt(), 12, function()
         local ok, message = Economy.orderDelivery(state, os.time(), "citrusPop")
         if ok then
@@ -820,6 +830,7 @@ function ShiftService.init(event, membershipRemotes)
             if state.upgradePurchased then
                 world.addUpgrade()
             end
+            world.setMarketStyle(state.marketStylePurchased)
             world.setWarehousePurchased(state.warehousePurchased)
             world.setDeliveryState(
                 state.shipmentReadyAt,
