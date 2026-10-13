@@ -28,6 +28,7 @@ G0 was approved on 2026-10-12. The user authorized continued phase implementatio
 - [x] Phase 71 customer increment: route each product browse to a stocked constructed aisle facing when available, respecting saved transforms and falling back to the original shelf when the aisle is empty. See `operations/PHASE71_MERCHANDISED_AISLE_ROUTING.md`.
 - [x] Phase 72 visual increment: add overhead wayfinding headers to server-built grocery and storage shelves; keep labels attached to movable fixtures and use the existing department palette. See `operations/PHASE72_AISLE_WAYFINDING.md`.
 - [x] Phase 73 visual increment: add procedural hand baskets and grocery props to scripted store customers and plaza visitors without changing authoritative baskets or sales. See `operations/PHASE73_SHOPPER_BASKETS.md`.
+- [x] Phase 74 CI increment: run the pinned StyLua, Selene and Rojo build plus repository structure checks on pushes and pull requests with read-only permissions; no Roblox publishing or commerce job. See `operations/PHASE74_REPRODUCIBLE_CI.md`.
 - [x] Phase 15: add a persistent, server-purchased Coastal Market storefront palette and v10 migration; see `operations/PHASE15_STOREFRONT_STYLE.md`.
 - [x] Phase 19: add a temporary preview/cancel action before the existing palette purchase; see `operations/PHASE19_STOREFRONT_PREVIEW.md`.
 

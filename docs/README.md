@@ -12,6 +12,7 @@
 | [Backlog](BACKLOG.md) | Initial sequenced work and dependencies |
 | [Beginner setup](operations/BEGINNER_SETUP.md) | Studio, Rojo and local workflow |
 | [Quality and CI](operations/QUALITY.md) | Checks, manual test procedures, CI status |
+| [Reproducible CI verification](operations/PHASE74_REPRODUCIBLE_CI.md) | Pinned formatter, linter, project build, and least-privilege workflow checks |
 | [Assets and provenance](operations/ASSETS_AND_PROVENANCE.md) | Asset registry and project attribution |
 | [Decision records](decisions/README.md) | Material architecture and product decisions |
 | [Project status](PROJECT_STATUS.md) | Current state, risks, manual actions, G0 gate |

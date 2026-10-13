@@ -1,5 +1,10 @@
 # Technical architecture (proposed)
 
+## CI and release boundary
+
+- `.github/workflows/phase0.yml` installs versions from `rokit.toml`, checks formatting and lint, builds the Rojo project into runner temporary storage, and verifies project/documentation structure on pushes and pull requests.
+- The workflow has `contents: read` permission only. It does not publish Roblox places, configure DataStores, upload assets, call commerce APIs or deploy a production experience. GitHub Actions validation is not a substitute for Roblox Studio and DataStore verification.
+
 ## Boundaries
 ```mermaid
 flowchart LR

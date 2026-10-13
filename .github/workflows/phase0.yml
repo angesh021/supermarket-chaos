@@ -1,14 +1,27 @@
-name: Phase 0 structure
+name: Project validation
 
 on:
   push:
   pull_request:
+
+permissions:
+  contents: read
 
 jobs:
   project-structure:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Install pinned Roblox tools
+        uses: paradoxum-games/setup-rokit@29e6ee09651a3711e3a287a1037671d7b74db6d0 # v3
+        with:
+          cache: true
+      - name: Check Luau formatting
+        run: stylua --check src
+      - name: Lint Luau
+        run: selene src
+      - name: Build Rojo project
+        run: rojo build default.project.json -o "$RUNNER_TEMP/supermarket-chaos.rbxlx"
       - name: Validate Rojo project JSON
         run: |
           python - <<'PY'
@@ -38,6 +51,7 @@ jobs:
               "security/THREAT_MODEL.md",
               "operations/BEGINNER_SETUP.md",
               "operations/QUALITY.md",
+              "operations/PHASE74_REPRODUCIBLE_CI.md",
           ]
           missing = [str(docs / path) for path in required if not (docs / path).is_file()]
           assert not missing, f"Missing docs: {missing}"

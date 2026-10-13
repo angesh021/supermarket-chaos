@@ -1,5 +1,9 @@
 # Threat model — initial Phase 0
 
+## CI workflow permissions
+
+- The project validation workflow is read-only (`contents: read`), uses a commit-pinned tool setup action and versions from `rokit.toml`, and has no Roblox credentials or publish/commerce steps. Build output is temporary runner data; tool setup or validation failure stops the job.
+
 ## Assets and trust boundaries
 Protected assets: currency, inventory, store/build ownership, upgrade state, shift rewards, persistent profile, purchase fulfillment, moderation and service availability. Clients and all client-originated values are untrusted. Roblox platform services and server code are trusted within their documented behavior. External assets/packages are untrusted until provenance and code review are complete.
 
