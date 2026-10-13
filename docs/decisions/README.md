@@ -369,6 +369,11 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Consequences:** Schema v40 stores bookshop state in the neighborhood location; existing plaza role, visitor, transaction-lock and profile-save boundaries apply.
 - **Verification:** See `docs/operations/PHASE69_RIVERSIDE_BOOKSHOP.md`.
 
+## ADR-0066: Assign departments to constructed grocery aisles
+- **Decision:** Let each purchased aisle display one already-owned product department and divide that product's visible stock across all its facings.
+- **Consequences:** Retail layout v6 adds an allow-listed product ID per aisle; older untyped aisles migrate to Citrus Pop. No new SKU or profile schema version is added.
+- **Verification:** See `docs/operations/PHASE70_MERCHANDISED_GROCERY_AISLES.md`.
+
 ## ADR-0009 — Keep product inventory and supplier orders SKU-specific
 - **Status:** Accepted — 2026-10-12.
 - **Context:** The retail loop needs visible department variety and product-specific stock behavior while keeping stock and money authoritative.

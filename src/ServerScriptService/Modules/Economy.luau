@@ -2057,12 +2057,21 @@ function Economy.buyFreezerDepartment(state)
     return true, "Freezer section built! Freezer Meals are ready for stocking."
 end
 
-function Economy.buildRetailAisle(state, aisleId, x, z, rotation)
+function Economy.buildRetailAisle(state, aisleId, x, z, rotation, productId)
     if state.stage ~= "Complete" or not state.upgradePurchased then
         return false, "Build the first shelf bay before adding more grocery aisles."
     end
     if not RetailLayoutService.isConstructedAisleId(aisleId) then
         return false, "That grocery aisle selection is invalid."
+    end
+    if not RetailLayoutService.isProductId(productId) then
+        return false, "Choose a department for the new grocery aisle."
+    end
+    if
+        (productId == "cinnamonTwists" and not state.bakeryPurchased)
+        or (productId == "frozenMeals" and not state.freezerPurchased)
+    then
+        return false, "Build that product department before adding its aisle."
     end
     local count = 0
     for _ in pairs(state.retailLayout.aisles) do
@@ -2091,8 +2100,18 @@ function Economy.buildRetailAisle(state, aisleId, x, z, rotation)
         return false, reason
     end
     state.cash -= Economy.RETAIL_AISLE_COST
-    state.retailLayout.aisles[aisleId] = { x = x, z = z, rotation = rotation }
-    return true, string.format("Grocery aisle built for $%d.", Economy.RETAIL_AISLE_COST)
+    state.retailLayout.aisles[aisleId] = {
+        x = x,
+        z = z,
+        rotation = rotation,
+        productId = productId,
+    }
+    return true,
+        string.format(
+            "%s aisle built for $%d.",
+            Economy.PRODUCTS[productId].displayName,
+            Economy.RETAIL_AISLE_COST
+        )
 end
 
 function Economy.moveRetailAisle(state, aisleId, x, z, rotation)

@@ -282,6 +282,7 @@ See `docs/decisions/README.md` for accepted ownership policy. Remaining decision
 - No new client color data, profile fields, remotes or economy transitions are introduced. See ADR-0062 and operations/PHASE66_INTERIOR_STYLE_PALETTES.md.
 - Phase 67 adds up to four GUID-keyed constructed aisle transforms to retail layout v5 in each owned location. `Economy` charges the fixed build cost, `RetailLayoutService` validates the grid and collisions, `WorldBuilder` builds the fixture, and `ProfileService` persists it under the existing owner lease. No profile schema change is needed.
 - Phase 68 derives facility operating costs from the active server state and applies them in the existing guarded shift-close transition after payroll. Only the resulting cash persists; owned upgrades remain the source of truth, and no new profile field or client charge input is used.
+- Phase 70 extends retail layout v5 to v6 by adding a server-allow-listed product ID to each constructed aisle. Legacy aisles without a department migrate to Citrus Pop. `WorldBuilder` divides each SKU's visible stock across the original shelf and assigned aisles; each inventory-backed display count sums to the existing server quantity. No SKU, stock transition or checkout behavior is added.
 
 # Cooperative ownership and cashier extension
 - One owner profile remains the persistence boundary. Per-server membership grants temporary action permissions but does not load a guest's profile into the owner's economy.

@@ -76,6 +76,33 @@ local function sameData(left, right)
     return true
 end
 
+local function adaptExpectedRetailLayout(expectedSnapshot, storedSnapshot)
+    local storedLayout = type(storedSnapshot) == "table" and storedSnapshot.retailLayout
+    if
+        type(storedLayout) ~= "table"
+        or type(expectedSnapshot.retailLayout) ~= "table"
+        or type(storedLayout.version) ~= "number"
+        or storedLayout.version >= RetailLayoutService.VERSION
+    then
+        return
+    end
+    expectedSnapshot.retailLayout.version = storedLayout.version
+    if storedLayout.aisles == nil then
+        expectedSnapshot.retailLayout.aisles = nil
+    elseif type(storedLayout.aisles) == "table" then
+        for aisleId, storedAisle in pairs(storedLayout.aisles) do
+            local expectedAisle = expectedSnapshot.retailLayout.aisles[aisleId]
+            if
+                type(storedAisle) == "table"
+                and storedAisle.productId == nil
+                and type(expectedAisle) == "table"
+            then
+                expectedAisle.productId = nil
+            end
+        end
+    end
+end
+
 local function defaultProfile()
     local profile = {
         schemaVersion = SCHEMA_VERSION,
@@ -842,23 +869,8 @@ local function normalizeProfile(value)
             expectedSnapshot.shift.bookshopStock = nil
             expectedSnapshot.shift.bookshopSales = nil
             expectedSnapshot.ownedUpgrades.bookshop = nil
-            if type(value.locations.neighborhood.retailLayout) == "table" then
-                local storedLayoutVersion = value.locations.neighborhood.retailLayout.version
-                if
-                    type(storedLayoutVersion) ~= "number"
-                    or storedLayoutVersion % 1 ~= 0
-                    or storedLayoutVersion < 1
-                    or storedLayoutVersion > RetailLayoutService.VERSION
-                then
-                    return nil, "Stored neighborhood retail layout version is invalid."
-                end
-                expectedSnapshot.retailLayout.version =
-                    value.locations.neighborhood.retailLayout.version
-                if value.locations.neighborhood.retailLayout.aisles == nil then
-                    expectedSnapshot.retailLayout.aisles = nil
-                end
-            end
         end
+        adaptExpectedRetailLayout(expectedSnapshot, value.locations.neighborhood)
         if not sameData(value.locations.neighborhood, expectedSnapshot) then
             return nil, "Stored neighborhood location does not match the migrated profile state."
         end
@@ -889,22 +901,8 @@ local function normalizeProfile(value)
                 expectedBranch.shift.bookshopStock = nil
                 expectedBranch.shift.bookshopSales = nil
                 expectedBranch.ownedUpgrades.bookshop = nil
-                if type(branch.retailLayout) == "table" then
-                    local storedLayoutVersion = branch.retailLayout.version
-                    if
-                        type(storedLayoutVersion) ~= "number"
-                        or storedLayoutVersion % 1 ~= 0
-                        or storedLayoutVersion < 1
-                        or storedLayoutVersion > RetailLayoutService.VERSION
-                    then
-                        return nil, "Stored uptown retail layout version is invalid."
-                    end
-                    expectedBranch.retailLayout.version = branch.retailLayout.version
-                    if branch.retailLayout.aisles == nil then
-                        expectedBranch.retailLayout.aisles = nil
-                    end
-                end
             end
+            adaptExpectedRetailLayout(expectedBranch, branch)
             if not sameData(branch, expectedBranch) then
                 return nil, "Stored uptown location contains unsupported or divergent data."
             end

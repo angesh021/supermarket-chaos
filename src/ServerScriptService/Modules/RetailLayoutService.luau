@@ -1,7 +1,7 @@
 -- Pure validation for movable customer-facing department shelves.
 local RetailLayoutService = {}
 
-RetailLayoutService.VERSION = 5
+RetailLayoutService.VERSION = 6
 RetailLayoutService.MAX_CONSTRUCTED_AISLES = 4
 RetailLayoutService.CORE_PRODUCT_IDS = {
     "citrusPop",
@@ -303,7 +303,7 @@ function RetailLayoutService.normalize(
     end
     if
         type(value) ~= "table"
-        or (value.version ~= 1 and value.version ~= 2 and value.version ~= 3 and value.version ~= 4 and value.version ~= RetailLayoutService.VERSION)
+        or (value.version ~= 1 and value.version ~= 2 and value.version ~= 3 and value.version ~= 4 and value.version ~= 5 and value.version ~= RetailLayoutService.VERSION)
         or type(value.shelves) ~= "table"
     then
         return nil, "Stored retail layout is malformed."
@@ -407,8 +407,21 @@ function RetailLayoutService.normalize(
         then
             return nil, "Stored constructed aisle position is malformed."
         end
+        local productId = placement.productId
+        if value.version < RetailLayoutService.VERSION and productId == nil then
+            productId = "citrusPop"
+        end
+        if not RetailLayoutService.isProductId(productId) then
+            return nil, "Stored constructed aisle department is invalid."
+        end
+        if
+            (productId == "cinnamonTwists" and bakeryPurchased ~= true)
+            or (productId == "frozenMeals" and freezerPurchased ~= true)
+        then
+            return nil, "Stored constructed aisle department is not owned."
+        end
         for key in pairs(placement) do
-            if key ~= "x" and key ~= "z" and key ~= "rotation" then
+            if key ~= "x" and key ~= "z" and key ~= "rotation" and key ~= "productId" then
                 return nil, "Stored constructed aisle contains an unsupported field."
             end
         end
@@ -416,6 +429,7 @@ function RetailLayoutService.normalize(
             x = placement.x,
             z = placement.z,
             rotation = placement.rotation,
+            productId = productId,
         }
     end
     if aisleCount > RetailLayoutService.MAX_CONSTRUCTED_AISLES then

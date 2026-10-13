@@ -781,6 +781,17 @@ function ShiftService.init(event, membershipRemotes, options)
         end)
     end
 
+    local function currentRetailStocks()
+        return {
+            citrusPop = state.stock,
+            berryBites = state.berryStock,
+            goldenApples = state.goldenAppleStock,
+            sunriseCereal = state.cerealStock,
+            cinnamonTwists = state.cinnamonTwistStock,
+            frozenMeals = state.frozenMealStock,
+        }
+    end
+
     commit = function(eventName)
         ProfileService.saveProgress(ownerPlayer, state, eventName, locationId)
         if locationId == "neighborhood" then
@@ -803,7 +814,7 @@ function ShiftService.init(event, membershipRemotes, options)
             state.uptownStorePurchased,
             state.supplierPartnershipPurchased
         )
-        world.setRetailLayout(state.retailLayout)
+        world.setRetailLayout(state.retailLayout, currentRetailStocks())
         world.setCustomerProduct(
             Economy.PRODUCTS[Economy.getNextCheckoutProductId(state) or "citrusPop"].displayName
         )
@@ -2033,7 +2044,7 @@ function ShiftService.init(event, membershipRemotes, options)
             return reject("That retail layout request is invalid.")
         end
         local allowedKeys
-        if request.action == "MoveShelf" then
+        if request.action == "MoveShelf" or request.action == "BuildAisle" then
             allowedKeys = {
                 action = true,
                 productId = true,
@@ -2041,7 +2052,7 @@ function ShiftService.init(event, membershipRemotes, options)
                 z = true,
                 rotation = true,
             }
-        elseif request.action == "MoveCheckout" or request.action == "BuildAisle" then
+        elseif request.action == "MoveCheckout" then
             allowedKeys = { action = true, x = true, z = true, rotation = true }
         elseif request.action == "MoveFixture" then
             allowedKeys = {
@@ -2056,6 +2067,12 @@ function ShiftService.init(event, membershipRemotes, options)
         end
         if not allowedKeys or not hasOnlyKeys(request, allowedKeys) then
             return reject("That retail layout request is invalid.")
+        end
+        if
+            request.action == "BuildAisle"
+            and (type(request.productId) ~= "string" or #request.productId > 24)
+        then
+            return reject("Choose a supported department for the new aisle.")
         end
 
         local role = player == ownerPlayer and "Owner" or storeMembers[player.UserId]
@@ -2096,7 +2113,7 @@ function ShiftService.init(event, membershipRemotes, options)
                 z = request.z,
                 rotation = request.rotation,
             }
-            world.setRetailLayout(state.retailLayout)
+            world.setRetailLayout(state.retailLayout, currentRetailStocks())
             local saved =
                 ProfileService.saveProgress(ownerPlayer, state, "checkoutLayoutChanged", locationId)
             local resultMessage = saved and "Checkout lane and customer queue moved and saved."
@@ -2138,7 +2155,7 @@ function ShiftService.init(event, membershipRemotes, options)
             fixture.x = request.x
             fixture.z = request.z
             fixture.rotation = request.rotation
-            world.setRetailLayout(state.retailLayout)
+            world.setRetailLayout(state.retailLayout, currentRetailStocks())
             local saved =
                 ProfileService.saveProgress(ownerPlayer, state, "retailLayoutChanged", locationId)
             local resultMessage = saved and "Store fixture moved and saved."
@@ -2155,12 +2172,18 @@ function ShiftService.init(event, membershipRemotes, options)
 
         if request.action == "BuildAisle" then
             local aisleId = HttpService:GenerateGUID(false)
-            local ok, resultMessage =
-                Economy.buildRetailAisle(state, aisleId, request.x, request.z, request.rotation)
+            local ok, resultMessage = Economy.buildRetailAisle(
+                state,
+                aisleId,
+                request.x,
+                request.z,
+                request.rotation,
+                request.productId
+            )
             if not ok then
                 return reject(resultMessage)
             end
-            world.setRetailLayout(state.retailLayout)
+            world.setRetailLayout(state.retailLayout, currentRetailStocks())
             local saved =
                 ProfileService.saveProgress(ownerPlayer, state, "retailAisleBuilt", locationId)
             if not saved then
@@ -2181,7 +2204,7 @@ function ShiftService.init(event, membershipRemotes, options)
             if not ok then
                 return reject(resultMessage)
             end
-            world.setRetailLayout(state.retailLayout)
+            world.setRetailLayout(state.retailLayout, currentRetailStocks())
             local saved =
                 ProfileService.saveProgress(ownerPlayer, state, "retailAisleMoved", locationId)
             if not saved then
@@ -2256,7 +2279,7 @@ function ShiftService.init(event, membershipRemotes, options)
             shelf.z = request.z
             shelf.rotation = request.rotation
         end
-        world.setRetailLayout(state.retailLayout)
+        world.setRetailLayout(state.retailLayout, currentRetailStocks())
         local saved =
             ProfileService.saveProgress(ownerPlayer, state, "retailLayoutChanged", locationId)
         local productName = Economy.PRODUCTS[productId].displayName
@@ -2450,7 +2473,7 @@ function ShiftService.init(event, membershipRemotes, options)
                 world.addFreezerDepartment()
             end
             world.setStorageLayout(state.warehouseLayout)
-            world.setRetailLayout(state.retailLayout)
+            world.setRetailLayout(state.retailLayout, currentRetailStocks())
             world.setDeliveryState(
                 state.shipmentReadyAt,
                 state.shipmentQuantity,

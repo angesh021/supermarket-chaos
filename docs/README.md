@@ -72,6 +72,7 @@
 | [Constructed grocery aisles](operations/PHASE67_CONSTRUCTED_GROCERY_AISLES.md) | Build and persist up to four movable grocery aisles |
 | [Shift operating costs](operations/PHASE68_SHIFT_OPERATING_COSTS.md) | Derive and charge bounded facility upkeep at shift close |
 | [Riverside Bookshop](operations/PHASE69_RIVERSIDE_BOOKSHOP.md) | Open, stock and operate the persistent neighborhood bookshop |
+| [Merchandised grocery aisles](operations/PHASE70_MERCHANDISED_GROCERY_AISLES.md) | Assign a product category to each constructed aisle and show its inventory |
 | [Commercial district review](operations/PHASE58_COMMERCIAL_DISTRICT.md) | Connected avenue, neighborhood storefronts and Studio visual checks |
 
 Keep this index and linked documents current as implementation changes. See [AGENTS.md](../AGENTS.md) for repository rules.

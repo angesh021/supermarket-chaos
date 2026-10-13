@@ -138,7 +138,7 @@ local function createShelf(parent, name, x, z, width, department, rotation)
                 CFrame.new(px, packageY, z - 0.237),
                 COLORS.warmWhite,
                 Enum.Material.SmoothPlastic
-            )
+            ):SetAttribute("ProductDisplay", true)
         end
     end
     label(
@@ -5097,7 +5097,7 @@ function WorldBuilder.build(locationId, origin)
                 placedShelfModel:SetAttribute("PlayerPurchased", true)
             end
         end,
-        setRetailLayout = function(layout)
+        setRetailLayout = function(layout, stockCounts)
             if type(layout) ~= "table" or type(layout.shelves) ~= "table" then
                 return
             end
@@ -5150,19 +5150,89 @@ function WorldBuilder.build(locationId, origin)
                 end
             end
             retailConstructionFolder:ClearAllChildren()
+            local constructedAisles = {}
+            local aisleIdsByProduct = {}
+            local colorByProduct = {
+                citrusPop = COLORS.coral,
+                berryBites = COLORS.orange,
+                goldenApples = COLORS.gold,
+                sunriseCereal = COLORS.green,
+                cinnamonTwists = COLORS.paleGreen,
+                frozenMeals = COLORS.blue,
+            }
             for aisleId, placement in pairs(layout.aisles or {}) do
+                local productId = placement.productId or "citrusPop"
+                local product = Economy.PRODUCTS[productId]
                 local aisle = createShelf(
                     retailConstructionFolder,
-                    "Constructed Grocery Aisle",
+                    product.displayName .. " Merchandising Aisle",
                     placement.x,
                     placement.z,
                     8,
-                    "GROCERY",
+                    string.upper(product.displayName),
                     placement.rotation
                 )
                 aisle:SetAttribute("ConstructedRetailAisleId", aisleId)
+                aisle:SetAttribute("RetailProductId", productId)
                 aisle:SetAttribute("PlayerPurchased", true)
                 tagRetailShelfPalette(aisle)
+                for _, item in ipairs(aisle:GetDescendants()) do
+                    if item:GetAttribute("ProductDisplay") == true then
+                        item.Transparency = 1
+                    end
+                end
+                aisle:SetAttribute("MerchandisingName", product.displayName)
+                constructedAisles[aisleId] = { model = aisle, placement = placement }
+                aisleIdsByProduct[productId] = aisleIdsByProduct[productId] or {}
+                table.insert(aisleIdsByProduct[productId], aisleId)
+            end
+            local stockVisualSetters = {
+                citrusPop = setStockVisual,
+                berryBites = setBerryStockVisual,
+                goldenApples = setGoldenAppleStockVisual,
+                sunriseCereal = setCerealStockVisual,
+                cinnamonTwists = setCinnamonTwistStockVisual,
+                frozenMeals = setFrozenMealStockVisual,
+            }
+            for productId, aisleIds in pairs(aisleIdsByProduct) do
+                table.sort(aisleIds)
+                local product = Economy.PRODUCTS[productId]
+                local totalStock = math.max(0, math.floor((stockCounts or {})[productId] or 0))
+                local faceCount = #aisleIds + 1
+                local perFace = math.floor(totalStock / faceCount)
+                local remainder = totalStock % faceCount
+                local primaryCount = perFace + (remainder > 0 and 1 or 0)
+                stockVisualSetters[productId](primaryCount)
+                local packageColor = colorByProduct[productId]
+                for index, aisleId in ipairs(aisleIds) do
+                    local aisleCount = perFace + (index < remainder and 1 or 0)
+                    local aisleModel = constructedAisles[aisleId].model
+                    for itemIndex = 1, aisleCount do
+                        local column = (itemIndex - 1) % 8
+                        local row = math.floor((itemIndex - 1) / 8)
+                        local localFrame =
+                            CFrame.new(-3.1 + column * 0.88, 3.35 + row * 1.35, -0.82)
+                        local package = part(
+                            aisleModel,
+                            product.displayName .. " Stock Display",
+                            Vector3.new(0.66, 0.82, 0.46),
+                            aisleModel:GetPivot() * localFrame,
+                            packageColor,
+                            Enum.Material.SmoothPlastic
+                        )
+                        package:SetAttribute("ProductDisplay", true)
+                        local faceLabel = part(
+                            aisleModel,
+                            product.displayName .. " Package Label",
+                            Vector3.new(0.42, 0.24, 0.025),
+                            aisleModel:GetPivot()
+                                * CFrame.new(-3.1 + column * 0.88, 3.35 + row * 1.35, -0.57),
+                            COLORS.warmWhite,
+                            Enum.Material.SmoothPlastic
+                        )
+                        faceLabel:SetAttribute("ProductDisplay", true)
+                    end
+                end
             end
             updateCustomerBasketPositions()
             applyMarketStyle(marketStylePurchased and marketStyleId or marketStylePreviewId)

@@ -24,6 +24,7 @@ G0 was approved on 2026-10-12. The user authorized continued phase implementatio
 - [x] Phase 67 construction increment: add up to four server-priced, movable and per-location persistent grocery aisles after the first shelf bay; preserve clearance in later layout edits. See `operations/PHASE67_CONSTRUCTED_GROCERY_AISLES.md`.
 - [x] Phase 68 economy increment: charge a bounded, ownership-derived facility upkeep during the existing idempotent shift closeout; report payroll and upkeep in the HUD without adding profile fields. See `operations/PHASE68_SHIFT_OPERATING_COSTS.md`.
 - [x] Phase 69 plaza increment: turn Riverside Bookshop into a persistent business after Maple Corner Florist, with visible paperbacks, stock/restock, role-gated sales, plaza visitor purchases and schema v40 migration. See `operations/PHASE69_RIVERSIDE_BOOKSHOP.md`.
+- [x] Phase 70 construction increment: assign each constructed aisle to an existing product department, display its category and distribute existing server stock across the matching facings; retail layout v6 migrates old untyped aisles to Citrus Pop. See `operations/PHASE70_MERCHANDISED_GROCERY_AISLES.md`.
 - [x] Phase 15: add a persistent, server-purchased Coastal Market storefront palette and v10 migration; see `operations/PHASE15_STOREFRONT_STYLE.md`.
 - [x] Phase 19: add a temporary preview/cancel action before the existing palette purchase; see `operations/PHASE19_STOREFRONT_PREVIEW.md`.
 

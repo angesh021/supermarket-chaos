@@ -59,7 +59,7 @@ end
 
 makeLabel("STORE LAYOUT", UDim2.fromOffset(14, 10), UDim2.new(1, -28, 0, 28), 18, true)
 local instructions = makeLabel(
-    "Move a department shelf or checkout lane. The customer queue moves with checkout.",
+    "Move shelves or checkout, or select a department and build its merchandise aisle.",
     UDim2.fromOffset(14, 40),
     UDim2.new(1, -28, 0, 42),
     12,
@@ -130,7 +130,7 @@ for index, fixture in ipairs({
     fixtureButtons[fixture.id] = button
 end
 local buildAisleButton =
-    makeButton("Build grocery aisle ($250)", UDim2.new(0.06, 0, 0, 416), UDim2.new(0.88, 0, 0, 34))
+    makeButton("Build selected aisle ($250)", UDim2.new(0.06, 0, 0, 416), UDim2.new(0.88, 0, 0, 34))
 local moveButton =
     makeButton("Move selected fixture", UDim2.new(0.06, 0, 0, 460), UDim2.new(0.47, 0, 0, 34))
 local rotateButton =
@@ -146,6 +146,7 @@ local shelfBayOwned = false
 local rotation = 0
 local moveMode = false
 local buildingAisle = false
+local buildingAisleProductId
 local pointerPosition
 local ghost
 
@@ -195,7 +196,10 @@ local function setMoveMode(enabled)
         if selectedCheckout then
             status.Text = "Tap an open front-floor tile to move checkout and its queue."
         elseif buildingAisle then
-            status.Text = "Tap an open floor tile to build a grocery aisle for $250."
+            local departmentName = buildingAisleProductId or "selected"
+            status.Text = "Tap an open floor tile to build a "
+                .. departmentName
+                .. " aisle for $250."
         else
             status.Text = "Tap an open floor tile to move this fixture."
         end
@@ -339,12 +343,13 @@ for productId, button in pairs(productButtons) do
         selectedFixtureId = nil
         selectedConstructedAisleId = nil
         buildingAisle = false
+        buildingAisleProductId = nil
         selectedProductId = productId
         rotation = 0
         rotateButton.Text = "Rotate 90°"
         ensureGhost()
         ghost.Size = fixtureSize(productId, rotation)
-        status.Text = "Selected " .. button.Text .. ". Choose Move selected shelf."
+        status.Text = "Selected " .. button.Text .. ". Choose Move selected shelf or Build aisle."
     end)
 end
 
@@ -354,6 +359,7 @@ for fixtureId, button in pairs(fixtureButtons) do
         selectedProductId = nil
         selectedConstructedAisleId = nil
         buildingAisle = false
+        buildingAisleProductId = nil
         selectedFixtureId = fixtureId
         rotation = 0
         rotateButton.Text = "Rotate 90°"
@@ -368,6 +374,11 @@ buildAisleButton.Activated:Connect(function()
         status.Text = "Build the first shelf bay before adding grocery aisles."
         return
     end
+    if not selectedProductId then
+        status.Text = "Choose a department, then build its merchandising aisle."
+        return
+    end
+    buildingAisleProductId = selectedProductId
     selectedCheckout = false
     selectedProductId = nil
     selectedFixtureId = nil
@@ -385,6 +396,7 @@ checkoutButton.Activated:Connect(function()
     selectedFixtureId = nil
     selectedConstructedAisleId = nil
     buildingAisle = false
+    buildingAisleProductId = nil
     selectedCheckout = true
     rotation = 0
     rotateButton.Text = "Rotate 90°"
@@ -470,7 +482,7 @@ local function onPointerDown(input, processed)
             else "MoveShelf"
         layoutEvent:FireServer({
             action = action,
-            productId = selectedProductId,
+            productId = buildingAisle and buildingAisleProductId or selectedProductId,
             fixtureId = selectedFixtureId,
             id = selectedConstructedAisleId,
             x = x,
@@ -478,8 +490,9 @@ local function onPointerDown(input, processed)
             rotation = rotation,
         }, player:GetAttribute("ActiveStoreLocation") or "neighborhood")
         buildingAisle = false
+        buildingAisleProductId = nil
         setMoveMode(false)
-        status.Text = "Checking fixture bounds and aisle clearance…"
+        status.Text = "Checking department, fixture bounds and aisle clearance…"
     else
         local productId = findRetailProductId(hit.Instance)
         local constructedAisleId = findConstructedAisleId(hit.Instance)
@@ -489,6 +502,7 @@ local function onPointerDown(input, processed)
             selectedConstructedAisleId = constructedAisleId
             selectedCheckout = false
             buildingAisle = false
+            buildingAisleProductId = nil
             ensureGhost()
             ghost.Size = fixtureSize("constructedAisle", rotation)
             status.Text = "Selected grocery aisle. Choose Move selected fixture."
@@ -619,6 +633,7 @@ layoutEvent.OnClientEvent:Connect(function(message)
         selectedConstructedAisleId = nil
         selectedCheckout = false
         buildingAisle = false
+        buildingAisleProductId = nil
         floorExpansionOwned = message.floorExpansionOwned == true
         shelfBayOwned = message.shelfBayPurchased == true
         buildAisleButton.Visible = shelfBayOwned
