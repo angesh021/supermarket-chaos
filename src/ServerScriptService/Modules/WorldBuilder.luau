@@ -1005,12 +1005,14 @@ function WorldBuilder.build(locationId, origin)
     local retailConstructionFolder = Instance.new("Folder")
     retailConstructionFolder.Name = "Player Constructed Retail Aisles"
     retailConstructionFolder.Parent = interior
-    local retailDepartmentShelves = {}
-    local retailShelfPositions = {}
-    local retailShelfPivotHeights = {}
-    local constructedAisleBrowsePositions = {}
-    local retailBuildFixtures = {}
-    local retailFixturePivotHeights = {}
+    local retailLayout = {
+        departmentShelves = {},
+        shelfPositions = {},
+        shelfPivotHeights = {},
+        aisleBrowsePositions = {},
+        buildFixtures = {},
+        fixturePivotHeights = {},
+    }
     local function tagRetailShelfPalette(model)
         for _, item in ipairs(model:GetDescendants()) do
             if item:IsA("BasePart") then
@@ -1044,9 +1046,9 @@ function WorldBuilder.build(locationId, origin)
         local model = createShelf(retailDepartmentFolder, name, x, z, width, department)
         model:SetAttribute("RetailProductId", productId)
         tagRetailShelfPalette(model)
-        retailDepartmentShelves[productId] = model
-        retailShelfPositions[productId] = { x = x, z = z, rotation = 0 }
-        retailShelfPivotHeights[productId] = 1.2
+        retailLayout.departmentShelves[productId] = model
+        retailLayout.shelfPositions[productId] = { x = x, z = z, rotation = 0 }
+        retailLayout.shelfPivotHeights[productId] = 1.2
         return model
     end
     local shelf = createDepartmentShelf("citrusPop", "Citrus Pop Shelf", -10, -1, 6, "CITRUS POP")
@@ -1530,14 +1532,14 @@ function WorldBuilder.build(locationId, origin)
     local customerBasketItems = {}
     local customerProductPositions = {}
     local function customerBrowsePosition(productId)
-        for _, aisle in ipairs(constructedAisleBrowsePositions[productId] or {}) do
+        for _, aisle in ipairs(retailLayout.aisleBrowsePositions[productId] or {}) do
             if aisle.stock > 0 then
                 local forwardOffset = CFrame.Angles(0, math.rad(aisle.rotation or 0), 0)
                     :VectorToWorldSpace(Vector3.new(0, 0, 3))
                 return Vector3.new(aisle.x, 0.45, aisle.z) + forwardOffset
             end
         end
-        local shelfPosition = retailShelfPositions[productId]
+        local shelfPosition = retailLayout.shelfPositions[productId]
         if not shelfPosition then
             return Vector3.new(-10, 0.45, 2)
         end
@@ -1549,7 +1551,7 @@ function WorldBuilder.build(locationId, origin)
         customerProductPositions = {}
         local visited = {}
         for _, item in ipairs(customerBasketItems) do
-            if not visited[item.productId] and retailShelfPositions[item.productId] then
+            if not visited[item.productId] and retailLayout.shelfPositions[item.productId] then
                 visited[item.productId] = true
                 table.insert(customerProductPositions, customerBrowsePosition(item.productId))
             end
@@ -1919,7 +1921,7 @@ function WorldBuilder.build(locationId, origin)
 
     local stockedCans = {}
     local function shelfDisplayFrame(productId, offset)
-        local position = retailShelfPositions[productId]
+        local position = retailLayout.shelfPositions[productId]
         if not position then
             return CFrame.new(offset)
         end
@@ -1939,7 +1941,7 @@ function WorldBuilder.build(locationId, origin)
             local x = -12.45 + column * 0.7
             local y = 2.35 + row * 1.3
             local can = part(
-                retailDepartmentShelves.citrusPop,
+                retailLayout.departmentShelves.citrusPop,
                 "Stocked Citrus Pop Can",
                 Vector3.new(0.62, 0.8, 0.62),
                 shelfDisplayFrame("citrusPop", Vector3.new(x + 10, y, 0.46))
@@ -1961,7 +1963,7 @@ function WorldBuilder.build(locationId, origin)
         for index = 1, count do
             local x = 10 + (index - (count + 1) / 2) * 0.62
             local bag = part(
-                retailDepartmentShelves.berryBites,
+                retailLayout.departmentShelves.berryBites,
                 "Stocked Berry Bites Pack",
                 Vector3.new(0.5, 0.65, 0.5),
                 shelfDisplayFrame("berryBites", Vector3.new(x - 10, 2.53, 0.38)),
@@ -1982,7 +1984,7 @@ function WorldBuilder.build(locationId, origin)
             local column = (index - 1) % 8
             local row = math.floor((index - 1) / 8)
             local apple = part(
-                retailDepartmentShelves.goldenApples,
+                retailLayout.departmentShelves.goldenApples,
                 "Stocked Golden Apple",
                 Vector3.new(0.48, 0.48, 0.48),
                 shelfDisplayFrame(
@@ -2009,7 +2011,7 @@ function WorldBuilder.build(locationId, origin)
             local x = -2.45 + column * 0.7
             local y = 3.75 + row * 1.3
             local box = part(
-                retailDepartmentShelves.sunriseCereal,
+                retailLayout.departmentShelves.sunriseCereal,
                 "Stocked Sunrise Cereal Box",
                 Vector3.new(0.56, 0.82, 0.44),
                 shelfDisplayFrame("sunriseCereal", Vector3.new(x, y - 1.2, -0.55)),
@@ -2017,7 +2019,7 @@ function WorldBuilder.build(locationId, origin)
                 Enum.Material.SmoothPlastic
             )
             local labelPlate = part(
-                retailDepartmentShelves.sunriseCereal,
+                retailLayout.departmentShelves.sunriseCereal,
                 "Sunrise Cereal Package Label",
                 Vector3.new(0.4, 0.24, 0.03),
                 shelfDisplayFrame("sunriseCereal", Vector3.new(x, y - 1.2, -0.32)),
@@ -2040,7 +2042,8 @@ function WorldBuilder.build(locationId, origin)
             return
         end
         local visibleCount = math.max(0, math.min(24, math.floor(tonumber(count) or 0)))
-        local placement = retailShelfPositions.cinnamonTwists or { x = 16, z = -29, rotation = 0 }
+        local placement = retailLayout.shelfPositions.cinnamonTwists
+            or { x = 16, z = -29, rotation = 0 }
         local fixtureCFrame = CFrame.new(placement.x, 0, placement.z)
             * CFrame.Angles(0, math.rad(placement.rotation), 0)
         for index = 1, math.min(visibleCount, 12) do
@@ -2076,7 +2079,8 @@ function WorldBuilder.build(locationId, origin)
             return
         end
         local visibleCount = math.max(0, math.min(24, math.floor(tonumber(count) or 0)))
-        local placement = retailShelfPositions.frozenMeals or { x = 6, z = -29, rotation = 0 }
+        local placement = retailLayout.shelfPositions.frozenMeals
+            or { x = 6, z = -29, rotation = 0 }
         local fixtureCFrame = CFrame.new(placement.x, 0, placement.z)
             * CFrame.Angles(0, math.rad(placement.rotation), 0)
         for index = 1, math.min(visibleCount, 12) do
@@ -2431,138 +2435,142 @@ function WorldBuilder.build(locationId, origin)
     pricePrompts.frozenMeals =
         prompt(freezerExpansionPad, "Change Price", "Freezer Meals", "ChangePrice", 9)
     pricePrompts.frozenMeals.Enabled = false
-    local floorExpansionSign = label(
-        interior,
-        "Rear Department Expansion Sign",
-        "REAR MARKET WING\n$500",
-        Vector3.new(5, 2.5, 0.4),
-        CFrame.new(17.5, 4, -17.1),
-        COLORS.green,
-        COLORS.warmWhite
-    )
-    local upgradeSign = label(
-        interior,
-        "Upgrade Sign",
-        "UPGRADE\n$45",
-        Vector3.new(5, 2.7, 0.4),
-        CFrame.new(17.5, 4.3, 9.4),
-        COLORS.teal
-    )
-    local upgradeMarker = Instance.new("BillboardGui")
-    upgradeMarker.Name = "UpgradeDirectionMarker"
-    upgradeMarker.Adornee = upgradePad
-    upgradeMarker.Size = UDim2.fromOffset(180, 64)
-    upgradeMarker.StudsOffset = Vector3.new(0, 4.5, 0)
-    upgradeMarker.AlwaysOnTop = true
-    upgradeMarker.MaxDistance = 250
-    upgradeMarker.Enabled = false
-    upgradeMarker.Parent = upgradePad
-    local markerText = Instance.new("TextLabel")
-    markerText.Size = UDim2.fromScale(1, 1)
-    markerText.BackgroundColor3 = COLORS.deepTeal
-    markerText.BackgroundTransparency = 0.05
-    markerText.Text = "UPGRADE  $45"
-    markerText.TextColor3 = COLORS.gold
-    markerText.Font = Enum.Font.GothamBold
-    markerText.TextScaled = true
-    markerText.Parent = upgradeMarker
-    local markerCorner = Instance.new("UICorner")
-    markerCorner.CornerRadius = UDim.new(0, 10)
-    markerCorner.Parent = markerText
+    local upgradeDisplay = {
+        floorSign = label(
+            interior,
+            "Rear Department Expansion Sign",
+            "REAR MARKET WING\n$500",
+            Vector3.new(5, 2.5, 0.4),
+            CFrame.new(17.5, 4, -17.1),
+            COLORS.green,
+            COLORS.warmWhite
+        ),
+        sign = label(
+            interior,
+            "Upgrade Sign",
+            "UPGRADE\n$45",
+            Vector3.new(5, 2.7, 0.4),
+            CFrame.new(17.5, 4.3, 9.4),
+            COLORS.teal
+        ),
+        marker = Instance.new("BillboardGui"),
+        text = Instance.new("TextLabel"),
+        corner = Instance.new("UICorner"),
+    }
+    upgradeDisplay.marker.Name = "UpgradeDirectionMarker"
+    upgradeDisplay.marker.Adornee = upgradePad
+    upgradeDisplay.marker.Size = UDim2.fromOffset(180, 64)
+    upgradeDisplay.marker.StudsOffset = Vector3.new(0, 4.5, 0)
+    upgradeDisplay.marker.AlwaysOnTop = true
+    upgradeDisplay.marker.MaxDistance = 250
+    upgradeDisplay.marker.Enabled = false
+    upgradeDisplay.marker.Parent = upgradePad
+    upgradeDisplay.text.Size = UDim2.fromScale(1, 1)
+    upgradeDisplay.text.BackgroundColor3 = COLORS.deepTeal
+    upgradeDisplay.text.BackgroundTransparency = 0.05
+    upgradeDisplay.text.Text = "UPGRADE  $45"
+    upgradeDisplay.text.TextColor3 = COLORS.gold
+    upgradeDisplay.text.Font = Enum.Font.GothamBold
+    upgradeDisplay.text.TextScaled = true
+    upgradeDisplay.text.Parent = upgradeDisplay.marker
+    upgradeDisplay.corner.CornerRadius = UDim.new(0, 10)
+    upgradeDisplay.corner.Parent = upgradeDisplay.text
 
-    local stylePad = part(
-        interior,
-        "Storefront Style Pad",
-        Vector3.new(5.5, 0.55, 5.5),
-        CFrame.new(-17.5, 0.52, 12.5),
-        COLORS.green,
-        Enum.Material.Neon
-    )
-    local stylePrompt =
-        prompt(stylePad, "Install Preview ($180)", "Store Refresh", "MarketStyle", 10)
-    stylePrompt.Enabled = false
-    local stylePreviewPad = part(
-        interior,
-        "Storefront Preview Pad",
-        Vector3.new(4.5, 0.35, 4.5),
-        CFrame.new(-11.5, 0.52, 12.5),
-        COLORS.gold,
-        Enum.Material.Neon
-    )
-    local stylePreviewPrompt = prompt(
-        stylePreviewPad,
+    local marketStyle = {
+        pad = part(
+            interior,
+            "Storefront Style Pad",
+            Vector3.new(5.5, 0.55, 5.5),
+            CFrame.new(-17.5, 0.52, 12.5),
+            COLORS.green,
+            Enum.Material.Neon
+        ),
+        previewPad = part(
+            interior,
+            "Storefront Preview Pad",
+            Vector3.new(4.5, 0.35, 4.5),
+            CFrame.new(-11.5, 0.52, 12.5),
+            COLORS.gold,
+            Enum.Material.Neon
+        ),
+        sign = label(
+            interior,
+            "Store Style Sign",
+            "COASTAL MARKET\n$180",
+            Vector3.new(5, 2.7, 0.4),
+            CFrame.new(-17.5, 4.3, 9.4),
+            COLORS.green
+        ),
+        purchased = false,
+        previewId = nil,
+        id = "",
+        presets = {
+            coastal = {
+                name = "Coastal Market",
+                fascia = COLORS.green,
+                sign = COLORS.green,
+                canopy = COLORS.gold,
+                valance = COLORS.teal,
+                header = COLORS.green,
+                floor = COLORS.cream,
+                wall = COLORS.warmWhite,
+                wallAccent = COLORS.green,
+                shelfBody = COLORS.teal,
+                shelfAccent = COLORS.gold,
+                departmentSign = COLORS.deepTeal,
+                checkout = COLORS.deepTeal,
+                checkoutAccent = COLORS.wood,
+            },
+            urban = {
+                name = "City Grocer",
+                fascia = COLORS.deepTeal,
+                sign = COLORS.deepTeal,
+                canopy = COLORS.gray,
+                valance = COLORS.coral,
+                header = COLORS.deepTeal,
+                floor = Color3.fromRGB(221, 228, 229),
+                wall = Color3.fromRGB(246, 247, 245),
+                wallAccent = COLORS.coral,
+                shelfBody = COLORS.gray,
+                shelfAccent = COLORS.deepTeal,
+                departmentSign = COLORS.deepTeal,
+                checkout = COLORS.ink,
+                checkoutAccent = COLORS.coral,
+            },
+            harvest = {
+                name = "Harvest Market",
+                fascia = COLORS.coral,
+                sign = COLORS.green,
+                canopy = COLORS.gold,
+                valance = COLORS.green,
+                header = COLORS.coral,
+                floor = Color3.fromRGB(242, 225, 193),
+                wall = COLORS.warmWhite,
+                wallAccent = COLORS.gold,
+                shelfBody = COLORS.wood,
+                shelfAccent = COLORS.green,
+                departmentSign = COLORS.green,
+                checkout = COLORS.green,
+                checkoutAccent = COLORS.wood,
+            },
+        },
+    }
+    marketStyle.prompt =
+        prompt(marketStyle.pad, "Install Preview ($180)", "Store Refresh", "MarketStyle", 10)
+    marketStyle.prompt.Enabled = false
+    marketStyle.previewPrompt = prompt(
+        marketStyle.previewPad,
         "Preview Next Style",
         "Store Interior Preview",
         "PreviewMarketStyle",
         10
     )
-    stylePreviewPrompt.ActionText = "Next Style / Cancel"
-    stylePreviewPrompt.Enabled = false
-    local styleSign = label(
-        interior,
-        "Store Style Sign",
-        "COASTAL MARKET\n$180",
-        Vector3.new(5, 2.7, 0.4),
-        CFrame.new(-17.5, 4.3, 9.4),
-        COLORS.green
-    )
-    local marketStylePurchased = false
-    local marketStylePreviewId = nil
-    local marketStyleId = ""
-    local MARKET_STYLES = {
-        coastal = {
-            name = "Coastal Market",
-            fascia = COLORS.green,
-            sign = COLORS.green,
-            canopy = COLORS.gold,
-            valance = COLORS.teal,
-            header = COLORS.green,
-            floor = COLORS.cream,
-            wall = COLORS.warmWhite,
-            wallAccent = COLORS.green,
-            shelfBody = COLORS.teal,
-            shelfAccent = COLORS.gold,
-            departmentSign = COLORS.deepTeal,
-            checkout = COLORS.deepTeal,
-            checkoutAccent = COLORS.wood,
-        },
-        urban = {
-            name = "City Grocer",
-            fascia = COLORS.deepTeal,
-            sign = COLORS.deepTeal,
-            canopy = COLORS.gray,
-            valance = COLORS.coral,
-            header = COLORS.deepTeal,
-            floor = Color3.fromRGB(221, 228, 229),
-            wall = Color3.fromRGB(246, 247, 245),
-            wallAccent = COLORS.coral,
-            shelfBody = COLORS.gray,
-            shelfAccent = COLORS.deepTeal,
-            departmentSign = COLORS.deepTeal,
-            checkout = COLORS.ink,
-            checkoutAccent = COLORS.coral,
-        },
-        harvest = {
-            name = "Harvest Market",
-            fascia = COLORS.coral,
-            sign = COLORS.green,
-            canopy = COLORS.gold,
-            valance = COLORS.green,
-            header = COLORS.coral,
-            floor = Color3.fromRGB(242, 225, 193),
-            wall = COLORS.warmWhite,
-            wallAccent = COLORS.gold,
-            shelfBody = COLORS.wood,
-            shelfAccent = COLORS.green,
-            departmentSign = COLORS.green,
-            checkout = COLORS.green,
-            checkoutAccent = COLORS.wood,
-        },
-    }
-    local function applyMarketStyle(styleId)
-        local selectedStyle = MARKET_STYLES[styleId]
-        stylePad.Color = selectedStyle and COLORS.deepTeal or COLORS.green
-        styleSign.Color = selectedStyle and COLORS.teal or COLORS.green
+    marketStyle.previewPrompt.ActionText = "Next Style / Cancel"
+    marketStyle.previewPrompt.Enabled = false
+    marketStyle.apply = function(styleId)
+        local selectedStyle = marketStyle.presets[styleId]
+        marketStyle.pad.Color = selectedStyle and COLORS.deepTeal or COLORS.green
+        marketStyle.sign.Color = selectedStyle and COLORS.teal or COLORS.green
         storefrontFascia.Color = selectedStyle and selectedStyle.fascia or COLORS.teal
         storefrontSign.Color = selectedStyle and selectedStyle.sign or COLORS.teal
         entryCanopy.Color = selectedStyle and selectedStyle.canopy or COLORS.coral
@@ -2587,34 +2595,34 @@ function WorldBuilder.build(locationId, origin)
                 end
             end
         end
-        stylePrompt.ActionText = selectedStyle and "Install Style ($180)"
+        marketStyle.prompt.ActionText = selectedStyle and "Install Style ($180)"
             or "Install Preview ($180)"
-        stylePreviewPrompt.ActionText = "Preview Next Store Style / Cancel"
-        local surface = styleSign:FindFirstChildOfClass("SurfaceGui")
+        marketStyle.previewPrompt.ActionText = "Preview Next Store Style / Cancel"
+        local surface = marketStyle.sign:FindFirstChildOfClass("SurfaceGui")
         local signText = surface and surface:FindFirstChildOfClass("TextLabel")
         if signText then
             local name = selectedStyle and selectedStyle.name or "STORE REFRESH"
-            signText.Text = if marketStylePurchased
+            signText.Text = if marketStyle.purchased
                 then string.upper(name) .. "\nINSTALLED"
                 elseif selectedStyle then string.upper(name) .. "\nPREVIEW"
                 else "CHOOSE A STYLE\n$180"
         end
-        stylePrompt.Enabled = not marketStylePurchased and currentStage == "Complete"
-        stylePreviewPrompt.Enabled = not marketStylePurchased and currentStage == "Complete"
+        marketStyle.prompt.Enabled = not marketStyle.purchased and currentStage == "Complete"
+        marketStyle.previewPrompt.Enabled = not marketStyle.purchased and currentStage == "Complete"
     end
     local function setMarketStyle(purchased, styleId)
-        marketStylePurchased = purchased == true
-        marketStyleId = marketStylePurchased and MARKET_STYLES[styleId] and styleId or ""
-        marketStylePreviewId = nil
-        local displayStyleId = marketStylePurchased and marketStyleId or nil
-        applyMarketStyle(displayStyleId)
+        marketStyle.purchased = purchased == true
+        marketStyle.id = marketStyle.purchased and marketStyle.presets[styleId] and styleId or ""
+        marketStyle.previewId = nil
+        local displayStyleId = marketStyle.purchased and marketStyle.id or nil
+        marketStyle.apply(displayStyleId)
     end
     local function setMarketStylePreview(styleId)
-        marketStylePreviewId = MARKET_STYLES[styleId] and styleId or nil
-        applyMarketStyle(marketStylePurchased and marketStyleId or marketStylePreviewId)
+        marketStyle.previewId = marketStyle.presets[styleId] and styleId or nil
+        marketStyle.apply(marketStyle.purchased and marketStyle.id or marketStyle.previewId)
     end
     local function getMarketStyleName(styleId)
-        local style = MARKET_STYLES[styleId]
+        local style = marketStyle.presets[styleId]
         return style and style.name or "Coastal Market"
     end
 
@@ -4624,9 +4632,9 @@ function WorldBuilder.build(locationId, origin)
         displayAnchor.CanCollide = false
         bakeryModel.PrimaryPart = displayAnchor
         bakeryModel:SetAttribute("RetailProductId", "cinnamonTwists")
-        retailDepartmentShelves.cinnamonTwists = bakeryModel
-        retailShelfPositions.cinnamonTwists = { x = 16, z = -29, rotation = 0 }
-        retailShelfPivotHeights.cinnamonTwists = 1.85
+        retailLayout.departmentShelves.cinnamonTwists = bakeryModel
+        retailLayout.shelfPositions.cinnamonTwists = { x = 16, z = -29, rotation = 0 }
+        retailLayout.shelfPivotHeights.cinnamonTwists = 1.85
         createPriceTag("cinnamonTwists", "Cinnamon Twists", bakeryModel, 16, -29)
         cinnamonTwistStockPrompt.Parent = displayAnchor
         cinnamonTwistStockPrompt.Enabled = false
@@ -4677,9 +4685,9 @@ function WorldBuilder.build(locationId, origin)
         freezerSign:SetAttribute("PlayerPurchased", true)
         freezerModel.PrimaryPart = freezerModel:FindFirstChild("Freezer Case Base")
         freezerModel:SetAttribute("RetailProductId", "frozenMeals")
-        retailDepartmentShelves.frozenMeals = freezerModel
-        retailShelfPositions.frozenMeals = { x = 6, z = -29, rotation = 0 }
-        retailShelfPivotHeights.frozenMeals = 0.95
+        retailLayout.departmentShelves.frozenMeals = freezerModel
+        retailLayout.shelfPositions.frozenMeals = { x = 6, z = -29, rotation = 0 }
+        retailLayout.shelfPivotHeights.frozenMeals = 0.95
         createPriceTag("frozenMeals", "Freezer Meals", freezerModel, 6, -29)
         local displayAnchor = part(
             freezerModel,
@@ -4854,7 +4862,7 @@ function WorldBuilder.build(locationId, origin)
             and floorExpansionPurchased
             and warehousePurchased
             and not selfCheckoutPurchased
-        local floorSignSurface = floorExpansionSign:FindFirstChildOfClass("SurfaceGui")
+        local floorSignSurface = upgradeDisplay.floorSign:FindFirstChildOfClass("SurfaceGui")
         local floorSignText = floorSignSurface
             and floorSignSurface:FindFirstChildOfClass("TextLabel")
         if floorSignText then
@@ -4922,22 +4930,22 @@ function WorldBuilder.build(locationId, origin)
         if frozenMealStockPrompt then
             frozenMealStockPrompt.Enabled = freezerStockAllowed
         end
-        local signSurface = upgradeSign:FindFirstChildOfClass("SurfaceGui")
+        local signSurface = upgradeDisplay.sign:FindFirstChildOfClass("SurfaceGui")
         local signText = signSurface and signSurface:FindFirstChildOfClass("TextLabel")
         if signText then
             signText.Text = aisleExpansionPurchased and "HOUSEHOLD AISLE\nINSTALLED"
                 or (aisleExpansionPrompt.Enabled and "HOUSEHOLD AISLE\n$220")
                 or (stage == "Upgrade" and "ADD SHELF BAY\n$45" or "STORE UPGRADE")
         end
-        stylePrompt.Enabled = stage == "Complete" and not marketStylePurchased
-        if stage ~= "Complete" and marketStylePreviewId then
+        marketStyle.prompt.Enabled = stage == "Complete" and not marketStyle.purchased
+        if stage ~= "Complete" and marketStyle.previewId then
             setMarketStylePreview(nil)
         else
-            stylePreviewPrompt.Enabled = stage == "Complete" and not marketStylePurchased
+            marketStyle.previewPrompt.Enabled = stage == "Complete" and not marketStyle.purchased
         end
         restartPrompt.Enabled = stage == "Complete"
-        upgradeMarker.Enabled = stage == "Upgrade" or aisleExpansionPrompt.Enabled
-        markerText.Text = aisleExpansionPrompt.Enabled and "AISLE  $220" or "UPGRADE  $45"
+        upgradeDisplay.marker.Enabled = stage == "Upgrade" or aisleExpansionPrompt.Enabled
+        upgradeDisplay.text.Text = aisleExpansionPrompt.Enabled and "AISLE  $220" or "UPGRADE  $45"
         cashierHirePrompt.Enabled = stage == "Complete" and not cashierHired
         stockerHirePrompt.Enabled = stage == "Complete" and not stockerHired
         cleanerHirePrompt.Enabled = stage == "Complete" and not cleanerHired
@@ -5257,7 +5265,7 @@ function WorldBuilder.build(locationId, origin)
                 allPositions[productId] = shelfPosition
             end
             for productId, shelfPosition in pairs(allPositions) do
-                local model = retailDepartmentShelves[productId]
+                local model = retailLayout.departmentShelves[productId]
                 if model and type(shelfPosition) == "table" then
                     local x = shelfPosition.x
                     local z = shelfPosition.z
@@ -5267,16 +5275,17 @@ function WorldBuilder.build(locationId, origin)
                         and type(z) == "number"
                         and (rotation == 0 or rotation == 90)
                     then
-                        local pivotHeight = retailShelfPivotHeights[productId] or 1.2
+                        local pivotHeight = retailLayout.shelfPivotHeights[productId] or 1.2
                         model:PivotTo(
                             CFrame.new(x, pivotHeight, z) * CFrame.Angles(0, math.rad(rotation), 0)
                         )
-                        retailShelfPositions[productId] = { x = x, z = z, rotation = rotation }
+                        retailLayout.shelfPositions[productId] =
+                            { x = x, z = z, rotation = rotation }
                     end
                 end
             end
             for fixtureId, fixturePosition in pairs(layout.fixtures or {}) do
-                local model = retailBuildFixtures[fixtureId]
+                local model = retailLayout.buildFixtures[fixtureId]
                 if model and type(fixturePosition) == "table" then
                     local x = fixturePosition.x
                     local z = fixturePosition.z
@@ -5286,7 +5295,7 @@ function WorldBuilder.build(locationId, origin)
                         and type(z) == "number"
                         and (rotation == 0 or rotation == 90)
                     then
-                        local pivotHeight = retailFixturePivotHeights[fixtureId] or 1.2
+                        local pivotHeight = retailLayout.fixturePivotHeights[fixtureId] or 1.2
                         model:PivotTo(
                             CFrame.new(x, pivotHeight, z) * CFrame.Angles(0, math.rad(rotation), 0)
                         )
@@ -5296,7 +5305,7 @@ function WorldBuilder.build(locationId, origin)
             retailConstructionFolder:ClearAllChildren()
             local constructedAisles = {}
             local aisleIdsByProduct = {}
-            constructedAisleBrowsePositions = {}
+            retailLayout.aisleBrowsePositions = {}
             local colorByProduct = {
                 citrusPop = COLORS.coral,
                 berryBites = COLORS.orange,
@@ -5349,12 +5358,12 @@ function WorldBuilder.build(locationId, origin)
                 local primaryCount = perFace + (remainder > 0 and 1 or 0)
                 stockVisualSetters[productId](primaryCount)
                 local packageColor = colorByProduct[productId]
-                constructedAisleBrowsePositions[productId] = {}
+                retailLayout.aisleBrowsePositions[productId] = {}
                 for index, aisleId in ipairs(aisleIds) do
                     local aisleCount = perFace + (index < remainder and 1 or 0)
                     local aisleRecord = constructedAisles[aisleId]
                     local aisleModel = aisleRecord.model
-                    table.insert(constructedAisleBrowsePositions[productId], {
+                    table.insert(retailLayout.aisleBrowsePositions[productId], {
                         x = aisleRecord.placement.x,
                         z = aisleRecord.placement.z,
                         rotation = aisleRecord.placement.rotation,
@@ -5388,10 +5397,10 @@ function WorldBuilder.build(locationId, origin)
                 end
             end
             updateCustomerBasketPositions()
-            applyMarketStyle(marketStylePurchased and marketStyleId or marketStylePreviewId)
+            marketStyle.apply(marketStyle.purchased and marketStyle.id or marketStyle.previewId)
         end,
-        marketStylePrompt = stylePrompt,
-        marketStylePreviewPrompt = stylePreviewPrompt,
+        marketStylePrompt = marketStyle.prompt,
+        marketStylePreviewPrompt = marketStyle.previewPrompt,
         setMarketStyle = setMarketStyle,
         setMarketStylePreview = setMarketStylePreview,
         getMarketStyleName = getMarketStyleName,
@@ -5556,7 +5565,7 @@ function WorldBuilder.build(locationId, origin)
         retailPlotPrompt = retailPlotBuild.prompt,
         setStage = setStage,
         setUpgradeReady = function(ready)
-            upgradeMarker.Enabled = ready
+            upgradeDisplay.marker.Enabled = ready
         end,
         addUpgrade = function()
             if interior:FindFirstChild("Purchased Shelf Bay") then
@@ -5566,8 +5575,8 @@ function WorldBuilder.build(locationId, origin)
             tagRetailShelfPalette(newShelf)
             newShelf:SetAttribute("PlayerPurchased", true)
             newShelf:SetAttribute("RetailFixtureId", "shelfBay")
-            retailBuildFixtures.shelfBay = newShelf
-            retailFixturePivotHeights.shelfBay = 1.2
+            retailLayout.buildFixtures.shelfBay = newShelf
+            retailLayout.fixturePivotHeights.shelfBay = 1.2
             local sign = label(
                 newShelf,
                 "New Department Sign",
@@ -5578,7 +5587,7 @@ function WorldBuilder.build(locationId, origin)
             )
             sign:SetAttribute("PlayerPurchased", true)
             sign:SetAttribute("MarketPaletteRole", "DepartmentSign")
-            applyMarketStyle(marketStylePurchased and marketStyleId or marketStylePreviewId)
+            marketStyle.apply(marketStyle.purchased and marketStyle.id or marketStyle.previewId)
         end,
         addAisleExpansion = function()
             if aisleExpansionPurchased then
@@ -5590,8 +5599,8 @@ function WorldBuilder.build(locationId, origin)
             tagRetailShelfPalette(aisleExpansionModel)
             aisleExpansionModel:SetAttribute("PlayerPurchased", true)
             aisleExpansionModel:SetAttribute("RetailFixtureId", "householdAisle")
-            retailBuildFixtures.householdAisle = aisleExpansionModel
-            retailFixturePivotHeights.householdAisle = 1.2
+            retailLayout.buildFixtures.householdAisle = aisleExpansionModel
+            retailLayout.fixturePivotHeights.householdAisle = 1.2
             local sign = label(
                 aisleExpansionModel,
                 "Household Aisle Department Sign",
@@ -5606,7 +5615,7 @@ function WorldBuilder.build(locationId, origin)
             aisleExpansionPurchased = true
             aisleExpansionPrompt.Enabled = false
             aisleExpansionPad.Transparency = 0
-            applyMarketStyle(marketStylePurchased and marketStyleId or marketStylePreviewId)
+            marketStyle.apply(marketStyle.purchased and marketStyle.id or marketStyle.previewId)
         end,
         addFloorExpansion = function()
             if floorExpansionModel then
@@ -5711,7 +5720,7 @@ function WorldBuilder.build(locationId, origin)
             floorExpansionPad.Transparency = 1
             floorExpansionPad.CanCollide = false
             floorExpansionPrompt.Enabled = false
-            applyMarketStyle(marketStylePurchased and marketStyleId or marketStylePreviewId)
+            marketStyle.apply(marketStyle.purchased and marketStyle.id or marketStyle.previewId)
         end,
         addRetailPlot = function()
             if retailPlotState.model then
@@ -5814,7 +5823,7 @@ function WorldBuilder.build(locationId, origin)
                 COLORS.warmWhite
             )
             sign:SetAttribute("PlayerPurchased", true)
-            applyMarketStyle(marketStylePurchased and marketStyleId or marketStylePreviewId)
+            marketStyle.apply(marketStyle.purchased and marketStyle.id or marketStyle.previewId)
         end,
         setCashierHired = function(hired)
             cashierHired = hired == true
