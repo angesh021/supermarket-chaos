@@ -31,6 +31,7 @@
 | CUSTOMER-OPS-004 | Basket quantities respond deterministically to price and available stock without client authority or added profile state | `decisions/README.md`, `architecture/ARCHITECTURE.md`, `security/THREAT_MODEL.md` | `operations/PHASE23_PRICE_SENSITIVE_BASKETS.md` | Implemented; Studio verification pending |
 | EMPLOYEE-OPS-005 | Stocker replenishes one preferred empty SKU using bounded server restock rules; Citrus Pop supports repeat restocks | `decisions/README.md`, `architecture/ARCHITECTURE.md`, `security/THREAT_MODEL.md` | `operations/PHASE24_STOCKER_REPLENISHMENT.md` | Implemented; Studio verification pending |
 | EMPLOYEE-OPS-006 | Persistent Owner/Manager Customer Assistant hire shortens customer browsing presentation without changing economy state | `decisions/README.md`, `architecture/ARCHITECTURE.md`, `security/THREAT_MODEL.md` | `operations/PHASE25_CUSTOMER_ASSISTANT.md` | Implemented; Studio verification pending |
+| ANALYTICS-002 | Development-only replay funnel uses server milestones, ephemeral IDs and failure isolation without custom player/economy data | `decisions/README.md`, `architecture/ARCHITECTURE.md`, `security/THREAT_MODEL.md` | `operations/PHASE26_REPEAT_SHIFT_ANALYTICS.md` | Implemented; dashboard verification pending |
 | OPS-01 | Reproducible local setup and quality checks | `operations/BEGINNER_SETUP.md`, `operations/QUALITY.md` | Fresh setup and CI run | In progress |
 
 No requirement is marked verified until the documented check is actually run and its evidence is recorded.

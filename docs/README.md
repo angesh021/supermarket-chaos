@@ -33,5 +33,6 @@
 | [Price-sensitive basket verification](operations/PHASE23_PRICE_SENSITIVE_BASKETS.md) | Deterministic price response, quantity limits, basket totals and checkout stock changes |
 | [Stocker replenishment verification](operations/PHASE24_STOCKER_REPLENISHMENT.md) | Repeat Citrus Pop restocking, SKU automation, prompt stages and stock caps |
 | [Customer Assistant verification](operations/PHASE25_CUSTOMER_ASSISTANT.md) | Persistent staff hire, customer route timing, permissions and v16 migration |
+| [Repeat-shift analytics verification](operations/PHASE26_REPEAT_SHIFT_ANALYTICS.md) | Development-only replay funnel, event order, privacy and failure isolation |
 
 Keep this index and linked documents current as implementation changes. See [AGENTS.md](../AGENTS.md) for repository rules.

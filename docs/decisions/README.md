@@ -143,6 +143,13 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Consequences:** Profile schema v16 adds one optional hire flag; older profiles default to not hired. The existing customer route and server sale transaction remain authoritative.
 - **Verification:** See `docs/operations/PHASE25_CUSTOMER_ASSISTANT.md`; timing, role and migration checks remain pending in Studio.
 
+## ADR-0024 — Measure repeat play with a server-side funnel
+- **Status:** Accepted — 2026-10-12.
+- **Context:** The existing funnel measured only the first shift, while the specification calls for repeat-engagement measurement.
+- **Decision:** Add a three-step repeat-shift funnel from server-confirmed first completion, another shift start and repeat completion. Existing profiles begin at a returning-profile step. Keep IDs in server memory and gate all events to the configured development universe.
+- **Consequences:** No schema, client remote, custom player identifier or economic payload is added. Analytics API failure is non-blocking; dashboard ingestion and retention interpretation still require platform verification.
+- **Verification:** See `docs/operations/PHASE26_REPEAT_SHIFT_ANALYTICS.md`; Studio/dashboard and failure-isolation checks remain pending.
+
 ## ADR-0009 — Keep product inventory and supplier orders SKU-specific
 - **Status:** Accepted — 2026-10-12.
 - **Context:** The retail loop needs visible department variety and product-specific stock behavior while keeping stock and money authoritative.

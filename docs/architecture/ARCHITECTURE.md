@@ -128,6 +128,11 @@ Currency and stock changes occur only after server-side validation. Transactions
 - The visible assistant shortens only the procedural browse route. Basket intent, inventory, checkout readiness and sale math remain unchanged and server-owned.
 - See `operations/PHASE25_CUSTOMER_ASSISTANT.md`; route timing and persistence checks remain pending in Studio.
 
+## Phase 5 repeat-shift analytics
+- `TelemetryService` records first-shift completion, another shift start and repeat completion using server-confirmed commits. Returning profiles start at the profile-loaded step.
+- Funnel UUIDs and successful-step counters are ephemeral. Events remain gated to development universe `10770581249`; API failures do not affect gameplay or profile saving.
+- See `operations/PHASE26_REPEAT_SHIFT_ANALYTICS.md`; dashboard ingestion remains pending.
+
 ## Open technical decisions
 See `docs/decisions/README.md` for accepted ownership policy. Remaining decisions include multi-store/guest permissions, production Studio place configuration, analytics implementation/privacy review, and any changes to persistence recovery. Verify platform APIs against official documentation when implementation starts.
 # Cooperative ownership and cashier extension
