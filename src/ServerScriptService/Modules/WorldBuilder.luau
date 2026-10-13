@@ -1,5 +1,6 @@
 local WorldBuilder = {}
 local TweenService = game:GetService("TweenService")
+local Economy = require(script.Parent.Economy)
 
 local COLORS = {
     teal = Color3.fromRGB(22, 79, 82),
@@ -2269,6 +2270,70 @@ function WorldBuilder.build()
         COLORS.gray,
         Enum.Material.Concrete
     )
+    local cafePurchased = false
+    local cafeStock = 0
+    local cafeSales = 0
+    local cafeModel
+    local cafeCupVisuals = {}
+    local cafeMenuLabel
+    local cafeRestockPrompt
+    local cafeServePrompt
+    part(
+        exterior,
+        "Cafe Plaza Walkway",
+        Vector3.new(10, 0.18, 24),
+        CFrame.new(-65, 0.1, 19),
+        COLORS.gray,
+        Enum.Material.Concrete
+    )
+    part(
+        exterior,
+        "Cafe Plaza Walkway Connector",
+        Vector3.new(14, 0.18, 8),
+        CFrame.new(-58, 0.1, 13),
+        COLORS.gray,
+        Enum.Material.Concrete
+    )
+    local cafeBuildPad = part(
+        exterior,
+        "Corner Cafe Purchase Pad",
+        Vector3.new(4.5, 0.5, 4.5),
+        CFrame.new(-52.5, 0.45, 9),
+        COLORS.gold,
+        Enum.Material.Neon
+    )
+    local cafeBuildPrompt =
+        prompt(cafeBuildPad, "Build Corner Café ($650)", "Plaza Business", "BuildCafe", 10)
+    cafeBuildPrompt.Enabled = false
+    local cafeCounter = part(
+        exterior,
+        "Corner Cafe Counter",
+        Vector3.new(8, 1.5, 1.6),
+        CFrame.new(-65, 1.25, 1.5),
+        COLORS.wood,
+        Enum.Material.WoodPlanks,
+        1
+    )
+    cafeRestockPrompt =
+        prompt(cafeCounter, "Brew Coffee Batch ($45)", "Corner Café", "RestockCafe", 10)
+    cafeServePrompt = prompt(cafeCounter, "Serve Coffee ($18)", "Corner Café", "ServeCafe", 10)
+    cafeRestockPrompt.Enabled = false
+    cafeServePrompt.Enabled = false
+    local cafeMenuBoard = label(
+        exterior,
+        "Corner Cafe Menu Board",
+        "CORNER CAFÉ\nCOFFEE $18\nSTOCK 0  •  SALES 0",
+        Vector3.new(8, 3, 0.35),
+        CFrame.new(-65, 5.3, 6.7),
+        COLORS.deepTeal,
+        COLORS.warmWhite
+    )
+    cafeMenuBoard.Transparency = 1
+    local cafeMenuSurface = cafeMenuBoard:FindFirstChildOfClass("SurfaceGui")
+    if cafeMenuSurface then
+        cafeMenuSurface.Enabled = false
+        cafeMenuLabel = cafeMenuSurface:FindFirstChildOfClass("TextLabel")
+    end
     local warehousePad = part(
         exterior,
         "Warehouse Expansion Pad",
@@ -2479,6 +2544,114 @@ function WorldBuilder.build()
         if breakerSurface then
             breakerSurface.Enabled = isOutage
         end
+    end
+
+    local function addCafe()
+        if cafeModel then
+            return
+        end
+        cafePurchased = true
+        cafeModel = Instance.new("Model")
+        cafeModel.Name = "Corner Cafe Plaza Business"
+        cafeModel.Parent = exterior
+        local center = Vector3.new(-65, 0, -2)
+        part(
+            cafeModel,
+            "Cafe Tile Floor",
+            Vector3.new(22, 0.35, 18),
+            CFrame.new(center + Vector3.new(0, 0.05, 0)),
+            COLORS.cream,
+            Enum.Material.CeramicTiles
+        )
+        part(
+            cafeModel,
+            "Cafe Back Wall",
+            Vector3.new(22, 9, 0.55),
+            CFrame.new(center + Vector3.new(0, 4.5, -8.7)),
+            COLORS.deepTeal
+        )
+        for _, side in ipairs({ -10.7, 10.7 }) do
+            part(
+                cafeModel,
+                "Cafe Side Wall",
+                Vector3.new(0.55, 9, 18),
+                CFrame.new(center + Vector3.new(side, 4.5, 0)),
+                COLORS.cream
+            )
+        end
+        for _, side in ipairs({ -7.3, 7.3 }) do
+            part(
+                cafeModel,
+                "Cafe Front Pier",
+                Vector3.new(7.4, 9, 0.55),
+                CFrame.new(center + Vector3.new(side, 4.5, 8.7)),
+                COLORS.cream
+            )
+        end
+        part(
+            cafeModel,
+            "Cafe Roof",
+            Vector3.new(23, 0.8, 19),
+            CFrame.new(center + Vector3.new(0, 9.4, 0)),
+            COLORS.teal,
+            Enum.Material.Metal
+        )
+        part(
+            cafeModel,
+            "Cafe Awning",
+            Vector3.new(18, 0.35, 2.3),
+            CFrame.new(center + Vector3.new(0, 7.4, 9.8)),
+            COLORS.coral,
+            Enum.Material.Fabric
+        )
+        cafeMenuBoard.Parent = cafeModel
+        cafeMenuBoard.CFrame = CFrame.new(center + Vector3.new(0, 5.7, 8.95))
+        cafeMenuBoard.Transparency = 0
+        if cafeMenuSurface then
+            cafeMenuSurface.Enabled = true
+        end
+        cafeCounter.Parent = cafeModel
+        cafeCounter.CFrame = CFrame.new(center + Vector3.new(0, 1.45, 3.7))
+        cafeCounter.Transparency = 0
+        cafeCounter.CanCollide = true
+        part(
+            cafeModel,
+            "Espresso Machine",
+            Vector3.new(2.7, 2.8, 1.8),
+            CFrame.new(center + Vector3.new(-2.4, 3.55, 3.1)),
+            COLORS.gray,
+            Enum.Material.Metal
+        )
+        for index = 1, 6 do
+            local cup = part(
+                cafeModel,
+                "Coffee Cup Stock Visual",
+                Vector3.new(0.38, 0.62, 0.38),
+                CFrame.new(center + Vector3.new(-1 + index * 0.72, 2.5, 3.1)),
+                COLORS.warmWhite,
+                Enum.Material.SmoothPlastic
+            )
+            cup.Shape = Enum.PartType.Cylinder
+            cup.CanCollide = false
+            cup.Transparency = 1
+            table.insert(cafeCupVisuals, cup)
+        end
+        local barista = createLowPolyPerson(
+            cafeModel,
+            "Corner Cafe Barista",
+            center + Vector3.new(2.8, 0.45, 0.4),
+            COLORS.coral,
+            COLORS.wood,
+            COLORS.deepTeal
+        )
+        for _, item in ipairs(barista:GetDescendants()) do
+            if item:IsA("BasePart") then
+                item.CanCollide = false
+            end
+        end
+        cafeBuildPad.Transparency = 1
+        cafeBuildPad.CanCollide = false
+        cafeBuildPrompt.Enabled = false
     end
 
     local function addWarehouse()
@@ -2865,6 +3038,19 @@ function WorldBuilder.build()
         end
     end
 
+    local function updateCafePrompts()
+        cafeBuildPrompt.Enabled = currentStage == "Complete"
+            and warehousePurchased
+            and not cafePurchased
+        cafeRestockPrompt.Enabled = cafePurchased
+            and currentStage == "Complete"
+            and cafeStock + 6 <= 24
+        cafeServePrompt.Enabled = cafePurchased
+            and cafeStock > 0
+            and currentStage ~= "Loading"
+            and currentStage ~= "OwnerOffline"
+    end
+
     local function setStage(stage)
         local previousStage = currentStage
         currentStage = stage
@@ -3059,6 +3245,7 @@ function WorldBuilder.build()
                 and deliveryQuantity > 0
                 and os.time() >= deliveryReadyAt
         end
+        updateCafePrompts()
         setSpillVisible(stage == "Spill")
         setPowerOutage(stage == "PowerOutage")
     end
@@ -3294,6 +3481,29 @@ function WorldBuilder.build()
         setMarketStyle = setMarketStyle,
         setMarketStylePreview = setMarketStylePreview,
         getMarketStyleName = getMarketStyleName,
+        cafeBuildPrompt = cafeBuildPrompt,
+        cafeRestockPrompt = cafeRestockPrompt,
+        cafeServePrompt = cafeServePrompt,
+        setCafeState = function(purchased, stock, sales)
+            cafePurchased = purchased == true
+            cafeStock = math.max(0, math.min(math.floor(stock or 0), 24))
+            cafeSales = math.max(0, math.floor(sales or 0))
+            if cafePurchased then
+                addCafe()
+            end
+            for index, cup in ipairs(cafeCupVisuals) do
+                cup.Transparency = cafeStock >= index * 4 - 3 and 0 or 1
+            end
+            if cafeMenuLabel then
+                cafeMenuLabel.Text = string.format(
+                    "CORNER CAFÉ\nCOFFEE $%d\nSTOCK %d  •  SALES %d",
+                    Economy.CAFE_COFFEE_PRICE,
+                    cafeStock,
+                    cafeSales
+                )
+            end
+            updateCafePrompts()
+        end,
         orderDeliveryPrompt = function()
             return orderDeliveryPrompt
         end,

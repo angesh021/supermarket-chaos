@@ -178,6 +178,12 @@ See `docs/decisions/README.md` for accepted ownership policy. Remaining decision
 - Customer Rush remains triggered by the deterministic shift logic after the three regular sales, but now adds three customers (six total), allows 90 seconds, and pays `$30` only on a timely clear.
 - `WorldBuilder` provisions six bounded customer models and six main queue positions; the self-checkout split gives three positions to each lane. Recovery reconstructs these positions from persisted sales and deadline state.
 - Profile normalization accepts up to six sales and the expanded in-progress rush range. This widens validation only; no profile schema field or migration is needed.
+
+## Phase 47 Corner Café plaza business
+- `Economy.buyCafe`, `restockCafe` and `serveCafeCoffee` own the fixed `$650` purchase, `$45` six-unit batch, 24-cup cap and `$18` per-cup revenue. Café sales do not alter supermarket customer queue counts or grocery inventory.
+- `ShiftService` gates purchase/restock/serve prompts by Owner/Manager, Stocker or Cashier role, range, interaction rate, profile lease and the shared transaction lock. Purchase/restock require a completed shift; serving is available whenever the profile is ready and stock remains.
+- `WorldBuilder` creates the fixed café building and board from built-in Roblox parts. The menu board and cup visuals are presentation only and follow the saved server state.
+- Profile schema v29 persists café ownership plus coffee stock and sale count. Old profiles migrate to unowned/empty; invalid ownership without a warehouse, inventory above 24 or stock/sales without ownership are rejected.
 # Cooperative ownership and cashier extension
 - One owner profile remains the persistence boundary. Per-server membership grants temporary action permissions but does not load a guest's profile into the owner's economy.
 - Server role map: Owner (all), Manager (all shift actions including staff hiring), Cashier (checkout), Stocker (stock), Maintenance (cart recovery).

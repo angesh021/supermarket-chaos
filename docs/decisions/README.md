@@ -264,6 +264,11 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Consequences:** Six visual customers and lane queues are supported. Existing profile sales validation widens to six without a schema bump; the server deadline and reward remain authoritative.
 - **Verification:** See `docs/operations/PHASE46_LARGER_CUSTOMER_EVENTS.md`.
 
+## ADR-0045: Add a persistent Corner Café
+- **Decision:** Open a fixed plaza café after warehouse ownership, with server-priced coffee stock and separate coffee sales using the owner's existing balance.
+- **Consequences:** Profile schema v29 stores café ownership, coffee quantity and coffee sales. Owner/Manager purchase, Stocker restock and Cashier serve permissions use the existing role gate; café activity does not change supermarket shift customer counts.
+- **Verification:** See `docs/operations/PHASE47_CORNER_CAFE.md`.
+
 ## ADR-0009 — Keep product inventory and supplier orders SKU-specific
 - **Status:** Accepted — 2026-10-12.
 - **Context:** The retail loop needs visible department variety and product-specific stock behavior while keeping stock and money authoritative.

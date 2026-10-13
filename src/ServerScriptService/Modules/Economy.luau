@@ -18,6 +18,11 @@ Economy.FLOOR_EXPANSION_COST = 500
 Economy.BAKERY_DEPARTMENT_COST = 350
 Economy.FREEZER_DEPARTMENT_COST = 400
 Economy.SELF_CHECKOUT_COST = 300
+Economy.CAFE_COST = 650
+Economy.CAFE_RESTOCK_COST = 45
+Economy.CAFE_RESTOCK_QUANTITY = 6
+Economy.CAFE_SHELF_CAPACITY = 24
+Economy.CAFE_COFFEE_PRICE = 18
 Economy.ONLINE_ORDER_PRODUCTS = {
     { "citrusPop", "berryBites", "goldenApples" },
     { "sunriseCereal", "citrusPop", "goldenApples" },
@@ -242,7 +247,57 @@ function Economy.newState(profile, playerSeed)
             or "",
         onlineOrdersFulfilled = profile.onlineOrdersFulfilled or 0,
         deliveryWorkerOrderShift = savedShift.deliveryWorkerOrderShift or 0,
+        cafePurchased = upgrades.cafe or false,
+        cafeStock = savedShift.cafeStock or 0,
+        cafeSales = savedShift.cafeSales or 0,
     }
+end
+
+function Economy.buyCafe(state)
+    if state.stage ~= "Complete" or not state.warehousePurchased or state.cafePurchased then
+        return false, "The café is available after a completed shift with a warehouse."
+    end
+    if state.cash < Economy.CAFE_COST then
+        return false, string.format("You need $%d to open the Corner Café.", Economy.CAFE_COST)
+    end
+    state.cash -= Economy.CAFE_COST
+    state.cafePurchased = true
+    state.cafeStock = 0
+    return true, "Corner Café opened! Stock coffee at the counter to start serving."
+end
+
+function Economy.restockCafe(state)
+    if not state.cafePurchased or state.stage ~= "Complete" then
+        return false, "Restock the café between supermarket shifts."
+    end
+    if state.cafeStock + Economy.CAFE_RESTOCK_QUANTITY > Economy.CAFE_SHELF_CAPACITY then
+        return false, "The café coffee shelf is full."
+    end
+    if state.cash < Economy.CAFE_RESTOCK_COST then
+        return false, string.format("You need $%d to brew six coffees.", Economy.CAFE_RESTOCK_COST)
+    end
+    state.cash -= Economy.CAFE_RESTOCK_COST
+    state.cafeStock += Economy.CAFE_RESTOCK_QUANTITY
+    return true, string.format("Brewed %d coffees for the café.", Economy.CAFE_RESTOCK_QUANTITY)
+end
+
+function Economy.serveCafeCoffee(state)
+    if not state.cafePurchased then
+        return false, "Open the Corner Café before serving coffee."
+    end
+    if state.stage == "Loading" or state.stage == "OwnerOffline" then
+        return false, "Wait until the café owner profile is ready."
+    end
+    if state.cafeStock < 1 then
+        return false, "The café is out of coffee. Brew another batch at the counter."
+    end
+    if state.cafeSales >= 1000000000 then
+        return false, "The café sales counter has reached its supported limit."
+    end
+    state.cafeStock -= 1
+    state.cash += Economy.CAFE_COFFEE_PRICE
+    state.cafeSales += 1
+    return true, string.format("Coffee served! +$%d.", Economy.CAFE_COFFEE_PRICE)
 end
 
 function Economy.getNextOnlineOrder(state)

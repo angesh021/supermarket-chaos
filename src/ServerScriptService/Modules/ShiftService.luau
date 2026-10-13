@@ -54,6 +54,9 @@ local ROLE_ACTIONS = {
         BuildBakery = true,
         BuildFreezer = true,
         BuildSelfCheckout = true,
+        BuildCafe = true,
+        RestockCafe = true,
+        ServeCafe = true,
         FulfillOnlineOrder = true,
         SelfCheckout = true,
         EditLayout = true,
@@ -79,7 +82,7 @@ local ROLE_ACTIONS = {
         StockCinnamonTwists = true,
         StockFrozenMeals = true,
     },
-    Cashier = { Checkout = true, SelfCheckout = true },
+    Cashier = { Checkout = true, SelfCheckout = true, ServeCafe = true },
     Stocker = {
         Stock = true,
         StockBerryBites = true,
@@ -88,6 +91,7 @@ local ROLE_ACTIONS = {
         StockCinnamonTwists = true,
         StockFrozenMeals = true,
         FulfillOnlineOrder = true,
+        RestockCafe = true,
     },
     Maintenance = { Cart = true, Spill = true, RestorePower = true },
 }
@@ -770,6 +774,7 @@ function ShiftService.init(event, membershipRemotes)
             Economy.getCustomerTarget(state)
         )
         world.setOnlineOrderState(Economy.getNextOnlineOrder(state))
+        world.setCafeState(state.cafePurchased, state.cafeStock, state.cafeSales)
         broadcast()
         scheduleOnlineOrderWorker()
         scheduleStocker()
@@ -1028,6 +1033,49 @@ function ShiftService.init(event, membershipRemotes)
             world.setSelfCheckoutPurchased(true)
             commit("selfCheckoutBuilt")
         end
+        broadcast(message)
+    end)
+
+    bind("BuildCafe", world.cafeBuildPrompt, 12, function()
+        if saleTransactionInProgress then
+            broadcast("A store transaction is saving. Try building the café again shortly.")
+            return
+        end
+        saleTransactionInProgress = true
+        local ok, message = Economy.buyCafe(state)
+        if ok then
+            world.setCafeState(state.cafePurchased, state.cafeStock, state.cafeSales)
+            commit("cafeBuilt")
+        end
+        saleTransactionInProgress = false
+        broadcast(message)
+    end)
+
+    bind("RestockCafe", world.cafeRestockPrompt, 12, function()
+        if saleTransactionInProgress then
+            broadcast("A store transaction is saving. Try brewing coffee again shortly.")
+            return
+        end
+        saleTransactionInProgress = true
+        local ok, message = Economy.restockCafe(state)
+        if ok then
+            commit("cafeRestocked")
+        end
+        saleTransactionInProgress = false
+        broadcast(message)
+    end)
+
+    bind("ServeCafe", world.cafeServePrompt, 12, function()
+        if saleTransactionInProgress then
+            broadcast("A store transaction is saving. Try serving coffee again shortly.")
+            return
+        end
+        saleTransactionInProgress = true
+        local ok, message = Economy.serveCafeCoffee(state)
+        if ok then
+            commit("cafeCoffeeSold")
+        end
+        saleTransactionInProgress = false
         broadcast(message)
     end)
 
@@ -1668,6 +1716,7 @@ function ShiftService.init(event, membershipRemotes)
                 state.shipmentProductId
             )
             world.setOnlineOrderState(Economy.getNextOnlineOrder(state))
+            world.setCafeState(state.cafePurchased, state.cafeStock, state.cafeSales)
             world.setCashierHired(state.cashierHired)
             world.setStockerHired(state.stockerHired)
             world.setCleanerHired(state.cleanerHired)
