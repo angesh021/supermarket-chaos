@@ -91,10 +91,10 @@ Use a private development test experience in universe `10770581249`; use two or 
 ## Known limitations
 1. One physical store per server; ownership does not transfer when the owner leaves.
 2. Membership is server-session only. Helpers must request access again in a new server.
-3. Employees have bounded task automation, but do not simulate full shifts, schedules, wages, demand forecasts or full shelf maintenance.
+3. Employees have bounded task automation and fixed per-shift wages, but do not simulate schedules, demand forecasts, morale or full shelf maintenance.
 4. Mobile layout, multi-server lease failure paths, malicious-client stress, development funnel ingestion and Studio behavior for Phases 3/4 remain unverified.
 5. Production universe ID, publishing and commerce are not configured. Development funnel ingestion and Creator Dashboard reporting remain unverified.
 6. Product variety is limited to four SKUs and one pending shipment total, with no supplier selection or editable warehouse layout. Customer baskets have five deterministic patterns and a simple price-driven quantity response, but no preference weights, satisfaction, substitution or patience effects. The first storefront palette is fixed and cannot be edited. Chaos event selection remains predictable; there is no random event director yet.
 
 ## Current gate
-**G0:** approved. **G1:** desktop first-shift accepted. **G2:** user reported tests passed. **G3–G7 increments:** implemented; multiplayer, employee, customer queue, spill event, analytics, touch, visual, warehouse, delivery and multi-product verification pending. **Production:** disabled pending user-provided production universe ID and deployment approval.
+**G0:** approved. **G1:** desktop first-shift accepted. **G2:** user reported tests passed. **G3–G7 increments:** implemented; Studio verification is pending for multiplayer, employees/payroll, customer queue, spill/rush events, analytics, touch layout, visual store expansion, warehouse, delivery and multi-product inventory. **Production:** disabled pending user-provided production universe ID and deployment approval.
