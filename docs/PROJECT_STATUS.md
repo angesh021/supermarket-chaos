@@ -12,6 +12,7 @@ Phase 1 desktop first play and Phase 2 progression/persistence were reported pas
 - Phase 3 membership: a visitor requests to help; owner approves with Manager, Cashier, Stocker or Maintenance, declines, or removes a member. Maximum four players, including the owner.
 - Server validates the owner for member management, request frequency, player membership, role IDs, current objective, prompt range, and role permission before allowing an interaction. Helpers contribute to the owner's shift; only the owner's profile is saved.
 - Phase 4 employees: $100 cashier and $80 stock clerk, unlocked after shift completion. Both appear in the store; the stock clerk automatically stocks after the cart objective and the cashier automatically serves checkout after four seconds. Both use existing server-side economy transitions.
+- Phase 4 customer operations: each shift now serves up to three customers from a visibly bounded queue. The server charges once per checkout using the existing sale transition, and only enables shift close after the third sale. Queue visibility is reconstructed from the saved sales count. Customers are varied procedural blockouts; browsing, navigation, exit behavior and Studio verification remain pending.
 - Profile schema v2 adds employee ownership flags and migrates v1 profiles through safe defaults.
 - Phase 5 security increment validates saved schema versions as finite bounded integers and avoids exposing store cash/stock/sales to read-only visitors.
 - Phase 5 persistence increment serializes writes per profile across gameplay commits, 60-second autosave, player release and shutdown. The new private-Studio contention/recovery checklist is pending; this code has not been runtime-tested.
@@ -39,7 +40,8 @@ Use a private development test experience in universe `10770581249`; use two or 
 ## Toolchain and checks
 - Rojo 7.7.0, Selene 0.32.0 and StyLua 2.5.0 are pinned in `rokit.toml`.
 - The `rojo`, `selene` and `stylua` launch shims returned `ERROR home directory not found`; invoking the pinned binaries directly from `.rokit/tool-storage` worked. `stylua --check src` passed, `selene src` reported 0 errors/0 warnings/0 parse errors, and `rojo build default.project.json -o %TEMP%\supermarket-chaos.rbxlx` succeeded. `git diff --check` passed with Windows line-ending normalization warnings.
-- Roblox Studio runtime and DataStore behavior cannot be exercised from the local shell. Do not mark the new multiplayer or employee behavior passed until the user confirms Studio results.
+- For the checkout queue increment, `stylua --check src`, `selene src` (0 errors, 0 warnings, 0 parse errors), `rojo build default.project.json -o %TEMP%\\supermarket-chaos.rbxlx`, and `git diff --check` passed on 2026-10-12. Git reported only LF-to-CRLF normalization warnings.
+- Roblox Studio runtime and DataStore behavior cannot be exercised from the local shell. Do not mark the new multiplayer, employee, or customer-queue behavior passed until the user confirms Studio results.
 
 ## Known limitations
 1. One physical store per server; ownership does not transfer when the owner leaves.
@@ -49,4 +51,4 @@ Use a private development test experience in universe `10770581249`; use two or 
 5. Production universe ID, publishing and commerce are not configured. Development funnel ingestion and Creator Dashboard reporting remain unverified.
 
 ## Current gate
-**G0:** approved. **G1:** desktop first-shift accepted. **G2:** user reported tests passed. **G3–G7 increments:** implemented; multiplayer, employee, analytics, touch, visual, warehouse and delivery verification pending. **Production:** disabled pending user-provided production universe ID and deployment approval.
+**G0:** approved. **G1:** desktop first-shift accepted. **G2:** user reported tests passed. **G3–G7 increments:** implemented; multiplayer, employee, customer queue, analytics, touch, visual, warehouse and delivery verification pending. **Production:** disabled pending user-provided production universe ID and deployment approval.

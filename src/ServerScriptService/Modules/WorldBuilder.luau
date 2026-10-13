@@ -768,52 +768,88 @@ function WorldBuilder.build()
             )
         end
     end
-    local customer = createLowPolyPerson(
-        interior,
-        "Waiting Customer",
+    local currentStage = "Loading"
+    local customerModels = {}
+    local customerColors = {
+        { COLORS.blue, COLORS.deepTeal, COLORS.orange },
+        { COLORS.coral, COLORS.gray, COLORS.deepTeal },
+        { COLORS.green, COLORS.blue, COLORS.gold },
+    }
+    local customerPositions = {
         Vector3.new(17.5, 0.45, 4),
-        COLORS.blue,
-        COLORS.deepTeal,
-        COLORS.orange
-    )
-    local head = customer:FindFirstChild("Head")
+        Vector3.new(17.5, 0.45, 8),
+        Vector3.new(17.5, 0.45, 12),
+    }
+    for index, position in ipairs(customerPositions) do
+        local colors = customerColors[index]
+        local customer = createLowPolyPerson(
+            interior,
+            index == 1 and "Checkout Customer" or ("Queue Customer " .. index),
+            position,
+            colors[1],
+            colors[2],
+            colors[3]
+        )
+        local head = customer:FindFirstChild("Head")
+        local customerBillboard = Instance.new("BillboardGui")
+        customerBillboard.Name = "CustomerNameplate"
+        customerBillboard.Adornee = head
+        customerBillboard.Size = UDim2.fromOffset(150, 38)
+        customerBillboard.StudsOffset = Vector3.new(0, 1.25, 0)
+        customerBillboard.AlwaysOnTop = true
+        customerBillboard.Enabled = false
+        customerBillboard.Parent = head
+        local customerLabel = Instance.new("TextLabel")
+        customerLabel.Size = UDim2.fromScale(1, 1)
+        customerLabel.BackgroundColor3 = COLORS.deepTeal
+        customerLabel.BackgroundTransparency = 0.08
+        customerLabel.Text = index == 1 and "NEXT CUSTOMER" or "IN QUEUE"
+        customerLabel.TextColor3 = COLORS.warmWhite
+        customerLabel.Font = Enum.Font.GothamBold
+        customerLabel.TextScaled = true
+        customerLabel.Parent = customerBillboard
+        local customerCorner = Instance.new("UICorner")
+        customerCorner.CornerRadius = UDim.new(0, 8)
+        customerCorner.Parent = customerLabel
 
-    local customerBillboard = Instance.new("BillboardGui")
-    customerBillboard.Name = "CustomerNameplate"
-    customerBillboard.Adornee = head
-    customerBillboard.Size = UDim2.fromOffset(150, 38)
-    customerBillboard.StudsOffset = Vector3.new(0, 1.25, 0)
-    customerBillboard.AlwaysOnTop = true
-    customerBillboard.Enabled = false
-    customerBillboard.Parent = head
-    local customerLabel = Instance.new("TextLabel")
-    customerLabel.Size = UDim2.fromScale(1, 1)
-    customerLabel.BackgroundColor3 = COLORS.deepTeal
-    customerLabel.BackgroundTransparency = 0.08
-    customerLabel.Text = "WAITING CUSTOMER"
-    customerLabel.TextColor3 = COLORS.warmWhite
-    customerLabel.Font = Enum.Font.GothamBold
-    customerLabel.TextScaled = true
-    customerLabel.Parent = customerBillboard
-    local customerCorner = Instance.new("UICorner")
-    customerCorner.CornerRadius = UDim.new(0, 8)
-    customerCorner.Parent = customerLabel
-
-    -- Keep the customer out of sight until stocking advances the shift to checkout.
-    for _, item in ipairs(customer:GetDescendants()) do
-        if item:IsA("BasePart") then
-            item.Transparency = 1
-            item.CanCollide = false
+        for _, item in ipairs(customer:GetDescendants()) do
+            if item:IsA("BasePart") then
+                item.Transparency = 1
+                item.CanCollide = false
+            end
         end
+        table.insert(customerModels, {
+            model = customer,
+            homePivot = customer:GetPivot(),
+            billboard = customerBillboard,
+            label = customerLabel,
+        })
+    end
+
+    local register = prompt(counter, "Serve Customer", "Checkout", "Checkout", 9)
+    local function setCustomerCount(count)
+        local remaining = currentStage == "Checkout"
+                and math.min(math.max(math.floor(count), 0), #customerModels)
+            or 0
+        local served = #customerModels - remaining
+        for index, entry in ipairs(customerModels) do
+            local visible = index > served and currentStage == "Checkout"
+            local queueOffset = Vector3.new(0, 0, -4 * served)
+            entry.model:PivotTo(entry.homePivot + queueOffset)
+            for _, item in ipairs(entry.model:GetDescendants()) do
+                if item:IsA("BasePart") then
+                    item.Transparency = visible and 0 or 1
+                end
+            end
+            entry.billboard.Enabled = visible
+            entry.label.Text = index == served + 1 and "NEXT CUSTOMER" or "IN QUEUE"
+        end
+        register.ActionText = remaining > 0 and string.format("Serve Customer (%d left)", remaining)
+            or "Checkout Complete"
     end
 
     local function setCustomerVisible(visible)
-        for _, item in ipairs(customer:GetDescendants()) do
-            if item:IsA("BasePart") then
-                item.Transparency = visible and 0 or 1
-            end
-        end
-        customerBillboard.Enabled = visible
+        setCustomerCount(visible and #customerModels or 0)
     end
 
     local stockedCans = {}
@@ -837,7 +873,6 @@ function WorldBuilder.build()
         end
     end
 
-    local register = prompt(counter, "Serve Customer", "Checkout", "Checkout", 9)
     local hiringBoard = label(
         interior,
         "Staff Hiring Board",
@@ -864,7 +899,6 @@ function WorldBuilder.build()
         end
     end
     local cashierHired = false
-    local currentStage = "Loading"
     local stockerHiringBoard = label(
         interior,
         "Stocker Hiring Board",
@@ -1336,6 +1370,7 @@ function WorldBuilder.build()
         stockPrompt = stockPrompt,
         setStockVisual = setStockVisual,
         setCustomerVisible = setCustomerVisible,
+        setCustomerCount = setCustomerCount,
         registerPrompt = register,
         closePrompt = closePrompt,
         restartPrompt = restartPrompt,

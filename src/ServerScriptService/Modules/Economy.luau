@@ -12,6 +12,7 @@ Economy.DELIVERY_COST = 60
 Economy.DELIVERY_QUANTITY = 24
 Economy.BACKSTOCK_CAPACITY = 500
 Economy.STARTING_STOCK = 3
+Economy.CUSTOMERS_PER_SHIFT = 3
 
 function Economy.newState(profile)
     profile = profile or {}
@@ -107,14 +108,24 @@ function Economy.sellProduct(state)
     if state.stage ~= "Checkout" then
         return false, "The checkout is waiting for the next customer."
     end
+    if state.sales >= Economy.CUSTOMERS_PER_SHIFT then
+        return false, "The checkout queue is already clear."
+    end
     if state.stock <= 0 then
         return false, "The shelf is empty. Stock Citrus Pop first."
     end
     state.stock -= 1
     state.sales += 1
     state.cash += Economy.SALE_REWARD
-    state.stage = "CloseShift"
-    return true, "Sale complete! +$25. Close out your first shift."
+    if state.sales >= Economy.CUSTOMERS_PER_SHIFT then
+        state.stage = "CloseShift"
+        return true, "Sale complete! +$25. All customers served. Close out your shift."
+    end
+    return true,
+        string.format(
+            "Sale complete! +$25. %d customers remain in the queue.",
+            Economy.CUSTOMERS_PER_SHIFT - state.sales
+        )
 end
 
 function Economy.closeShift(state)

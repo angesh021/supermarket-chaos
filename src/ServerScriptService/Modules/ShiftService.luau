@@ -47,8 +47,8 @@ local MAX_PENDING_REQUESTS = 120
 local OBJECTIVES = {
     Cart = "First Shift: stop the runaway shopping cart near the entrance.",
     Stock = "Stock three Citrus Pop cans on the marked shelf.",
-    Checkout = "Help the waiting customer at the checkout.",
-    CloseShift = "Your first sale is done. Close the shift at the shift board.",
+    Checkout = "Serve the customers waiting in the checkout queue.",
+    CloseShift = "All customers are served. Close the shift at the shift board.",
     Upgrade = "Upgrade: use the gold pad just inside the front entrance. Press E to spend $45.",
     Complete = "Shift complete. Visit the shift board to start another shift.",
 }
@@ -59,6 +59,14 @@ local function snapshot(message, recipient)
     local isHelper = storeMembers[recipient.UserId] ~= nil
     local hasStoreAccess = isOwner or isHelper
     local objective = OBJECTIVES[current.stage] or "Your store is starting up."
+    if current.stage == "Checkout" then
+        local remaining = math.max(0, Economy.CUSTOMERS_PER_SHIFT - current.sales)
+        objective = string.format(
+            "Checkout: serve the queue (%d customer%s left).",
+            remaining,
+            remaining == 1 and "" or "s"
+        )
+    end
     if not isOwner and not isHelper then
         if ownerPlayer then
             objective = "This store belongs to " .. ownerPlayer.DisplayName .. "."
@@ -300,6 +308,7 @@ function ShiftService.init(event, membershipRemotes)
         ProfileService.saveProgress(ownerPlayer, state, eventName)
         TelemetryService.record(ownerPlayer, eventName)
         world.setStage(state.stage)
+        world.setCustomerCount(math.max(0, Economy.CUSTOMERS_PER_SHIFT - state.sales))
         broadcast()
         scheduleStocker()
         scheduleCashierSale()
@@ -560,6 +569,7 @@ function ShiftService.init(event, membershipRemotes)
             world.setStockerHired(state.stockerHired)
             world.setStockVisual(state.stock)
             world.setStage(state.stage)
+            world.setCustomerCount(math.max(0, Economy.CUSTOMERS_PER_SHIFT - state.sales))
             if state.stage == "Cart" then
                 startCart()
             end

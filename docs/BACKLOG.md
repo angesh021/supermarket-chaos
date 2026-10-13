@@ -34,6 +34,13 @@ G0 was approved on 2026-10-12. The user authorized continued phase implementatio
 - [ ] Studio verification of hire, save/rejoin, automatic service and helper permissions.
 - [ ] Add further staff roles, automation settings, departments and customization.
 
+## Phase 4 — Customer operations (checkout queue increment implemented)
+- [x] Show a bounded three-customer checkout queue with varied original procedural appearances.
+- [x] Serve customers through the existing server economy transaction; close the shift only when the queue is cleared.
+- [x] Reconstruct remaining queue positions from the persisted shift sales count after rejoin.
+- [ ] Add browsing, product selection, route navigation, exit behavior and navigation recovery.
+- [ ] Studio verification of three sales, queue visibility, cashier automation, helper races, and rejoin mid-queue.
+
 ## Later phases
 - [x] Phase 5 security increment: finite/schema-bounded profile versions, server role checks, bounded remotes, and visitor-state data minimization.
 - [x] Phase 5 analytics increment: a first-shift funnel is sent through Roblox AnalyticsService only in the configured development universe, without custom fields or game-owned player IDs (the platform associates events with the required Player argument).
