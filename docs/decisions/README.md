@@ -254,6 +254,11 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Consequences:** Profile schema v27 stores only the fulfilled-order counter; clients cannot choose order contents, quantities or payout.
 - **Verification:** See `docs/operations/PHASE44_ONLINE_GROCERY_ORDERS.md`.
 
+## ADR-0043: Let delivery workers pack one online order per shift
+- **Decision:** Extend the existing delivery worker's optional automation to pack one ready online order per completed shift, using the same server transaction as the packing board.
+- **Consequences:** Profile schema v28 stores a shift marker so automatic fulfillment stays idempotent across rejoin and timer retries. The existing pause control governs both inbound delivery receipt and online packing.
+- **Verification:** See `docs/operations/PHASE45_DELIVERY_WORKER_ONLINE_ORDERS.md`.
+
 ## ADR-0009 — Keep product inventory and supplier orders SKU-specific
 - **Status:** Accepted — 2026-10-12.
 - **Context:** The retail loop needs visible department variety and product-specific stock behavior while keeping stock and money authoritative.

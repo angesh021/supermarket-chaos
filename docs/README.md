@@ -51,5 +51,6 @@
 | [Layout remote hardening verification](operations/PHASE42_LAYOUT_REMOTE_HARDENING.md) | Bounded layout payloads, malformed request throttling and valid edit behavior |
 | [Self-checkout verification](operations/PHASE43_SELF_CHECKOUT.md) | Persistent second checkout, deterministic lane routing and shared sale authority |
 | [Online grocery order verification](operations/PHASE44_ONLINE_GROCERY_ORDERS.md) | Warehouse packing board, deterministic orders and backstock fulfillment |
+| [Delivery worker online order verification](operations/PHASE45_DELIVERY_WORKER_ONLINE_ORDERS.md) | One automated order per completed shift with shared fulfillment authority |
 
 Keep this index and linked documents current as implementation changes. See [AGENTS.md](../AGENTS.md) for repository rules.

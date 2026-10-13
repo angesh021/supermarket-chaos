@@ -167,6 +167,12 @@ See `docs/decisions/README.md` for accepted ownership policy. Remaining decision
 - `Economy.getNextOnlineOrder` derives a bounded four-order rotation from the saved fulfilled-order count. The server selects item IDs and quantities, reads current server prices, and checks warehouse backstock; clients supply no basket, price or quantity.
 - `Economy.fulfillOnlineOrder` is a single between-shifts transaction. It rechecks warehouse ownership, stage and all stock before deducting units and crediting the computed total. Manager and Stocker prompts share the normal proximity, rate, owner and profile-save gates, plus the transaction lock.
 - Profile schema v27 persists only the bounded fulfilled-order counter; orders are regenerated from that counter on load. Warehouse board text contains display-only item names, amounts and readiness.
+
+## Phase 45 delivery worker online order automation
+- The existing delivery worker now checks both ready inbound shipments and the next online grocery order. Online packing is eligible only after a completed shift and only once per `completedShifts` value.
+- The worker uses the existing automation toggle. A saved shift marker prevents rejoin or scheduler retries from packing a second automatic order during the same completed shift.
+- The worker delegates to `Economy.fulfillOnlineOrder`, the same state transition as the physical packing prompt. Both paths share the transaction lock through profile save and schedule refresh.
+- Profile schema v28 migrates the marker to zero for older profiles; automation remains disabled for non-development DataStore universes as before.
 # Cooperative ownership and cashier extension
 - One owner profile remains the persistence boundary. Per-server membership grants temporary action permissions but does not load a guest's profile into the owner's economy.
 - Server role map: Owner (all), Manager (all shift actions including staff hiring), Cashier (checkout), Stocker (stock), Maintenance (cart recovery).

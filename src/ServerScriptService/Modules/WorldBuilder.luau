@@ -1768,7 +1768,7 @@ function WorldBuilder.build()
     local deliveryWorkerBoard = label(
         interior,
         "Delivery Worker Hiring Board",
-        "HIRE DELIVERY WORKER  $140",
+        "HIRE DELIVERY WORKER  $140\nSHIPMENTS + ONLINE ORDERS",
         Vector3.new(5, 2, 0.45),
         CFrame.new(17.8, 3.4, -18.4),
         COLORS.orange,

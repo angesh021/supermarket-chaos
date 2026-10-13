@@ -6,7 +6,7 @@ local ProfileService = {}
 local LayoutService = require(script.Parent.LayoutService)
 local RetailLayoutService = require(script.Parent.RetailLayoutService)
 
-local SCHEMA_VERSION = 27
+local SCHEMA_VERSION = 28
 local SESSION_LEASE_SECONDS = 180
 local MAX_RETRIES = 3
 local STORE_NAME = "SupermarketChaos_PlayerProfiles_v1"
@@ -44,6 +44,7 @@ local function defaultProfile()
             customerRushUntil = 0,
             cartRecovered = false,
             shiftClosed = false,
+            deliveryWorkerOrderShift = 0,
         },
         ownedUpgrades = {
             shelfBay = false,
@@ -467,6 +468,7 @@ local function normalizeProfile(value)
             or not validCounter(value.shift.sales)
             or not validTimestamp(value.shift.powerOutageUntil)
             or not validTimestamp(value.shift.customerRushUntil)
+            or not validCounter(value.shift.deliveryWorkerOrderShift)
         then
             return nil, "Stored shift counters are invalid."
         end
@@ -547,6 +549,8 @@ local function normalizeProfile(value)
         end
         profile.shift.cartRecovered = value.shift.cartRecovered == true
         profile.shift.shiftClosed = value.shift.shiftClosed == true
+        profile.shift.deliveryWorkerOrderShift =
+            nonNegativeInteger(value.shift.deliveryWorkerOrderShift, 0)
     end
     return profile
 end
@@ -568,6 +572,7 @@ local function copyProfile(profile)
             customerRushUntil = profile.shift.customerRushUntil,
             cartRecovered = profile.shift.cartRecovered,
             shiftClosed = profile.shift.shiftClosed,
+            deliveryWorkerOrderShift = profile.shift.deliveryWorkerOrderShift,
         },
         ownedUpgrades = {
             shelfBay = profile.ownedUpgrades.shelfBay,
@@ -848,6 +853,7 @@ function ProfileService.saveProgress(player, state, eventName)
     profile.shift.customerRushUntil = state.customerRushUntil
     profile.shift.cartRecovered = state.cartRecovered
     profile.shift.shiftClosed = state.shiftClosed
+    profile.shift.deliveryWorkerOrderShift = state.deliveryWorkerOrderShift or 0
     profile.ownedUpgrades.shelfBay = state.upgradePurchased
     profile.ownedUpgrades.warehouse = state.warehousePurchased
     profile.ownedUpgrades.marketStyle = state.marketStylePurchased

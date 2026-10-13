@@ -503,6 +503,57 @@ function ShiftService.init(event, membershipRemotes)
         end)
     end
 
+    local onlineOrderWorkerScheduleVersion = 0
+    local function scheduleOnlineOrderWorker()
+        onlineOrderWorkerScheduleVersion += 1
+        local scheduleVersion = onlineOrderWorkerScheduleVersion
+        local completedShift = state and state.completedShifts or 0
+        if
+            not state
+            or state.stage ~= "Complete"
+            or not state.warehousePurchased
+            or not state.deliveryWorkerHired
+            or not state.deliveryWorkerAutomationEnabled
+            or (state.deliveryWorkerOrderShift or 0) >= completedShift
+            or not Economy.getNextOnlineOrder(state).ready
+        then
+            return
+        end
+
+        task.delay(5, function()
+            if
+                scheduleVersion ~= onlineOrderWorkerScheduleVersion
+                or not ownerReady
+                or not ownerPlayer
+                or not state
+                or state.stage ~= "Complete"
+                or state.completedShifts ~= completedShift
+                or not state.deliveryWorkerHired
+                or not state.deliveryWorkerAutomationEnabled
+                or (state.deliveryWorkerOrderShift or 0) >= completedShift
+                or not Economy.getNextOnlineOrder(state).ready
+            then
+                return
+            end
+            local saveStatus = ProfileService.getSaveStatus(ownerPlayer)
+            if saveStatus == "lock lost" then
+                return
+            elseif saveStatus == "save pending" or saleTransactionInProgress then
+                scheduleOnlineOrderWorker()
+                return
+            end
+
+            saleTransactionInProgress = true
+            local ok, message = Economy.fulfillOnlineOrder(state)
+            if ok then
+                state.deliveryWorkerOrderShift = completedShift
+                commit("onlineOrderFulfilledByWorker")
+                broadcast("The delivery worker packed today's online order. " .. message)
+            end
+            saleTransactionInProgress = false
+        end)
+    end
+
     local deliveryWorkerScheduleVersion = 0
     local function scheduleDeliveryWorkerPickup()
         deliveryWorkerScheduleVersion += 1
@@ -720,6 +771,7 @@ function ShiftService.init(event, membershipRemotes)
         )
         world.setOnlineOrderState(Economy.getNextOnlineOrder(state))
         broadcast()
+        scheduleOnlineOrderWorker()
         scheduleStocker()
         scheduleCashierSale()
         scheduleCleaner()
@@ -1109,6 +1161,9 @@ function ShiftService.init(event, membershipRemotes)
         saleTransactionInProgress = true
         local ok, message = Economy.fulfillOnlineOrder(state)
         if ok then
+            if state.deliveryWorkerHired and state.deliveryWorkerAutomationEnabled then
+                state.deliveryWorkerOrderShift = state.completedShifts
+            end
             commit("onlineOrderFulfilled")
         end
         saleTransactionInProgress = false

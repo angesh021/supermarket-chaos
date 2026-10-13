@@ -241,6 +241,7 @@ function Economy.newState(profile, playerSeed)
                 and (Economy.PRODUCTS[warehouseInventory.shipmentProductId] and warehouseInventory.shipmentProductId or "citrusPop")
             or "",
         onlineOrdersFulfilled = profile.onlineOrdersFulfilled or 0,
+        deliveryWorkerOrderShift = savedShift.deliveryWorkerOrderShift or 0,
     }
 end
 
