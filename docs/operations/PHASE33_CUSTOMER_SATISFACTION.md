@@ -2,9 +2,9 @@
 
 ## Scope
 
-Each successful checkout adjusts a persistent 0–100 customer satisfaction score. The score starts at 75 for new and migrated profiles. It rises by 3 when the basket fulfills the customer's complete preferred product quantities, falls by 6 when stock forces a fallback or partial basket, and loses another 2 for each premium-priced SKU in the basket. The result is clamped to 0–100 and shown in the owner/helper HUD.
+Each successful checkout adjusts a persistent 0–100 customer satisfaction score. The score starts at 75 for new and migrated profiles. Phase 37 supersedes the original fallback rule: exact fulfillment adds 3; each substitute reduces that result by 2; each unfilled unit reduces it by 4, with a minimum pre-premium delta of -10. Each premium-priced SKU still subtracts 2. The result is clamped to 0–100 and shown in the owner/helper HUD.
 
-This is a server-owned management signal. Satisfaction does not change the cash total, stock deduction, sale count, queue size, or rush reward. These rules keep the score measurable without changing the existing sale transaction's economy; future reputation, loyalty and demand effects remain separate work.
+This is a server-owned management signal. Satisfaction does not change the cash total, stock deduction, sale count, queue size, or rush reward. Product substitutions use the actual SKU's server price and stock. Future loyalty and patience effects remain separate work.
 
 ## Server/client boundary and persistence
 
@@ -17,7 +17,7 @@ This is a server-owned management signal. Satisfaction does not change the cash 
 ## Acceptance criteria
 
 1. A newly created or migrated profile begins at 75 and restores its saved value after rejoin.
-2. A fully fulfilled basket adds 3; a partial/fallback basket subtracts 6; each premium-priced SKU subtracts another 2; the result stays within 0–100.
+2. An exact basket adds 3; substitute units reduce the delta by 2 each; unfilled units reduce it by 4 each; premium-priced SKUs subtract another 2; the result stays within 0–100.
 3. A sale race changes satisfaction once because only one server sale transaction succeeds.
 4. Rejected/empty-stock checkout attempts do not change satisfaction, balance, inventory or sales.
 5. The HUD shows the score and changes its color at the documented 65 and 35 thresholds. Visitors do not see the owner's score.
@@ -28,7 +28,7 @@ This is a server-owned management signal. Satisfaction does not change the cash 
 
 1. Load a new account and a v19 development profile. Confirm both display 75% and retain all previous profile progress.
 2. With all preferred departments stocked at catalog prices, serve customers whose full basket is available. Confirm each accepted sale adds 3 until the score reaches 100, then stays capped.
-3. Empty a preferred department but leave another product stocked. Confirm fallback checkout changes the score by -6 and charges/deducts only the actual basket.
+3. Empty a preferred department but leave a related product stocked. Confirm the substitute is labeled and charged/deducted at its own SKU price. Empty related stock too and verify fallback/unfilled score changes.
 4. Set a product to its premium tier and serve a basket containing it. Confirm the extra -2 is applied once per premium SKU in the transaction.
 5. Set the score near 0 and near 100 using a disposable test profile; confirm lower and upper clamping and the green/neutral/coral HUD colors.
 6. Have Owner and Cashier attempt the same customer checkout. Confirm one sale and one satisfaction update. Attempt a rejected checkout with no stock; confirm no score change.

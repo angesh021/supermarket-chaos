@@ -975,6 +975,7 @@ function WorldBuilder.build()
     local customerProductName = "Citrus Pop"
     local customerBasketName = "Citrus Pop x1"
     local customerPreferenceName = "Everyday"
+    local customerBasketItems = {}
     local customerProductPositions = {}
     local function customerBrowsePosition(productId)
         local shelfPosition = retailShelfPositions[productId]
@@ -987,16 +988,11 @@ function WorldBuilder.build()
     end
     local function updateCustomerBasketPositions()
         customerProductPositions = {}
-        local productPositions = {
-            { id = "berryBites", name = "Berry Bites" },
-            { id = "citrusPop", name = "Citrus Pop" },
-            { id = "goldenApples", name = "Golden Apples" },
-            { id = "sunriseCereal", name = "Sunrise Cereal" },
-            { id = "cinnamonTwists", name = "Cinnamon Twists" },
-        }
-        for _, product in ipairs(productPositions) do
-            if string.find(customerBasketName, product.name, 1, true) then
-                table.insert(customerProductPositions, customerBrowsePosition(product.id))
+        local visited = {}
+        for _, item in ipairs(customerBasketItems) do
+            if not visited[item.productId] and retailShelfPositions[item.productId] then
+                visited[item.productId] = true
+                table.insert(customerProductPositions, customerBrowsePosition(item.productId))
             end
         end
         if #customerProductPositions == 0 then
@@ -2696,9 +2692,10 @@ function WorldBuilder.build()
                 )
             customerProductPositions = { customerBrowsePosition(productId) }
         end,
-        setCustomerBasket = function(displayName, preferenceName)
+        setCustomerBasket = function(displayName, preferenceName, items)
             customerBasketName = displayName or "Citrus Pop x1"
             customerPreferenceName = preferenceName or "Everyday"
+            customerBasketItems = type(items) == "table" and items or {}
             updateCustomerBasketPositions()
         end,
         setCustomerVisible = setCustomerVisible,

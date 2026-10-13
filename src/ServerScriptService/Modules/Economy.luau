@@ -79,6 +79,15 @@ Economy.PRODUCTS = {
     },
 }
 
+-- Ordered, server-owned substitutes. Customer demand never accepts a client SKU.
+local PRODUCT_SUBSTITUTES = {
+    citrusPop = { "berryBites" },
+    berryBites = { "citrusPop" },
+    goldenApples = { "sunriseCereal" },
+    sunriseCereal = { "goldenApples" },
+    cinnamonTwists = { "berryBites", "sunriseCereal" },
+}
+
 Economy.CHAOS_EVENTS = {
     CheckoutSpill = {
         id = "checkout_spill",
@@ -570,17 +579,45 @@ function Economy.getNextCheckoutBasket(state)
     }
     local items = {}
     local counts = {}
+    local directCounts = {}
+    local substitutionCounts = {}
     local fulfilledCount = 0
+    local unfulfilledCount = 0
+    local missingProducts = {}
 
+    -- Reserve exact matches first so an early fallback cannot consume another requested SKU.
     for _, productId in ipairs(preferredProducts) do
         if available[productId] > 0 then
             available[productId] -= 1
             counts[productId] = (counts[productId] or 0) + 1
+            directCounts[productId] = (directCounts[productId] or 0) + 1
             fulfilledCount += 1
+        else
+            table.insert(missingProducts, productId)
+        end
+    end
+    for _, productId in ipairs(missingProducts) do
+        local substituteFound = false
+        for _, substituteId in ipairs(PRODUCT_SUBSTITUTES[productId] or {}) do
+            if available[substituteId] > 0 then
+                available[substituteId] -= 1
+                counts[substituteId] = (counts[substituteId] or 0) + 1
+                substitutionCounts[substituteId] = substitutionCounts[substituteId] or {}
+                substitutionCounts[substituteId][productId] = (
+                    substitutionCounts[substituteId][productId] or 0
+                ) + 1
+                fulfilledCount += 1
+                substituteFound = true
+                break
+            end
+        end
+        if not substituteFound then
+            unfulfilledCount += 1
         end
     end
 
-    -- A customer always has a fulfillable one-item basket when any shelf is stocked.
+    -- If no preferred or related product is available, keep checkout usable with one
+    -- explicitly labeled fallback item rather than presenting it as the requested product.
     if fulfilledCount == 0 then
         local fallbackId = state.stock > 0 and "citrusPop"
             or (state.berryStock > 0 and "berryBites" or nil)
@@ -589,6 +626,13 @@ function Economy.getNextCheckoutBasket(state)
             or (state.cinnamonTwistStock > 0 and "cinnamonTwists" or nil)
         if fallbackId then
             counts[fallbackId] = 1
+            substitutionCounts[fallbackId] = substitutionCounts[fallbackId] or {}
+            local requestedId = preferredProducts[1]
+            substitutionCounts[fallbackId][requestedId] = (
+                substitutionCounts[fallbackId][requestedId] or 0
+            ) + 1
+            fulfilledCount = 1
+            unfulfilledCount = math.max(0, unfulfilledCount - 1)
         end
     end
 
@@ -617,12 +661,48 @@ function Economy.getNextCheckoutBasket(state)
         end
     end
 
+    -- Price-tier quantity changes must not leave labels or fulfillment credit for
+    -- substitute units that are no longer in the final basket.
+    for productId, substitutions in pairs(substitutionCounts) do
+        local remainingQuantity =
+            math.max(0, (counts[productId] or 0) - (directCounts[productId] or 0))
+        local requestedIds = {}
+        for requestedId in pairs(substitutions) do
+            table.insert(requestedIds, requestedId)
+        end
+        table.sort(requestedIds)
+        for _, requestedId in ipairs(requestedIds) do
+            local keptQuantity = math.min(substitutions[requestedId], remainingQuantity)
+            substitutions[requestedId] = keptQuantity
+            remainingQuantity -= keptQuantity
+            if keptQuantity == 0 then
+                substitutions[requestedId] = nil
+            end
+        end
+        if next(substitutions) == nil then
+            substitutionCounts[productId] = nil
+        end
+    end
+
     for productId, quantity in pairs(counts) do
+        local substituteLabels = {}
+        for requestedId, substituteQuantity in pairs(substitutionCounts[productId] or {}) do
+            table.insert(
+                substituteLabels,
+                string.format(
+                    "%dx %s",
+                    substituteQuantity,
+                    Economy.PRODUCTS[requestedId].displayName
+                )
+            )
+        end
+        table.sort(substituteLabels)
         table.insert(items, {
             productId = productId,
             quantity = quantity,
             displayName = Economy.PRODUCTS[productId].displayName,
             unitPrice = Economy.getProductPrice(state, productId),
+            substitutionFor = #substituteLabels > 0 and table.concat(substituteLabels, ", ") or nil,
         })
     end
     table.sort(items, function(left, right)
@@ -633,7 +713,15 @@ function Economy.getNextCheckoutBasket(state)
     local labels = {}
     for _, item in ipairs(items) do
         total += item.quantity * item.unitPrice
-        table.insert(labels, string.format("%s x%d", item.displayName, item.quantity))
+        table.insert(
+            labels,
+            string.format(
+                "%s x%d%s",
+                item.displayName,
+                item.quantity,
+                item.substitutionFor and " (sub for " .. item.substitutionFor .. ")" or ""
+            )
+        )
     end
     local preferredProductIds = {}
     local preferredCounts = {}
@@ -641,14 +729,38 @@ function Economy.getNextCheckoutBasket(state)
         table.insert(preferredProductIds, productId)
         preferredCounts[productId] = (preferredCounts[productId] or 0) + 1
     end
-    local preferenceSatisfied = true
-    for productId, quantity in pairs(preferredCounts) do
-        if (counts[productId] or 0) < quantity then
-            preferenceSatisfied = false
-            break
+    local substitutionCount = 0
+    local substitutedByRequested = {}
+    local substitutedByActual = {}
+    for _, substitutions in pairs(substitutionCounts) do
+        for requestedId, quantity in pairs(substitutions) do
+            substitutionCount += quantity
+            substitutedByRequested[requestedId] = (substitutedByRequested[requestedId] or 0)
+                + quantity
         end
     end
-    local satisfactionDelta = preferenceSatisfied and 3 or -6
+    for actualProductId, substitutions in pairs(substitutionCounts) do
+        for _, quantity in pairs(substitutions) do
+            substitutedByActual[actualProductId] = (substitutedByActual[actualProductId] or 0)
+                + quantity
+        end
+    end
+    unfulfilledCount = 0
+    local preferenceSatisfied = next(substitutionCounts) == nil
+    for productId, quantity in pairs(preferredCounts) do
+        local directFulfilled = math.min(
+            quantity,
+            directCounts[productId] or 0,
+            math.max(0, (counts[productId] or 0) - (substitutedByActual[productId] or 0))
+        )
+        local requestedFulfilled = directFulfilled + (substitutedByRequested[productId] or 0)
+        if requestedFulfilled < quantity then
+            unfulfilledCount += quantity - requestedFulfilled
+            preferenceSatisfied = false
+        end
+    end
+    local satisfactionDelta = preferenceSatisfied and 3
+        or math.max(-10, 3 - substitutionCount * 2 - unfulfilledCount * 4)
     for _, item in ipairs(items) do
         if item.unitPrice > Economy.PRODUCTS[item.productId].salePrice then
             satisfactionDelta -= 2

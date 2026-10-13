@@ -49,7 +49,7 @@ G0 was approved on 2026-10-12. The user authorized continued phase implementatio
 - [x] Phase 30: add reproducible weighted customer shopping preferences with visible customer labels; see `operations/PHASE30_CUSTOMER_PREFERENCES.md`.
 - [ ] Add more departments and main-floor customization; warehouse layout editing is implemented but not full store construction.
 - [x] Add a persisted server-owned customer satisfaction score tied to fulfillment and premium pricing; see Phase 33.
-- [ ] Add customer loyalty, product substitution and patience effects to the preference profiles.
+- [ ] Add customer loyalty and patience effects to the preference profiles.
 - [x] Phase 33: score customer satisfaction from preference fulfillment/price tiers and expose the bounded rating in the HUD; see `operations/PHASE33_CUSTOMER_SATISFACTION.md`.
 - [ ] Studio verification of cleaner hire/migration, save/rejoin, automatic cleanup and player/employee races.
 
@@ -98,6 +98,8 @@ G0 was approved on 2026-10-12. The user authorized continued phase implementatio
 - [x] Phase 34: persist and server-validate checkout lane and queue placement, rotate the composite fixture, and derive cashier/customer routes from its transform; see `operations/PHASE34_CHECKOUT_LAYOUT.md`.
 - [x] Phase 35: add a persistent `$500` rear supermarket wing after the household aisle, with a walk-through wall opening, lighting, and an unlock-gated rear shelf zone; see `operations/PHASE35_REAR_FLOOR_EXPANSION.md`.
 - [x] Phase 36: add a persistent buildable bakery with a fixed procedural fixture, SKU-specific Cinnamon Twists stocking/delivery/pricing, customer baskets, and server-validated layout clearance; see `operations/PHASE36_BAKERY_DEPARTMENT.md`.
+- [x] Phase 37: resolve out-of-stock basket items through server-owned related SKU substitutions; charge and route using actual products and score partial fulfillment; see `operations/PHASE37_PRODUCT_SUBSTITUTION.md`.
+- [ ] Studio verification of substitute/fallback basket resolution, stock depletion, routing, satisfaction, races and rejoin; see `operations/PHASE37_PRODUCT_SUBSTITUTION.md`.
 - [ ] Studio verification of bakery purchase, stock, delivery, customer baskets, collision checks, permissions, schema v22 migration and save/rejoin; see `operations/PHASE36_BAKERY_DEPARTMENT.md`.
 - [ ] Studio verification of Golden Apples shipment, produce stock, migration, basket math, helper permissions, and save/rejoin; see `operations/PHASE17_GOLDEN_APPLES.md`.
 - [ ] Studio verification of employee automation toggles, delayed timer cancellation, roles, v1–v11 migration and save/rejoin; see `operations/PHASE18_EMPLOYEE_AUTOMATION.md`.

@@ -214,6 +214,11 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Consequences:** Profile schema v23 migrates old profiles with bakery ownership off; shelf layout validation reserves the bakery fixture.
 - **Verification:** See `docs/operations/PHASE36_BAKERY_DEPARTMENT.md`.
 
+## ADR-0035: Resolve unavailable basket items through server-owned substitutes
+- **Decision:** Select related substitutes from an ordered server catalog, charge and route using the actual SKU, label the change, and score partial fulfillment.
+- **Consequences:** No schema migration or client authority is added; satisfaction reflects substitute and unfilled quantities.
+- **Verification:** See `docs/operations/PHASE37_PRODUCT_SUBSTITUTION.md`.
+
 ## ADR-0009 — Keep product inventory and supplier orders SKU-specific
 - **Status:** Accepted — 2026-10-12.
 - **Context:** The retail loop needs visible department variety and product-specific stock behavior while keeping stock and money authoritative.
