@@ -17,6 +17,7 @@ Economy.CUSTOMERS_PER_SHIFT = 3
 Economy.SPILL_CLEAN_REWARD = 5
 Economy.BERRY_BITES_STOCK_PER_RESTOCK = 4
 Economy.BERRY_BITES_SHELF_CAPACITY = 24
+Economy.POWER_OUTAGE_DURATION = 30
 
 Economy.PRODUCTS = {
     citrusPop = {
@@ -36,9 +37,23 @@ Economy.PRODUCTS = {
 Economy.CHAOS_EVENTS = {
     CheckoutSpill = {
         id = "checkout_spill",
+        eligibility = { stage = "Checkout", triggerSales = 1 },
         triggerSales = 1,
+        duration = 0,
         objective = "Clean up the spilled groceries by checkout.",
         reward = Economy.SPILL_CLEAN_REWARD,
+        cleanup = "CleanSpill",
+        failureRecovery = "WaitForAuthorizedCleanup",
+    },
+    PowerOutage = {
+        id = "power_outage",
+        eligibility = { stage = "Checkout", triggerSales = 2 },
+        triggerSales = 2,
+        duration = Economy.POWER_OUTAGE_DURATION,
+        objective = "Restore power at the breaker by checkout.",
+        reward = 0,
+        cleanup = "RestorePower",
+        failureRecovery = "AutoRestoreAfterDeadline",
     },
 }
 
@@ -56,6 +71,7 @@ function Economy.newState(profile)
         sales = savedShift.sales or 0,
         cartRecovered = savedShift.cartRecovered or false,
         shiftClosed = savedShift.shiftClosed or false,
+        powerOutageUntil = savedShift.powerOutageUntil or 0,
         upgradePurchased = upgrades.shelfBay or false,
         warehousePurchased = upgrades.warehouse or false,
         cashierHired = (profile.hiredEmployees and profile.hiredEmployees.cashier) or false,
@@ -103,6 +119,7 @@ function Economy.stockBerryBites(state)
         or state.stage == "Upgrade"
         or state.stage == "Loading"
         or state.stage == "OwnerOffline"
+        or state.stage == "PowerOutage"
     then
         return false, "Wait until store operations are underway before restocking Berry Bites."
     end
@@ -201,7 +218,7 @@ function Economy.getNextCheckoutProductId(state)
     return nil
 end
 
-function Economy.sellProduct(state)
+function Economy.sellProduct(state, now)
     if state.stage ~= "Checkout" then
         return false, "The checkout is waiting for the next customer."
     end
@@ -213,6 +230,12 @@ function Economy.sellProduct(state)
         return false, "The shelves are empty. Restock a product before serving this customer."
     end
     local product = Economy.PRODUCTS[productId]
+    if
+        state.sales + 1 == Economy.CHAOS_EVENTS.PowerOutage.triggerSales
+        and (type(now) ~= "number" or now ~= now or now % 1 ~= 0 or now < 1)
+    then
+        return false, "The event time could not be confirmed. Try again."
+    end
     if productId == "citrusPop" then
         state.stock -= 1
     else
@@ -225,6 +248,16 @@ function Economy.sellProduct(state)
         return true,
             string.format(
                 "Sale complete! +$%d for %s. A customer dropped groceries—clean up the spill!",
+                product.salePrice,
+                product.displayName
+            )
+    end
+    if state.sales == Economy.CHAOS_EVENTS.PowerOutage.triggerSales then
+        state.powerOutageUntil = now + Economy.CHAOS_EVENTS.PowerOutage.duration
+        state.stage = "PowerOutage"
+        return true,
+            string.format(
+                "Sale complete! +$%d for %s. The power is out—restore it at the breaker!",
                 product.salePrice,
                 product.displayName
             )
@@ -256,6 +289,27 @@ function Economy.cleanSpill(state)
     return true, "Aisle clear! +$5. The checkout queue is moving again."
 end
 
+function Economy.restorePower(state)
+    if state.stage ~= "PowerOutage" then
+        return false, "The store power is already on."
+    end
+    state.powerOutageUntil = 0
+    state.stage = "Checkout"
+    return true, "Power restored. The checkout queue is moving again."
+end
+
+function Economy.recoverPower(state, now)
+    if state.stage ~= "PowerOutage" or state.powerOutageUntil <= 0 then
+        return false, "There is no power outage to recover."
+    end
+    if type(now) ~= "number" or now ~= now or now % 1 ~= 0 or now < state.powerOutageUntil then
+        return false, "The outage recovery timer is still active."
+    end
+    state.powerOutageUntil = 0
+    state.stage = "Checkout"
+    return true, "Backup power restored. The checkout queue is moving again."
+end
+
 function Economy.closeShift(state)
     if state.stage ~= "CloseShift" or state.shiftClosed then
         return false, "Serve the waiting customer before closing."
@@ -277,6 +331,7 @@ function Economy.restartShift(state)
     state.stage = "Cart"
     state.stock = 0
     state.berryStock = 0
+    state.powerOutageUntil = 0
     state.sales = 0
     state.cartRecovered = false
     state.shiftClosed = false

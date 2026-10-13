@@ -4,7 +4,7 @@
 
 After the first successful sale in a shift, the server pauses the queue at the `Spill` stage. The spill is a fixed, procedural floor prop near checkout. The owner, Manager, or Maintenance helper may clean it through an in-world prompt; successful cleanup awards $5 once and resumes the queue. Customers remain visible while waiting. The spill state is saved as the shift stage, so rejoining restores the same objective.
 
-This is a predictable first chaos event, not a randomized event director. It has no countdown, penalty, destructive outcome or client remote. Customer Rush and Power Outage remain future events and require their own safe failure/recovery designs.
+This is a predictable first chaos event, not a randomized event director. It has no countdown, penalty, destructive outcome or client remote. Power Outage is covered by `PHASE12_POWER_OUTAGE.md`; Customer Rush still requires a bounded safe failure/recovery design.
 
 ## Acceptance criteria
 

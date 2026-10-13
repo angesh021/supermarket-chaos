@@ -45,6 +45,13 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Consequences:** Profile schema v6 adds only a validated employee boolean. No employee remote, independent reward code, wage loop, or client-driven automation is introduced.
 - **Verification:** See `docs/operations/PHASE10_EMPLOYEES.md`; Studio migration, purchase, persistence, and race checks remain pending.
 
+## ADR-0010 — Bound and recover the checkout power outage
+- **Status:** Accepted — 2026-10-12.
+- **Context:** The master spec calls for manageable chaos events with eligibility, duration, objectives, cleanup and safe recovery.
+- **Decision:** Trigger one checkout outage after the second sale. Persist the active stage and a 30-second server deadline. Owner, Manager or Maintenance can restore power early at a physical breaker; the server restores it automatically at the deadline if no one acts.
+- **Consequences:** Profile schema v8 adds one timestamp and allows `PowerOutage`; previous profiles migrate to zero/no outage. The event does not grant an extra reward, destroy stock, or punish players if unattended. Lighting and checkout readiness are presentation controlled by the server stage.
+- **Verification:** See `docs/operations/PHASE12_POWER_OUTAGE.md`; Studio timing, save/rejoin and role tests remain pending.
+
 ## ADR-0009 — Keep product inventory and supplier orders SKU-specific
 - **Status:** Accepted — 2026-10-12.
 - **Context:** The retail loop needs visible department variety and product-specific stock behavior while keeping stock and money authoritative.

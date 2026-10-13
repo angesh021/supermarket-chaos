@@ -976,7 +976,9 @@ function WorldBuilder.build()
     end
 
     local function setCustomerCount(count)
-        local activeStage = currentStage == "Checkout" or currentStage == "Spill"
+        local activeStage = currentStage == "Checkout"
+            or currentStage == "Spill"
+            or currentStage == "PowerOutage"
         local countAllowed = activeStage or currentStage == "CloseShift"
         local remaining = countAllowed and math.min(math.max(math.floor(count), 0), #customerModels)
             or 0
@@ -1263,6 +1265,30 @@ function WorldBuilder.build()
     )
     local closePrompt = prompt(shiftBoard, "Close Shift", "Shift Summary", "CloseShift", 9)
     local restartPrompt = prompt(shiftBoard, "Start Next Shift", "Shift Board", "RestartShift", 9)
+    local breakerBox = part(
+        interior,
+        "Checkout Power Breaker",
+        Vector3.new(1.4, 2, 0.3),
+        CFrame.new(20.2, 2.7, 6.1),
+        COLORS.gray,
+        Enum.Material.Metal
+    )
+    local breakerSign = label(
+        interior,
+        "Power Breaker Sign",
+        "CHECKOUT POWER",
+        Vector3.new(3.2, 0.8, 0.25),
+        CFrame.new(19.4, 4.2, 6.1),
+        COLORS.teal,
+        COLORS.warmWhite
+    )
+    breakerSign.Transparency = 1
+    local breakerSurface = breakerSign:FindFirstChildOfClass("SurfaceGui")
+    if breakerSurface then
+        breakerSurface.Enabled = false
+    end
+    local powerPrompt = prompt(breakerBox, "Restore Power", "Checkout Breaker", "RestorePower", 9)
+    powerPrompt.Enabled = false
     local upgradePad = part(
         interior,
         "Upgrade Pad",
@@ -1547,6 +1573,23 @@ function WorldBuilder.build()
     lighting.OutdoorAmbient = Color3.fromRGB(173, 182, 165)
     workspace.Gravity = 196.2
 
+    local function setPowerOutage(active)
+        local isOutage = active == true
+        lighting.Brightness = isOutage and 0.65 or 2.3
+        lighting.Ambient = isOutage and Color3.fromRGB(52, 62, 70) or Color3.fromRGB(150, 157, 152)
+        lighting.OutdoorAmbient = isOutage and Color3.fromRGB(80, 88, 92)
+            or Color3.fromRGB(173, 182, 165)
+        for _, item in ipairs(interior:GetDescendants()) do
+            if item:IsA("PointLight") then
+                item.Enabled = not isOutage
+            end
+        end
+        powerPrompt.Enabled = isOutage and currentStage == "PowerOutage"
+        if breakerSurface then
+            breakerSurface.Enabled = isOutage
+        end
+    end
+
     local function addWarehouse()
         if warehouseModel then
             return
@@ -1698,9 +1741,11 @@ function WorldBuilder.build()
             and stage ~= "Upgrade"
             and stage ~= "Loading"
             and stage ~= "OwnerOffline"
+            and stage ~= "PowerOutage"
         register.Enabled = stage == "Checkout" and checkoutReady
         closePrompt.Enabled = stage == "CloseShift"
         spillPrompt.Enabled = stage == "Spill"
+        powerPrompt.Enabled = stage == "PowerOutage"
         upgradePrompt.Enabled = stage == "Upgrade"
         restartPrompt.Enabled = stage == "Complete"
         upgradeMarker.Enabled = stage == "Upgrade"
@@ -1720,6 +1765,7 @@ function WorldBuilder.build()
                 and os.time() >= deliveryReadyAt
         end
         setSpillVisible(stage == "Spill")
+        setPowerOutage(stage == "PowerOutage")
     end
 
     return {
@@ -1744,6 +1790,7 @@ function WorldBuilder.build()
                 and currentStage ~= "Upgrade"
                 and currentStage ~= "Loading"
                 and currentStage ~= "OwnerOffline"
+                and currentStage ~= "PowerOutage"
         end,
         setCustomerProduct = function(displayName)
             customerProductName = displayName or "Citrus Pop"
@@ -1759,6 +1806,7 @@ function WorldBuilder.build()
         end,
         recoverCustomerQueue = recoverCustomerQueue,
         spillPrompt = spillPrompt,
+        powerPrompt = powerPrompt,
         setSpillVisible = setSpillVisible,
         closePrompt = closePrompt,
         restartPrompt = restartPrompt,

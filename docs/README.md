@@ -19,5 +19,6 @@
 | [Chaos event verification](operations/PHASE9_CHAOS.md) | Spill event acceptance and Studio procedure |
 | [Cleaner employee verification](operations/PHASE10_EMPLOYEES.md) | Persistent cleaner acceptance and Studio procedure |
 | [Multi-product verification](operations/PHASE11_PRODUCTS.md) | Separate SKU stock, sales, delivery and migration checks |
+| [Power outage verification](operations/PHASE12_POWER_OUTAGE.md) | Persisted outage, breaker roles, timeout and recovery checks |
 
 Keep this index and linked documents current as implementation changes. See [AGENTS.md](../AGENTS.md) for repository rules.

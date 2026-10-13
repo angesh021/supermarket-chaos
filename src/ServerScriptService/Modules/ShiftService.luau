@@ -28,6 +28,7 @@ local ROLE_ACTIONS = {
         Stock = true,
         Checkout = true,
         Spill = true,
+        RestorePower = true,
         CloseShift = true,
         Upgrade = true,
         Complete = true,
@@ -42,7 +43,7 @@ local ROLE_ACTIONS = {
     },
     Cashier = { Checkout = true },
     Stocker = { Stock = true, StockBerryBites = true },
-    Maintenance = { Cart = true, Spill = true },
+    Maintenance = { Cart = true, Spill = true, RestorePower = true },
 }
 local ASSIGNABLE_ROLES = { Manager = true, Cashier = true, Stocker = true, Maintenance = true }
 local MAX_STORE_PLAYERS = 4
@@ -53,6 +54,7 @@ local OBJECTIVES = {
     Stock = "Stock three Citrus Pop cans on the marked shelf.",
     Checkout = "Serve the customers waiting in the checkout queue.",
     Spill = "Clean up the dropped groceries by checkout.",
+    PowerOutage = "Power outage: restore power at the breaker by checkout.",
     CloseShift = "All customers are served. Close the shift at the shift board.",
     Upgrade = "Upgrade: use the gold pad just inside the front entrance. Press E to spend $45.",
     Complete = "Shift complete. Visit the shift board to start another shift.",
@@ -320,7 +322,7 @@ function ShiftService.init(event, membershipRemotes)
                     end
                     return
                 end
-                local ok, message = Economy.sellProduct(state)
+                local ok, message = Economy.sellProduct(state, os.time())
                 if ok then
                     world.setStockVisual(state.stock)
                     world.setBerryStockVisual(state.berryStock)
@@ -394,6 +396,43 @@ function ShiftService.init(event, membershipRemotes)
         end)
     end
 
+    local scheduledPowerOutageAt
+    local function schedulePowerOutageRecovery()
+        if not state or state.stage ~= "PowerOutage" or state.powerOutageUntil <= 0 then
+            scheduledPowerOutageAt = nil
+            return
+        end
+        local recoveryAt = state.powerOutageUntil
+        if scheduledPowerOutageAt == recoveryAt then
+            return
+        end
+        scheduledPowerOutageAt = recoveryAt
+        task.delay(math.max(0, recoveryAt - os.time()), function()
+            if
+                not ownerReady
+                or not ownerPlayer
+                or not state
+                or state.stage ~= "PowerOutage"
+                or state.powerOutageUntil ~= recoveryAt
+            then
+                return
+            end
+            local saveStatus = ProfileService.getSaveStatus(ownerPlayer)
+            if saveStatus == "lock lost" then
+                return
+            elseif saveStatus == "save pending" then
+                scheduledPowerOutageAt = nil
+                task.delay(1, schedulePowerOutageRecovery)
+                return
+            end
+            local ok, message = Economy.recoverPower(state, os.time())
+            if ok then
+                commit("powerRecoveredAuto")
+                broadcast(message)
+            end
+        end)
+    end
+
     commit = function(eventName)
         ProfileService.saveProgress(ownerPlayer, state, eventName)
         TelemetryService.record(ownerPlayer, eventName)
@@ -411,6 +450,7 @@ function ShiftService.init(event, membershipRemotes)
         scheduleCashierSale()
         scheduleCleaner()
         scheduleDeliveryArrival()
+        schedulePowerOutageRecovery()
     end
 
     bind("Cart", world.cartPrompt, 12, function()
@@ -454,7 +494,7 @@ function ShiftService.init(event, membershipRemotes)
             )
             return
         end
-        local ok, message = Economy.sellProduct(state)
+        local ok, message = Economy.sellProduct(state, os.time())
         if ok then
             world.setStockVisual(state.stock)
             world.setBerryStockVisual(state.berryStock)
@@ -468,6 +508,14 @@ function ShiftService.init(event, membershipRemotes)
         if ok then
             world.setSpillVisible(false)
             commit("spillCleaned")
+        end
+        broadcast(message)
+    end)
+
+    bind("RestorePower", world.powerPrompt, 12, function()
+        local ok, message = Economy.restorePower(state)
+        if ok then
+            commit("powerRestored")
         end
         broadcast(message)
     end)
@@ -747,6 +795,7 @@ function ShiftService.init(event, membershipRemotes)
             scheduleStocker()
             scheduleCleaner()
             scheduleDeliveryArrival()
+            schedulePowerOutageRecovery()
             broadcast(
                 status == "session only" and "Data saving is off; this session will not persist."
                     or "Store profile loaded."

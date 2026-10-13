@@ -25,6 +25,7 @@ Phase 1 desktop first play and Phase 2 progression/persistence were reported pas
 - Phase 7 delivery increment adds schema v4 persistent Citrus Pop backstock and an optional $60 order for 24 cans. The shipment is ready after 15 seconds, survives rejoin, and must be collected at the loading dock; stocking consumes three backroom cans. Ordering/receiving is owner/Manager-only, server-priced and range-checked. Studio verification is pending.
 - Phase 7 multi-product increment adds Berry Bites as a second SKU. Schema v7 persists its shelf/backroom counts and tags the one pending shipment by product. Berry Bites orders cost $45 for 24 packs; restocking moves four packs to a 24-pack shelf. Checkout picks the SKU from server shift state and available stock, credits the server catalog price, and directs the customer to that department. Owner/Manager order either product; Stocker may stock Berry Bites. Studio verification is pending in `operations/PHASE11_PRODUCTS.md`.
 - Phase 9 schema v5 accepts the new `Spill` shift stage while keeping the saved event decision server-authored. Existing schema v1–v4 data migrates through defaults and normalization; Studio save/rejoin verification is pending.
+- Phase 4 chaos increment adds a power outage after the second sale. Profile schema v8 persists the outage stage and deadline; Owner/Manager/Maintenance can restore power at the checkout breaker, while a server timer safely restores the queue after 30 seconds. Cashier automation pauses during the event. Studio event, timer and rejoin checks are pending in `operations/PHASE12_POWER_OUTAGE.md`.
 - Phase 10 schema v6 adds a validated persistent cleaner employee flag; schemas v1–v5 default safely to no cleaner.
 - DataStore calls are enabled only when `game.GameId` matches development universe `10770581249`. Other universes display session-only status and never write to that store.
 
@@ -42,6 +43,7 @@ Use a private development test experience in universe `10770581249`; use two or 
 10. Follow [Visual review](operations/VISUAL_REVIEW.md) to inspect the exterior, aisle route, products, produce, refrigerator, checkout and character scale in Studio.
 11. Follow [Phase 7 delivery checks](operations/PHASE7_DELIVERY.md) for Citrus Pop backstock, order charge, arrival, receipt, low-stock recovery and save/rejoin.
 12. Follow [Phase 11 product checks](operations/PHASE11_PRODUCTS.md) for Berry Bites stocking, SKU-specific checkout, both delivery types, schema migration, helper permissions, concurrency and rejoin.
+13. Follow [Phase 12 power outage checks](operations/PHASE12_POWER_OUTAGE.md) for the second-sale trigger, breaker roles, 30-second fallback, cashier pause and save/rejoin behavior.
 
 ## Toolchain and checks
 - Rojo 7.7.0, Selene 0.32.0 and StyLua 2.5.0 are pinned in `rokit.toml`.
@@ -49,6 +51,7 @@ Use a private development test experience in universe `10770581249`; use two or 
 - For the customer flow, spill and cleaner increments, `stylua --check src`, `selene src` (0 errors, 0 warnings, 0 parse errors), `rojo build default.project.json -o %TEMP%\\supermarket-chaos.rbxlx`, and `git diff --check` passed on 2026-10-12. Git reported only LF-to-CRLF normalization warnings.
 - For bounded customer flow, the four checks passed again on 2026-10-12: `stylua --check src`, `selene src`, Rojo build, and `git diff --check`. Studio animation/navigation is not locally executable.
 - For Phase 11 multi-product inventory, `stylua --check src`, `selene src` (0 errors, 0 warnings, 0 parse errors), `rojo build default.project.json`, and `git diff --check` passed on 2026-10-12. Git reported only LF-to-CRLF normalization warnings. Roblox Studio SKU behavior, customer navigation, multiplayer permissions, and DataStore migration were not run.
+- For Phase 12 Power Outage, StyLua format/check, Selene (0 errors, 0 warnings, 0 parse errors), Rojo build, and `git diff --check` passed on 2026-10-12. Studio trigger, lighting, role, timer and rejoin behavior remain unverified.
 - Roblox Studio runtime and DataStore behavior cannot be exercised from the local shell. Do not mark the new multiplayer, employee, or customer-queue behavior passed until the user confirms Studio results.
 
 ## Known limitations
@@ -57,7 +60,7 @@ Use a private development test experience in universe `10770581249`; use two or 
 3. Employees are a first automation increment and only auto-serve the introductory stock/checkout stage; they do not simulate a full queue or wages.
 4. Mobile layout, multi-server lease failure paths, malicious-client stress, development funnel ingestion and Studio behavior for Phases 3/4 remain unverified.
 5. Production universe ID, publishing and commerce are not configured. Development funnel ingestion and Creator Dashboard reporting remain unverified.
-6. Product variety is still a first increment: two SKUs, a scripted checkout choice, one pending shipment total and no customer basket/preferences, supplier selection, or editable warehouse layout.
+6. Product variety is still a first increment: two SKUs, a scripted checkout choice, one pending shipment total and no customer basket/preferences, supplier selection, or editable warehouse layout. The Chaos Director still needs Customer Rush and random/event scheduling.
 
 ## Current gate
 **G0:** approved. **G1:** desktop first-shift accepted. **G2:** user reported tests passed. **G3–G7 increments:** implemented; multiplayer, employee, customer queue, spill event, analytics, touch, visual, warehouse, delivery and multi-product verification pending. **Production:** disabled pending user-provided production universe ID and deployment approval.

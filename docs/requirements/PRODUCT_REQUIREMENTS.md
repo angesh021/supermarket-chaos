@@ -82,3 +82,9 @@ Instrument funnel events for first interaction, first stock, first sale, first u
 - Display separate inventory counts and distinguish visible stocked products on their department shelves.
 - Keep Berry Bites stocking and both supplier orders behind warehouse ownership and current server role permissions.
 - Manual acceptance and failure cases are listed in `operations/PHASE11_PRODUCTS.md`.
+
+### Phase 4 Power Outage increment
+- After the second completed sale, trigger a bounded checkout outage with a visible breaker objective and a 30-second server recovery deadline.
+- Persist the outage stage/deadline so rejoining cannot skip the event or leave the shift stuck.
+- Permit Owner, Manager and Maintenance to restore power early; Cashier automation pauses until the outage resolves.
+- Manual breaker use and timer fallback must restore service without an extra reward, sale, or inventory change. See `operations/PHASE12_POWER_OUTAGE.md`.

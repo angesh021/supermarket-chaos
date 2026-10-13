@@ -54,6 +54,12 @@ Currency and stock changes occur only after server-side validation. Transactions
 - Checkout chooses the next SKU from server shift progress and available shelf stock, and the customer route/shelf visuals follow that choice. No client product/price argument is accepted.
 - Owner/Manager can order either SKU; Owner/Manager/Stocker can stock Berry Bites. Existing prompt checks still enforce owner profile readiness, membership, role, distance and cooldown. See `operations/PHASE11_PRODUCTS.md` for acceptance and Studio verification.
 
+## Phase 4 Power Outage increment
+- Profile schema v8 persists the `PowerOutage` shift stage and a bounded Unix recovery timestamp. The normalizer accepts this pair only when the stage is active and a timestamp is present; older profiles default to no outage.
+- The second server-priced sale starts a 30-second outage. Manual restoration at the checkout breaker returns to `Checkout` immediately; a server timer restores the queue after the deadline if nobody responds. Neither path adds a separate reward or sale.
+- Owner/Manager/Maintenance may restore power, with the common prompt range, role, profile lease and rate checks. Cashier automation is paused by the stage and restarts on recovery. `WorldBuilder` owns only presentation: lighting, breaker sign and prompt.
+- See `operations/PHASE12_POWER_OUTAGE.md`; Studio timer, persistence, role and visual behavior remain unverified.
+
 ## Open technical decisions
 See `docs/decisions/README.md` for accepted ownership policy. Remaining decisions include multi-store/guest permissions, production Studio place configuration, analytics implementation/privacy review, and any changes to persistence recovery. Verify platform APIs against official documentation when implementation starts.
 # Cooperative ownership and cashier extension

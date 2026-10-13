@@ -4,7 +4,7 @@ local HttpService = game:GetService("HttpService")
 
 local ProfileService = {}
 
-local SCHEMA_VERSION = 7
+local SCHEMA_VERSION = 8
 local SESSION_LEASE_SECONDS = 180
 local MAX_RETRIES = 3
 local STORE_NAME = "SupermarketChaos_PlayerProfiles_v1"
@@ -34,6 +34,7 @@ local function defaultProfile()
             stock = 0,
             berryStock = 0,
             sales = 0,
+            powerOutageUntil = 0,
             cartRecovered = false,
             shiftClosed = false,
         },
@@ -210,6 +211,7 @@ local function normalizeProfile(value)
                 and stage ~= "Stock"
                 and stage ~= "Checkout"
                 and stage ~= "Spill"
+                and stage ~= "PowerOutage"
                 and stage ~= "CloseShift"
                 and stage ~= "Upgrade"
                 and stage ~= "Complete"
@@ -222,6 +224,7 @@ local function normalizeProfile(value)
             not validCounter(value.shift.stock)
             or not validCounter(value.shift.berryStock)
             or not validCounter(value.shift.sales)
+            or not validTimestamp(value.shift.powerOutageUntil)
         then
             return nil, "Stored shift counters are invalid."
         end
@@ -237,6 +240,13 @@ local function normalizeProfile(value)
         profile.shift.stock = nonNegativeInteger(value.shift.stock, 0)
         profile.shift.berryStock = nonNegativeInteger(value.shift.berryStock, 0)
         profile.shift.sales = nonNegativeInteger(value.shift.sales, 0)
+        profile.shift.powerOutageUntil = nonNegativeInteger(value.shift.powerOutageUntil, 0)
+        if
+            (profile.shift.stage == "PowerOutage" and profile.shift.powerOutageUntil == 0)
+            or (profile.shift.stage ~= "PowerOutage" and profile.shift.powerOutageUntil ~= 0)
+        then
+            return nil, "Stored power outage state is inconsistent."
+        end
         profile.shift.cartRecovered = value.shift.cartRecovered == true
         profile.shift.shiftClosed = value.shift.shiftClosed == true
     end
@@ -252,6 +262,7 @@ local function copyProfile(profile)
             stock = profile.shift.stock,
             berryStock = profile.shift.berryStock,
             sales = profile.shift.sales,
+            powerOutageUntil = profile.shift.powerOutageUntil,
             cartRecovered = profile.shift.cartRecovered,
             shiftClosed = profile.shift.shiftClosed,
         },
@@ -469,6 +480,7 @@ function ProfileService.saveProgress(player, state, eventName)
     profile.shift.stock = state.stock
     profile.shift.berryStock = state.berryStock
     profile.shift.sales = state.sales
+    profile.shift.powerOutageUntil = state.powerOutageUntil
     profile.shift.cartRecovered = state.cartRecovered
     profile.shift.shiftClosed = state.shiftClosed
     profile.ownedUpgrades.shelfBay = state.upgradePurchased
