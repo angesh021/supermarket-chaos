@@ -1807,6 +1807,8 @@ function WorldBuilder.build()
         end
     end
     local deliveryWorkerHired = false
+    local deliveryFleetPurchased = false
+    local deliveryFleetModel
     local customerAssistantBoard = label(
         interior,
         "Customer Assistant Hiring Board",
@@ -2611,6 +2613,22 @@ function WorldBuilder.build()
     )
     local warehousePrompt =
         prompt(warehousePad, "Build Warehouse ($200)", "Retail Empire Expansion", "Warehouse", 10)
+    local deliveryFleetPad = part(
+        exterior,
+        "Regional Delivery Fleet Pad",
+        Vector3.new(4.5, 0.5, 4.5),
+        CFrame.new(75, 0.45, 10),
+        COLORS.gold,
+        Enum.Material.Neon
+    )
+    local deliveryFleetPrompt = prompt(
+        deliveryFleetPad,
+        "Add Delivery Fleet ($3,000)",
+        "Retail Empire Logistics",
+        "DeliveryFleet",
+        10
+    )
+    deliveryFleetPrompt.Enabled = false
     local warehouseModel
     local warehousePurchased = false
     local layoutFixtureFolder
@@ -3596,6 +3614,76 @@ function WorldBuilder.build()
         warehousePrompt.Enabled = false
     end
 
+    local function addDeliveryFleet()
+        if deliveryFleetModel then
+            return
+        end
+        deliveryFleetModel = Instance.new("Model")
+        deliveryFleetModel.Name = "Regional Delivery Fleet"
+        deliveryFleetModel.Parent = exterior
+        for index, x in ipairs({ 52, 66 }) do
+            local truck = Instance.new("Model")
+            truck.Name = "Delivery Fleet Truck " .. index
+            truck.Parent = deliveryFleetModel
+            part(
+                truck,
+                "Delivery Truck Chassis",
+                Vector3.new(3.5, 0.7, 6.5),
+                CFrame.new(x, 1.1, 17),
+                COLORS.deepTeal,
+                Enum.Material.Metal
+            )
+            part(
+                truck,
+                "Delivery Truck Cargo Box",
+                Vector3.new(3.5, 2.7, 4.1),
+                CFrame.new(x, 2.8, 16.2),
+                index == 1 and COLORS.teal or COLORS.green,
+                Enum.Material.Metal
+            )
+            part(
+                truck,
+                "Delivery Truck Cab",
+                Vector3.new(3.3, 2.4, 2.3),
+                CFrame.new(x, 2.65, 20),
+                COLORS.cream,
+                Enum.Material.SmoothPlastic
+            )
+            for _, wheelX in ipairs({ x - 1.55, x + 1.55 }) do
+                for _, wheelZ in ipairs({ 14.8, 19.1 }) do
+                    local wheel = part(
+                        truck,
+                        "Delivery Truck Wheel",
+                        Vector3.new(0.35, 1.05, 1.05),
+                        CFrame.new(wheelX, 0.82, wheelZ) * CFrame.Angles(0, 0, math.pi / 2),
+                        COLORS.ink,
+                        Enum.Material.Rubber
+                    )
+                    wheel.Shape = Enum.PartType.Cylinder
+                end
+            end
+            local fleetLabel = label(
+                truck,
+                "Delivery Fleet Door Mark",
+                "REGIONAL\nDELIVERY",
+                Vector3.new(2.1, 1, 0.12),
+                CFrame.new(x, 2.6, 21.18),
+                COLORS.gold,
+                COLORS.deepTeal
+            )
+            fleetLabel.CanCollide = false
+            for _, item in ipairs(truck:GetDescendants()) do
+                if item:IsA("BasePart") then
+                    item.CanCollide = false
+                    item.Anchored = true
+                end
+            end
+        end
+        deliveryFleetPad.Transparency = 1
+        deliveryFleetPad.CanCollide = false
+        deliveryFleetPrompt.Enabled = false
+    end
+
     local function setDeliveryState(readyAt, quantity, productId)
         deliveryReadyAt = readyAt or 0
         deliveryQuantity = quantity or 0
@@ -4029,6 +4117,17 @@ function WorldBuilder.build()
         deliveryWorkerHirePrompt.Enabled = stage == "Complete"
             and warehousePurchased
             and not deliveryWorkerHired
+        deliveryFleetPrompt.Enabled = stage == "Complete"
+            and warehousePurchased
+            and deliveryWorkerHired
+            and not deliveryFleetPurchased
+        deliveryFleetPad.Transparency = (
+            deliveryFleetPurchased
+            or not warehousePurchased
+            or not deliveryWorkerHired
+        )
+                and 1
+            or 0
         customerAssistantHirePrompt.Enabled = stage == "Complete" and not customerAssistantHired
         cashierAutomationPrompt.Enabled = stage ~= "Loading"
             and stage ~= "OwnerOffline"
@@ -4621,6 +4720,17 @@ function WorldBuilder.build()
             deliveryWorkerHirePrompt.Enabled = currentStage == "Complete"
                 and warehousePurchased
                 and not deliveryWorkerHired
+            deliveryFleetPrompt.Enabled = currentStage == "Complete"
+                and warehousePurchased
+                and deliveryWorkerHired
+                and not deliveryFleetPurchased
+            deliveryFleetPad.Transparency = (
+                deliveryFleetPurchased
+                or not warehousePurchased
+                or not deliveryWorkerHired
+            )
+                    and 1
+                or 0
             for _, item in ipairs(deliveryWorkerModel:GetDescendants()) do
                 if item:IsA("BasePart") then
                     item.Transparency = deliveryWorkerHired and 0 or 1
@@ -4631,6 +4741,24 @@ function WorldBuilder.build()
             deliveryWorkerAutomationPrompt.ActionText = enabled and "Pause Automation"
                 or "Resume Automation"
         end,
+        deliveryFleetPrompt = deliveryFleetPrompt,
+        setDeliveryFleetPurchased = function(purchased)
+            deliveryFleetPurchased = purchased == true
+            if deliveryFleetPurchased then
+                addDeliveryFleet()
+            end
+            deliveryFleetPrompt.Enabled = currentStage == "Complete"
+                and warehousePurchased
+                and deliveryWorkerHired
+                and not deliveryFleetPurchased
+            deliveryFleetPad.Transparency = (
+                deliveryFleetPurchased
+                or not warehousePurchased
+                or not deliveryWorkerHired
+            )
+                    and 1
+                or 0
+        end,
         addWarehouse = addWarehouse,
         setWarehousePurchased = function(purchased)
             warehousePurchased = purchased == true
@@ -4639,6 +4767,17 @@ function WorldBuilder.build()
             else
                 warehousePrompt.Enabled = currentStage == "Complete"
             end
+            deliveryFleetPrompt.Enabled = currentStage == "Complete"
+                and warehousePurchased
+                and deliveryWorkerHired
+                and not deliveryFleetPurchased
+            deliveryFleetPad.Transparency = (
+                deliveryFleetPurchased
+                or not warehousePurchased
+                or not deliveryWorkerHired
+            )
+                    and 1
+                or 0
         end,
         onlineOrderPrompt = function()
             return onlineOrderPrompt

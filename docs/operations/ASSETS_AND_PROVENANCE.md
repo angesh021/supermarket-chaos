@@ -21,6 +21,7 @@ No production assets have been imported. Register each nontrivial asset with:
 - Phase 51 uses color changes to existing original procedural plaza Parts and SurfaceGuis; no external visual assets or third-party code are used.
 - Phase 52 visitors are original procedural Roblox Part models with built-in materials and generated nameplates; no external assets or third-party code are used.
 - Phase 53 adds no visual assets; visitor purchases reuse the Phase 52 procedural models and existing shop displays.
+- Phase 54 two-truck delivery fleet uses original procedural Roblox Parts and built-in materials; no external asset IDs or third-party code are used.
 - These are original, low-poly gameplay blockouts. No external assets, Toolbox items, textures or third-party scripts were added. Visual quality, mobile performance and camera readability are pending Studio review.
 
 Use original fictional products and signage. Do not use unverified Toolbox scripts or assets. Keep evidence of permission and attribution requirements.

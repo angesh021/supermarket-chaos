@@ -6,7 +6,7 @@ local ProfileService = {}
 local LayoutService = require(script.Parent.LayoutService)
 local RetailLayoutService = require(script.Parent.RetailLayoutService)
 
-local SCHEMA_VERSION = 33
+local SCHEMA_VERSION = 34
 local SESSION_LEASE_SECONDS = 180
 local MAX_RETRIES = 3
 local STORE_NAME = "SupermarketChaos_PlayerProfiles_v1"
@@ -45,6 +45,7 @@ local function defaultProfile()
             cartRecovered = false,
             shiftClosed = false,
             deliveryWorkerOrderShift = 0,
+            deliveryWorkerOrdersThisShift = 0,
             cafeStock = 0,
             cafeSales = 0,
             restaurantStock = 0,
@@ -68,6 +69,7 @@ local function defaultProfile()
             electronicsStore = false,
             gardenStore = false,
             plazaStyleId = "",
+            deliveryFleet = false,
             marketStyleId = "",
         },
         hiredEmployees = {
@@ -230,6 +232,7 @@ local function normalizeProfile(value)
                 value.ownedUpgrades.electronicsStore
             ) ~= "boolean")
             or (value.ownedUpgrades.gardenStore ~= nil and type(value.ownedUpgrades.gardenStore) ~= "boolean")
+            or (value.ownedUpgrades.deliveryFleet ~= nil and type(value.ownedUpgrades.deliveryFleet) ~= "boolean")
             or (value.ownedUpgrades.plazaStyleId ~= nil and value.ownedUpgrades.plazaStyleId ~= "" and value.ownedUpgrades.plazaStyleId ~= "coastal" and value.ownedUpgrades.plazaStyleId ~= "urban" and value.ownedUpgrades.plazaStyleId ~= "harvest")
             or (value.ownedUpgrades.marketStyleId ~= nil and value.ownedUpgrades.marketStyleId ~= "" and value.ownedUpgrades.marketStyleId ~= "coastal" and value.ownedUpgrades.marketStyleId ~= "urban" and value.ownedUpgrades.marketStyleId ~= "harvest")
             or (
@@ -251,6 +254,7 @@ local function normalizeProfile(value)
         profile.ownedUpgrades.restaurant = value.ownedUpgrades.restaurant == true
         profile.ownedUpgrades.electronicsStore = value.ownedUpgrades.electronicsStore == true
         profile.ownedUpgrades.gardenStore = value.ownedUpgrades.gardenStore == true
+        profile.ownedUpgrades.deliveryFleet = value.ownedUpgrades.deliveryFleet == true
         local savedPlazaStyleId = value.ownedUpgrades.plazaStyleId
         if
             savedPlazaStyleId == "coastal"
@@ -354,6 +358,12 @@ local function normalizeProfile(value)
     end
     if profile.hiredEmployees.deliveryWorker and not profile.ownedUpgrades.warehouse then
         return nil, "Stored delivery worker does not have warehouse ownership."
+    end
+    if
+        profile.ownedUpgrades.deliveryFleet
+        and (not profile.ownedUpgrades.warehouse or not profile.hiredEmployees.deliveryWorker)
+    then
+        return nil, "Stored delivery fleet exists without its warehouse and worker prerequisites."
     end
     if value.employeeAutomation ~= nil and type(value.employeeAutomation) ~= "table" then
         return nil, "Stored employee automation settings are malformed."
@@ -517,6 +527,7 @@ local function normalizeProfile(value)
             or not validTimestamp(value.shift.powerOutageUntil)
             or not validTimestamp(value.shift.customerRushUntil)
             or not validCounter(value.shift.deliveryWorkerOrderShift)
+            or not validCounter(value.shift.deliveryWorkerOrdersThisShift)
             or not validCounter(value.shift.cafeStock)
             or not validCounter(value.shift.cafeSales)
             or not validCounter(value.shift.restaurantStock)
@@ -655,6 +666,16 @@ local function normalizeProfile(value)
         profile.shift.shiftClosed = value.shift.shiftClosed == true
         profile.shift.deliveryWorkerOrderShift =
             nonNegativeInteger(value.shift.deliveryWorkerOrderShift, 0)
+        profile.shift.deliveryWorkerOrdersThisShift = nonNegativeInteger(
+            value.shift.deliveryWorkerOrdersThisShift,
+            profile.shift.deliveryWorkerOrderShift == profile.completedShifts
+                    and profile.completedShifts > 0
+                    and 1
+                or 0
+        )
+        if profile.shift.deliveryWorkerOrdersThisShift > 3 then
+            return nil, "Stored delivery fleet order count exceeds the supported shift limit."
+        end
         profile.shift.cafeStock = nonNegativeInteger(value.shift.cafeStock, 0)
         profile.shift.cafeSales = nonNegativeInteger(value.shift.cafeSales, 0)
         profile.shift.restaurantStock = nonNegativeInteger(value.shift.restaurantStock, 0)
@@ -685,6 +706,7 @@ local function copyProfile(profile)
             cartRecovered = profile.shift.cartRecovered,
             shiftClosed = profile.shift.shiftClosed,
             deliveryWorkerOrderShift = profile.shift.deliveryWorkerOrderShift,
+            deliveryWorkerOrdersThisShift = profile.shift.deliveryWorkerOrdersThisShift,
             cafeStock = profile.shift.cafeStock,
             cafeSales = profile.shift.cafeSales,
             restaurantStock = profile.shift.restaurantStock,
@@ -707,6 +729,7 @@ local function copyProfile(profile)
             restaurant = profile.ownedUpgrades.restaurant,
             electronicsStore = profile.ownedUpgrades.electronicsStore,
             gardenStore = profile.ownedUpgrades.gardenStore,
+            deliveryFleet = profile.ownedUpgrades.deliveryFleet,
             plazaStyleId = profile.ownedUpgrades.plazaStyleId,
             marketStyleId = profile.ownedUpgrades.marketStyleId,
         },
@@ -979,6 +1002,7 @@ function ProfileService.saveProgress(player, state, eventName)
     profile.shift.cartRecovered = state.cartRecovered
     profile.shift.shiftClosed = state.shiftClosed
     profile.shift.deliveryWorkerOrderShift = state.deliveryWorkerOrderShift or 0
+    profile.shift.deliveryWorkerOrdersThisShift = state.deliveryWorkerOrdersThisShift or 0
     profile.shift.cafeStock = state.cafeStock
     profile.shift.cafeSales = state.cafeSales
     profile.shift.restaurantStock = state.restaurantStock
@@ -999,6 +1023,7 @@ function ProfileService.saveProgress(player, state, eventName)
     profile.ownedUpgrades.restaurant = state.restaurantPurchased
     profile.ownedUpgrades.electronicsStore = state.electronicsStorePurchased
     profile.ownedUpgrades.gardenStore = state.gardenStorePurchased
+    profile.ownedUpgrades.deliveryFleet = state.deliveryFleetPurchased
     profile.ownedUpgrades.plazaStyleId = state.plazaStyleId
     profile.ownedUpgrades.marketStyleId = state.marketStyleId
     profile.warehouseLayout = state.warehouseLayout

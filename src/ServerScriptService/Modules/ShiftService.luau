@@ -68,6 +68,7 @@ local ROLE_ACTIONS = {
         SellGarden = true,
         PlazaStyle = true,
         PreviewPlazaStyle = true,
+        DeliveryFleet = true,
         FulfillOnlineOrder = true,
         SelfCheckout = true,
         EditLayout = true,
@@ -538,13 +539,21 @@ function ShiftService.init(event, membershipRemotes)
         onlineOrderWorkerScheduleVersion += 1
         local scheduleVersion = onlineOrderWorkerScheduleVersion
         local completedShift = state and state.completedShifts or 0
+        local orderLimit = state
+                and state.deliveryFleetPurchased
+                and Economy.DELIVERY_FLEET_ORDERS_PER_SHIFT
+            or 1
+        local ordersThisShift = state
+                and state.deliveryWorkerOrderShift == completedShift
+                and (state.deliveryWorkerOrdersThisShift or 0)
+            or 0
         if
             not state
             or state.stage ~= "Complete"
             or not state.warehousePurchased
             or not state.deliveryWorkerHired
             or not state.deliveryWorkerAutomationEnabled
-            or (state.deliveryWorkerOrderShift or 0) >= completedShift
+            or ordersThisShift >= orderLimit
             or not Economy.getNextOnlineOrder(state).ready
         then
             return
@@ -560,7 +569,7 @@ function ShiftService.init(event, membershipRemotes)
                 or state.completedShifts ~= completedShift
                 or not state.deliveryWorkerHired
                 or not state.deliveryWorkerAutomationEnabled
-                or (state.deliveryWorkerOrderShift or 0) >= completedShift
+                or (state.deliveryWorkerOrderShift == completedShift and (state.deliveryWorkerOrdersThisShift or 0) >= orderLimit)
                 or not Economy.getNextOnlineOrder(state).ready
             then
                 return
@@ -576,7 +585,11 @@ function ShiftService.init(event, membershipRemotes)
             saleTransactionInProgress = true
             local ok, message = Economy.fulfillOnlineOrder(state)
             if ok then
+                if state.deliveryWorkerOrderShift ~= completedShift then
+                    state.deliveryWorkerOrdersThisShift = 0
+                end
                 state.deliveryWorkerOrderShift = completedShift
+                state.deliveryWorkerOrdersThisShift += 1
                 commit("onlineOrderFulfilledByWorker")
                 broadcast("The delivery worker packed today's online order. " .. message)
             end
@@ -819,6 +832,7 @@ function ShiftService.init(event, membershipRemotes)
         )
         world.setGardenStoreState(state.gardenStorePurchased, state.gardenStock, state.gardenSales)
         world.setPlazaStyle(state.plazaStylePurchased, state.plazaStyleId)
+        world.setDeliveryFleetPurchased(state.deliveryFleetPurchased)
         broadcast()
         scheduleOnlineOrderWorker()
         scheduleStocker()
@@ -1473,9 +1487,14 @@ function ShiftService.init(event, membershipRemotes)
         saleTransactionInProgress = true
         local ok, message = Economy.fulfillOnlineOrder(state)
         if ok then
-            if state.deliveryWorkerHired and state.deliveryWorkerAutomationEnabled then
-                state.deliveryWorkerOrderShift = state.completedShifts
+            if state.deliveryWorkerOrderShift ~= state.completedShifts then
+                state.deliveryWorkerOrdersThisShift = 0
             end
+            state.deliveryWorkerOrderShift = state.completedShifts
+            state.deliveryWorkerOrdersThisShift = math.min(
+                (state.deliveryWorkerOrdersThisShift or 0) + 1,
+                Economy.DELIVERY_FLEET_ORDERS_PER_SHIFT
+            )
             commit("onlineOrderFulfilled")
         end
         saleTransactionInProgress = false
@@ -1532,6 +1551,21 @@ function ShiftService.init(event, membershipRemotes)
             world.setDeliveryWorkerHired(true)
             commit("employeeHired")
         end
+        broadcast(message)
+    end)
+
+    bind("DeliveryFleet", world.deliveryFleetPrompt, 12, function()
+        if saleTransactionInProgress then
+            broadcast("A store transaction is saving. Try adding the fleet again shortly.")
+            return
+        end
+        saleTransactionInProgress = true
+        local ok, message = Economy.buyDeliveryFleet(state)
+        if ok then
+            world.setDeliveryFleetPurchased(state.deliveryFleetPurchased)
+            commit("deliveryFleetPurchased")
+        end
+        saleTransactionInProgress = false
         broadcast(message)
     end)
 
@@ -2001,6 +2035,7 @@ function ShiftService.init(event, membershipRemotes)
             world.setStockerHired(state.stockerHired)
             world.setCleanerHired(state.cleanerHired)
             world.setDeliveryWorkerHired(state.deliveryWorkerHired)
+            world.setDeliveryFleetPurchased(state.deliveryFleetPurchased)
             world.setCustomerAssistantHired(state.customerAssistantHired)
             world.setCashierAutomationEnabled(state.cashierAutomationEnabled)
             world.setStockerAutomationEnabled(state.stockerAutomationEnabled)

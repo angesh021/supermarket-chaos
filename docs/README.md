@@ -60,5 +60,6 @@
 | [Plaza customization verification](operations/PHASE51_PLAZA_CUSTOMIZATION.md) | Preview and install a persistent palette across plaza storefronts and paths |
 | [Shared plaza traffic verification](operations/PHASE52_SHARED_PLAZA_TRAFFIC.md) | Bounded procedural visitors browse owned shops and exit |
 | [Plaza customer sales verification](operations/PHASE53_PLAZA_CUSTOMER_SALES.md) | Visitors buy stocked items through server-owned business sales |
+| [Delivery fleet verification](operations/PHASE54_DELIVERY_FLEET.md) | Persistent two-truck fleet and bounded online-order automation |
 
 Keep this index and linked documents current as implementation changes. See [AGENTS.md](../AGENTS.md) for repository rules.

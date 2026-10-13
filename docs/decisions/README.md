@@ -299,6 +299,11 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Consequences:** Current stock and saved business sales/cash update consistently. A 15-second per-business throttle and shared transaction lock bound automatic sales and prevent races; no new profile fields are needed.
 - **Verification:** See `docs/operations/PHASE53_PLAZA_CUSTOMER_SALES.md`.
 
+## ADR-0052: Add a persistent delivery fleet
+- **Decision:** After warehouse and delivery-worker ownership, allow a one-time `$3,000` two-truck fleet purchase that raises worker online-order packing capacity from one to three per completed shift.
+- **Consequences:** Manual and automatic packing count against a bounded per-shift total; profile schema v34 migrates existing one-order markers. Existing rotation, stock, payout, worker toggle and transaction lock are reused.
+- **Verification:** See `docs/operations/PHASE54_DELIVERY_FLEET.md`.
+
 ## ADR-0009 — Keep product inventory and supplier orders SKU-specific
 - **Status:** Accepted — 2026-10-12.
 - **Context:** The retail loop needs visible department variety and product-specific stock behavior while keeping stock and money authoritative.

@@ -39,6 +39,8 @@ Economy.GARDEN_RESTOCK_QUANTITY = 3
 Economy.GARDEN_SHELF_CAPACITY = 12
 Economy.GARDEN_ITEM_PRICE = 75
 Economy.PLAZA_STYLE_COST = 750
+Economy.DELIVERY_FLEET_COST = 3000
+Economy.DELIVERY_FLEET_ORDERS_PER_SHIFT = 3
 Economy.ONLINE_ORDER_PRODUCTS = {
     { "citrusPop", "berryBites", "goldenApples" },
     { "sunriseCereal", "citrusPop", "goldenApples" },
@@ -277,6 +279,8 @@ function Economy.newState(profile, playerSeed)
         gardenSales = savedShift.gardenSales or 0,
         plazaStylePurchased = upgrades.plazaStyleId ~= nil and upgrades.plazaStyleId ~= "",
         plazaStyleId = upgrades.plazaStyleId or "",
+        deliveryFleetPurchased = upgrades.deliveryFleet or false,
+        deliveryWorkerOrdersThisShift = savedShift.deliveryWorkerOrdersThisShift or 0,
     }
 end
 
@@ -502,6 +506,24 @@ function Economy.buyPlazaStyle(state, styleId)
     state.plazaStylePurchased = true
     state.plazaStyleId = styleId
     return true, string.format("%s plaza style installed!", string.upper(styleId))
+end
+
+function Economy.buyDeliveryFleet(state)
+    if
+        state.stage ~= "Complete"
+        or not state.warehousePurchased
+        or not state.deliveryWorkerHired
+        or state.deliveryFleetPurchased
+    then
+        return false, "The delivery fleet requires a warehouse and hired delivery worker."
+    end
+    if state.cash < Economy.DELIVERY_FLEET_COST then
+        return false,
+            string.format("You need $%d to add the delivery fleet.", Economy.DELIVERY_FLEET_COST)
+    end
+    state.cash -= Economy.DELIVERY_FLEET_COST
+    state.deliveryFleetPurchased = true
+    return true, "Delivery fleet added! The worker can pack up to three orders each shift."
 end
 
 function Economy.getNextOnlineOrder(state)

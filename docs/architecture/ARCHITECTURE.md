@@ -214,6 +214,11 @@ See `docs/decisions/README.md` for accepted ownership policy. Remaining decision
 - At a visitor's server-generated browse event, `ShiftService` accepts only one of four fixed business IDs and invokes that business's existing `Economy` sale transition.
 - Owner readiness, profile lease/save state, per-business 15-second cooldown and the common transaction lock gate the sale. Existing profile stock/sales fields are saved through `commit`.
 - Visitors cannot choose products, quantities or prices. Empty stock and dropped concurrent events do not pay; visitors retry on a later route.
+
+## Phase 54 delivery fleet
+- The persistent `$3,000` fleet upgrade requires warehouse ownership and a hired delivery worker; `WorldBuilder` builds two procedural trucks at the loading dock.
+- Existing online-order automation uses the same deterministic rotation and stock/payout transition, now capped at three packed orders per completed shift when the fleet is owned. Manual orders consume capacity too.
+- Profile schema v34 adds a 0–3 per-shift order count. Existing v33 profiles with a current-shift idempotency marker migrate with count 1; other profiles default to 0. The shared transaction lock and delivery-worker automation toggle remain authoritative.
 # Cooperative ownership and cashier extension
 - One owner profile remains the persistence boundary. Per-server membership grants temporary action permissions but does not load a guest's profile into the owner's economy.
 - Server role map: Owner (all), Manager (all shift actions including staff hiring), Cashier (checkout), Stocker (stock), Maintenance (cart recovery).

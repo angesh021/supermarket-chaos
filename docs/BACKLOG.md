@@ -75,6 +75,8 @@ G0 was approved on 2026-10-12. The user authorized continued phase implementatio
 - [ ] Studio verification of visitor counts, routes, ownership gating, collision/camera behavior and cleanup after world reset; see `operations/PHASE52_SHARED_PLAZA_TRAFFIC.md`.
 - [x] Phase 53 Stage 4 increment: let plaza visitors purchase one stocked item at their visited business using existing server sale transitions; per-business 15-second throttle and shared transaction lock prevent races; see `operations/PHASE53_PLAZA_CUSTOMER_SALES.md`.
 - [ ] Studio verification of visitor purchases, exact prices/stock deduction, empty-stock behavior, rejoin persistence and concurrent grocery sales; see `operations/PHASE53_PLAZA_CUSTOMER_SALES.md`.
+- [x] Phase 54 Stage 5 logistics increment: add a persistent two-truck delivery fleet after warehouse and delivery-worker ownership; worker automation can prepare up to three online orders per completed shift with bounded, migrated idempotency state; see `operations/PHASE54_DELIVERY_FLEET.md`.
+- [ ] Studio verification of fleet prerequisites, purchase/trucks, one-vs-three automatic orders, pause control, manual/automatic races, v33-to-v34 migration and save/rejoin; see `operations/PHASE54_DELIVERY_FLEET.md`.
 - [ ] Studio verification of satisfaction thresholds, patience timing, event pauses, cashier parity and rejoin; see `operations/PHASE38_LOYALTY_AND_PATIENCE.md`.
 - [x] Phase 33: score customer satisfaction from preference fulfillment/price tiers and expose the bounded rating in the HUD; see `operations/PHASE33_CUSTOMER_SATISFACTION.md`.
 - [ ] Studio verification of cleaner hire/migration, save/rejoin, automatic cleanup and player/employee races.
