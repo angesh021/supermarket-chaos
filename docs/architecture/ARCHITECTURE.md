@@ -173,6 +173,11 @@ See `docs/decisions/README.md` for accepted ownership policy. Remaining decision
 - The worker uses the existing automation toggle. A saved shift marker prevents rejoin or scheduler retries from packing a second automatic order during the same completed shift.
 - The worker delegates to `Economy.fulfillOnlineOrder`, the same state transition as the physical packing prompt. Both paths share the transaction lock through profile save and schedule refresh.
 - Profile schema v28 migrates the marker to zero for older profiles; automation remains disabled for non-development DataStore universes as before.
+
+## Phase 46 larger Customer Rush
+- Customer Rush remains triggered by the deterministic shift logic after the three regular sales, but now adds three customers (six total), allows 90 seconds, and pays `$30` only on a timely clear.
+- `WorldBuilder` provisions six bounded customer models and six main queue positions; the self-checkout split gives three positions to each lane. Recovery reconstructs these positions from persisted sales and deadline state.
+- Profile normalization accepts up to six sales and the expanded in-progress rush range. This widens validation only; no profile schema field or migration is needed.
 # Cooperative ownership and cashier extension
 - One owner profile remains the persistence boundary. Per-server membership grants temporary action permissions but does not load a guest's profile into the owner's economy.
 - Server role map: Owner (all), Manager (all shift actions including staff hiring), Cashier (checkout), Stocker (stock), Maintenance (cart recovery).

@@ -55,9 +55,9 @@ Economy.CINNAMON_TWISTS_SHELF_CAPACITY = 24
 Economy.FROZEN_MEALS_STOCK_PER_RESTOCK = 3
 Economy.FROZEN_MEALS_SHELF_CAPACITY = 24
 Economy.POWER_OUTAGE_DURATION = 30
-Economy.CUSTOMER_RUSH_DURATION = 60
-Economy.CUSTOMER_RUSH_EXTRA_CUSTOMERS = 2
-Economy.CUSTOMER_RUSH_REWARD = 20
+Economy.CUSTOMER_RUSH_DURATION = 90
+Economy.CUSTOMER_RUSH_EXTRA_CUSTOMERS = 3
+Economy.CUSTOMER_RUSH_REWARD = 30
 Economy.MAX_CUSTOMERS_PER_SHIFT = Economy.CUSTOMERS_PER_SHIFT
     + Economy.CUSTOMER_RUSH_EXTRA_CUSTOMERS
 
@@ -1130,16 +1130,18 @@ function Economy.sellProduct(state, now, waitSeconds)
                 + state.goldenAppleStock
                 + state.cerealStock
                 + state.cinnamonTwistStock
+                + state.frozenMealStock
             >= Economy.CUSTOMER_RUSH_EXTRA_CUSTOMERS
     then
         state.customerRushUntil = now + Economy.CHAOS_EVENTS.CustomerRush.duration
         state.stage = "CustomerRush"
         return true,
             string.format(
-                "Basket complete! +$%d for %s. Customer rush! Serve %d more shoppers within 60 seconds.",
+                "Basket complete! +$%d for %s. Customer rush! Serve %d more shoppers within %d seconds.",
                 basket.total,
                 basket.displayName,
-                Economy.CUSTOMER_RUSH_EXTRA_CUSTOMERS
+                Economy.CUSTOMER_RUSH_EXTRA_CUSTOMERS,
+                Economy.CUSTOMER_RUSH_DURATION
             ) .. satisfactionFeedback
     end
     if state.customerRushUntil > 0 and state.sales >= Economy.MAX_CUSTOMERS_PER_SHIFT then

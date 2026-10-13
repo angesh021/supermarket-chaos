@@ -977,6 +977,7 @@ function WorldBuilder.build()
         { COLORS.green, COLORS.blue, COLORS.gold },
         { COLORS.orange, COLORS.deepTeal, COLORS.cream },
         { COLORS.paleGreen, COLORS.wood, COLORS.coral },
+        { COLORS.blue, COLORS.wood, COLORS.green },
     }
     local customerPositions = {}
     local selfCheckoutQueuePositions = {}
@@ -986,6 +987,7 @@ function WorldBuilder.build()
         Vector3.new(3.5, -1.25, 4),
         Vector3.new(3.5, -1.25, 7),
         Vector3.new(0, -1.25, 7),
+        Vector3.new(3.5, -1.25, 11),
     }
     local selfCheckoutQueueOffsets = {
         Vector3.new(-3.5, -1.25, -4),

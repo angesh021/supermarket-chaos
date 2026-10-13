@@ -259,6 +259,11 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Consequences:** Profile schema v28 stores a shift marker so automatic fulfillment stays idempotent across rejoin and timer retries. The existing pause control governs both inbound delivery receipt and online packing.
 - **Verification:** See `docs/operations/PHASE45_DELIVERY_WORKER_ONLINE_ORDERS.md`.
 
+## ADR-0044: Expand Customer Rush capacity
+- **Decision:** Increase the bonus queue to three customers (six total), provide a 90-second deadline and award `$30` only on a timely clear.
+- **Consequences:** Six visual customers and lane queues are supported. Existing profile sales validation widens to six without a schema bump; the server deadline and reward remain authoritative.
+- **Verification:** See `docs/operations/PHASE46_LARGER_CUSTOMER_EVENTS.md`.
+
 ## ADR-0009 — Keep product inventory and supplier orders SKU-specific
 - **Status:** Accepted — 2026-10-12.
 - **Context:** The retail loop needs visible department variety and product-specific stock behavior while keeping stock and money authoritative.

@@ -59,6 +59,8 @@ G0 was approved on 2026-10-12. The user authorized continued phase implementatio
 - [ ] Studio verification of order rotation, stock deduction, payout, role checks, v26-to-v27 migration and save/rejoin; see `operations/PHASE44_ONLINE_GROCERY_ORDERS.md`.
 - [x] Phase 45 Stage 3 advanced employee increment: delivery worker can prepare one online order per completed shift using the shared transaction, with persisted shift idempotency and the existing automation toggle; see `operations/PHASE45_DELIVERY_WORKER_ONLINE_ORDERS.md`.
 - [ ] Studio verification of automatic pickup, pause/resume, manual/worker races, v27-to-v28 migration and save/rejoin; see `operations/PHASE45_DELIVERY_WORKER_ONLINE_ORDERS.md`.
+- [x] Phase 46 Stage 3 event increment: expand Customer Rush to six total shoppers with physical queue capacity, three bonus customers, a 90-second server timer and a proportional $30 clear reward; existing saved shift sales migrate through widened validation without a schema bump. See `operations/PHASE46_LARGER_CUSTOMER_EVENTS.md`.
+- [ ] Studio verification of six-person queue flow, stock threshold, 90-second expiry, $30 reward, self-checkout routing and save/rejoin; see `operations/PHASE46_LARGER_CUSTOMER_EVENTS.md`.
 - [ ] Studio verification of satisfaction thresholds, patience timing, event pauses, cashier parity and rejoin; see `operations/PHASE38_LOYALTY_AND_PATIENCE.md`.
 - [x] Phase 33: score customer satisfaction from preference fulfillment/price tiers and expose the bounded rating in the HUD; see `operations/PHASE33_CUSTOMER_SATISFACTION.md`.
 - [ ] Studio verification of cleaner hire/migration, save/rejoin, automatic cleanup and player/employee races.

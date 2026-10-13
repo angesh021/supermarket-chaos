@@ -52,5 +52,6 @@
 | [Self-checkout verification](operations/PHASE43_SELF_CHECKOUT.md) | Persistent second checkout, deterministic lane routing and shared sale authority |
 | [Online grocery order verification](operations/PHASE44_ONLINE_GROCERY_ORDERS.md) | Warehouse packing board, deterministic orders and backstock fulfillment |
 | [Delivery worker online order verification](operations/PHASE45_DELIVERY_WORKER_ONLINE_ORDERS.md) | One automated order per completed shift with shared fulfillment authority |
+| [Larger customer event verification](operations/PHASE46_LARGER_CUSTOMER_EVENTS.md) | Six-shopper Customer Rush, expanded timer, stock gate and reward |
 
 Keep this index and linked documents current as implementation changes. See [AGENTS.md](../AGENTS.md) for repository rules.
