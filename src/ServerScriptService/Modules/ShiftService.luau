@@ -7,12 +7,14 @@ local ProfileService = require(script.Parent.ProfileService)
 local TelemetryService = require(script.Parent.TelemetryService)
 local WorldBuilder = require(script.Parent.WorldBuilder)
 local LayoutService = require(script.Parent.LayoutService)
+local RetailLayoutService = require(script.Parent.RetailLayoutService)
 
 local ShiftService = {}
 
 local interactionTimes = {}
 local membershipTimes = {}
 local layoutActionTimes = {}
+local retailLayoutActionTimes = {}
 local storeMembers = {}
 local joinRequests = {}
 local state
@@ -25,6 +27,7 @@ local joinRequestEvent
 local memberActionEvent
 local memberStateEvent
 local layoutRequestEvent
+local retailLayoutRequestEvent
 
 local ROLE_ACTIONS = {
     Manager = {
@@ -48,6 +51,7 @@ local ROLE_ACTIONS = {
         Warehouse = true,
         AisleExpansion = true,
         EditLayout = true,
+        EditRetailLayout = true,
         MarketStyle = true,
         PreviewMarketStyle = true,
         OrderDelivery = true,
@@ -284,6 +288,7 @@ function ShiftService.init(event, membershipRemotes)
     memberActionEvent = membershipRemotes.memberAction
     memberStateEvent = membershipRemotes.memberState
     layoutRequestEvent = membershipRemotes.layoutRequest
+    retailLayoutRequestEvent = membershipRemotes.retailLayoutRequest
     world = WorldBuilder.build()
     local marketStylePreviewing = false
     world.setStage("Loading")
@@ -619,6 +624,7 @@ function ShiftService.init(event, membershipRemotes)
             world.setMarketStylePreview(false)
         end
         world.setStage(state.stage)
+        world.setRetailLayout(state.retailLayout)
         world.setCustomerProduct(
             Economy.PRODUCTS[Economy.getNextCheckoutProductId(state) or "citrusPop"].displayName
         )
@@ -817,6 +823,13 @@ function ShiftService.init(event, membershipRemotes)
                 layout = state.warehouseLayout,
             })
         end
+    end)
+
+    bind("EditRetailLayout", world.retailLayoutPrompt, 12, function(player)
+        retailLayoutRequestEvent:FireClient(player, {
+            action = "Open",
+            layout = state.retailLayout,
+        })
     end)
 
     bind("AisleExpansion", world.aisleExpansionPrompt, 12, function()
@@ -1142,6 +1155,77 @@ function ShiftService.init(event, membershipRemotes)
         })
     end)
 
+    retailLayoutRequestEvent.OnServerEvent:Connect(function(player, request)
+        local function reject(message)
+            retailLayoutRequestEvent:FireClient(player, { action = "Rejected", message = message })
+        end
+
+        if type(request) ~= "table" or request.action ~= "MoveShelf" then
+            return reject("That retail layout request is invalid.")
+        end
+        local now = os.clock()
+        local previousRequest = retailLayoutActionTimes[player]
+        if previousRequest and now - previousRequest < 0.4 then
+            return reject("Please wait before moving another department shelf.")
+        end
+        retailLayoutActionTimes[player] = now
+
+        local role = player == ownerPlayer and "Owner" or storeMembers[player.UserId]
+        if
+            (role ~= "Owner" and role ~= "Manager")
+            or not ownerReady
+            or not ownerPlayer
+            or player.Parent ~= Players
+            or state.stage ~= "Complete"
+            or not world.retailLayoutPrompt.Enabled
+            or not atPrompt(player, world.retailLayoutPrompt, 18)
+        then
+            return reject(
+                "Only the Owner or Manager can edit the retail floor during a completed shift."
+            )
+        end
+        local saveStatus = ProfileService.getSaveStatus(ownerPlayer)
+        if saveStatus == "lock lost" or saveStatus == "save pending" then
+            return reject("Retail layout editing is paused until the store save is ready.")
+        end
+
+        local productId = request.productId
+        if type(productId) ~= "string" or not RetailLayoutService.isProductId(productId) then
+            return reject("Choose one of the installed product department shelves.")
+        end
+        local shelf = state.retailLayout.shelves[productId]
+        if not shelf then
+            return reject("Choose one of the installed product department shelves.")
+        end
+        local valid, reason = RetailLayoutService.canPlace(
+            state.retailLayout.shelves,
+            productId,
+            request.x,
+            request.z,
+            request.rotation
+        )
+        if not valid then
+            return reject(reason)
+        end
+        shelf.x = request.x
+        shelf.z = request.z
+        shelf.rotation = request.rotation
+        world.setRetailLayout(state.retailLayout)
+        local saved = ProfileService.saveProgress(ownerPlayer, state, "retailLayoutChanged")
+        local productName = Economy.PRODUCTS[productId].displayName
+        local resultMessage = saved and string.format("%s shelf moved and saved.", productName)
+            or string.format(
+                "%s shelf moved for this session; the save was not confirmed.",
+                productName
+            )
+        broadcast(resultMessage)
+        retailLayoutRequestEvent:FireClient(player, {
+            action = "Updated",
+            layout = state.retailLayout,
+            message = resultMessage,
+        })
+    end)
+
     memberActionEvent.OnServerEvent:Connect(function(player, action, targetUserId, role)
         if player ~= ownerPlayer or not ownerReady or player.Parent ~= Players then
             return
@@ -1261,6 +1345,7 @@ function ShiftService.init(event, membershipRemotes)
             marketStylePreviewing = false
             world.setWarehousePurchased(state.warehousePurchased)
             world.setStorageLayout(state.warehouseLayout)
+            world.setRetailLayout(state.retailLayout)
             world.setDeliveryState(
                 state.shipmentReadyAt,
                 state.shipmentQuantity,
@@ -1338,6 +1423,7 @@ function ShiftService.init(event, membershipRemotes)
         interactionTimes[player] = nil
         membershipTimes[player] = nil
         layoutActionTimes[player] = nil
+        retailLayoutActionTimes[player] = nil
         storeMembers[player.UserId] = nil
         joinRequests[player.UserId] = nil
         broadcastMemberState()

@@ -152,6 +152,7 @@ Currency and stock changes occur only after server-side validation. Transactions
 - See `operations/PHASE29_WAREHOUSE_LAYOUT_EDITOR.md`; client preview, Studio authorization, collision and DataStore recovery checks remain pending.
 - Customer basket preferences use a deterministic weighted draw from completed-shift count and sale number. Only server logic reads stock/prices to fulfill the preference; billboards receive display strings. See `operations/PHASE30_CUSTOMER_PREFERENCES.md`.
 - Chaos event order is derived from the server-known owner ID and completed-shift count. Rejoin reconstructs the same plan without persisting a client-controlled seed; active stages and outage deadlines continue through profile persistence. See `operations/PHASE31_CHAOS_DIRECTOR.md`.
+- Profile schema v19 stores a validated layout for the four retail SKU shelves. Server movement updates shelf prompts/tags and the customer browse route together; the client only previews and proposes grid positions. See `operations/PHASE32_RETAIL_LAYOUT.md`.
 
 ## Open technical decisions
 See `docs/decisions/README.md` for accepted ownership policy. Remaining decisions include multi-store/guest permissions, production Studio place configuration, analytics implementation/privacy review, and any changes to persistence recovery. Verify platform APIs against official documentation when implementation starts.

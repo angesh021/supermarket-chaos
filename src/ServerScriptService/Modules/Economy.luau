@@ -1,5 +1,6 @@
 -- Pure first-shift rules. Keep Roblox services and Instances out of this module.
 local Economy = {}
+local RetailLayoutService = require(script.Parent.RetailLayoutService)
 
 Economy.CART_REWARD = 10
 Economy.SALE_REWARD = 25
@@ -151,6 +152,7 @@ function Economy.newState(profile, playerSeed)
         marketStylePurchased = upgrades.marketStyle or false,
         aisleExpansionPurchased = upgrades.aisleExpansion or false,
         warehouseLayout = warehouseLayout,
+        retailLayout = profile.retailLayout or RetailLayoutService.default(),
         cashierHired = (profile.hiredEmployees and profile.hiredEmployees.cashier) or false,
         stockerHired = (profile.hiredEmployees and profile.hiredEmployees.stocker) or false,
         cleanerHired = (profile.hiredEmployees and profile.hiredEmployees.cleaner) or false,

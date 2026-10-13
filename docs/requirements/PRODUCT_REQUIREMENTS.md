@@ -101,6 +101,7 @@ Instrument funnel events for first interaction, first stock, first sale, first u
 - Each currently hired employee has a fixed, server-defined wage per completed shift. Closeout applies the shift bonus and total wages once, reports gross/net amounts, and exposes only the computed per-shift estimate to authorized store viewers; see `operations/PHASE28_SHIFT_PAYROLL.md`.
 - Warehouse owners and Managers can place, move, rotate and remove storage shelves in a bounded grid. The server validates ownership, role, distance, rate, coordinates, orientation, collisions, limits and costs; profile schema v18 persists compact layout records. See `operations/PHASE29_WAREHOUSE_LAYOUT_EDITOR.md`.
 - Customers use reproducible weighted shopping preferences derived from saved completed shifts and the next sale number. The server fulfills preferences against available catalog stock and prices; billboards show the preference and basket. See `operations/PHASE30_CUSTOMER_PREFERENCES.md`.
+- Owners and Managers can move and rotate the four SKU department shelves on a bounded retail grid. Profile schema v19 validates and persists positions; stock/price prompts and customer browse destinations remain attached to their product department. See `operations/PHASE32_RETAIL_LAYOUT.md`.
 
 ### Phase 4 Power Outage increment
 - The server-derived shift plan may trigger a bounded checkout outage after sale 1 or 2, with a visible breaker objective and a 30-second server recovery deadline. See `operations/PHASE31_CHAOS_DIRECTOR.md`.

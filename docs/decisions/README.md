@@ -185,6 +185,13 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Consequences:** No extra profile field, remote argument, or randomness dependency is introduced. Schedules vary across shifts but remain reproducible; they currently cover only spill and outage. Power outage may now be active after sale 1 or 2, so saved-stage validation accepts either.
 - **Verification:** See `docs/operations/PHASE31_CHAOS_DIRECTOR.md`; Studio schedule, recovery, multiplayer and rejoin checks remain pending.
 
+## ADR-0030 — Persist and validate customer-facing shelf positions
+- **Status:** Accepted — 2026-10-12.
+- **Context:** The store-building specification calls for shelf repositioning and rotation. Fixed product shelves made the store look static and made department routes independent of physical layout.
+- **Decision:** Keep the four existing SKU shelf models, prompts and price tags server-owned. Let Owner/Manager move each on a bounded two-stud retail grid and rotate it by 90 degrees. Persist only product-keyed coordinates/orientations in profile schema v19 and derive customer browse targets from those positions.
+- **Consequences:** v1-v18 profiles receive the known starter positions. Server validation blocks malformed records, out-of-bounds placement, product shelf overlap and fixed expansion bays. No new economy charge or arbitrary object placement is introduced; checkout positioning, floor expansion, plots and new department construction remain future work.
+- **Verification:** See `docs/operations/PHASE32_RETAIL_LAYOUT.md`; Studio controls, migration, collision, routing and save/rejoin checks remain pending.
+
 ## ADR-0009 — Keep product inventory and supplier orders SKU-specific
 - **Status:** Accepted — 2026-10-12.
 - **Context:** The retail loop needs visible department variety and product-specific stock behavior while keeping stock and money authoritative.

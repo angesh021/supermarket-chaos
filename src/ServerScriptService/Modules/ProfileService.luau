@@ -4,8 +4,9 @@ local HttpService = game:GetService("HttpService")
 
 local ProfileService = {}
 local LayoutService = require(script.Parent.LayoutService)
+local RetailLayoutService = require(script.Parent.RetailLayoutService)
 
-local SCHEMA_VERSION = 18
+local SCHEMA_VERSION = 19
 local SESSION_LEASE_SECONDS = 180
 local MAX_RETRIES = 3
 local STORE_NAME = "SupermarketChaos_PlayerProfiles_v1"
@@ -70,6 +71,7 @@ local function defaultProfile()
             shipmentProductId = "",
         },
         warehouseLayout = { version = LayoutService.VERSION, items = {} },
+        retailLayout = RetailLayoutService.default(),
         productPrices = {
             citrusPop = 25,
             berryBites = 18,
@@ -193,6 +195,12 @@ local function normalizeProfile(value)
         return nil, layoutError
     end
     profile.warehouseLayout = normalizedLayout
+    local normalizedRetailLayout, retailLayoutError =
+        RetailLayoutService.normalize(value.retailLayout)
+    if not normalizedRetailLayout then
+        return nil, retailLayoutError
+    end
+    profile.retailLayout = normalizedRetailLayout
     if value.hiredEmployees ~= nil and type(value.hiredEmployees) ~= "table" then
         return nil, "Stored employee data is malformed."
     end
@@ -449,6 +457,7 @@ local function copyProfile(profile)
             version = profile.warehouseLayout.version,
             items = {},
         },
+        retailLayout = RetailLayoutService.default(),
         productPrices = {
             citrusPop = profile.productPrices.citrusPop,
             berryBites = profile.productPrices.berryBites,
@@ -465,6 +474,13 @@ local function copyProfile(profile)
             x = item.x,
             z = item.z,
             rotation = item.rotation,
+        }
+    end
+    for productId, shelf in pairs(profile.retailLayout.shelves) do
+        copy.retailLayout.shelves[productId] = {
+            x = shelf.x,
+            z = shelf.z,
+            rotation = shelf.rotation,
         }
     end
     return copy
@@ -674,6 +690,7 @@ function ProfileService.saveProgress(player, state, eventName)
     profile.ownedUpgrades.marketStyle = state.marketStylePurchased
     profile.ownedUpgrades.aisleExpansion = state.aisleExpansionPurchased
     profile.warehouseLayout = state.warehouseLayout
+    profile.retailLayout = RetailLayoutService.normalize(state.retailLayout)
     profile.hiredEmployees.cashier = state.cashierHired
     profile.hiredEmployees.stocker = state.stockerHired
     profile.hiredEmployees.cleaner = state.cleanerHired

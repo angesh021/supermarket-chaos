@@ -149,6 +149,7 @@ local function createShelf(parent, name, x, z, width, department, rotation)
         COLORS.warmWhite
     )
     shelf.PrimaryPart = shelf:FindFirstChild("Wooden Kick Plate")
+    shelf:PivotTo(origin * CFrame.new(0, 1.2, 0))
     return shelf
 end
 
@@ -631,13 +632,31 @@ function WorldBuilder.build()
         end
     end
 
-    local shelf = createShelf(interior, "Citrus Pop Shelf", -10, -1, 6, "CITRUS POP")
-    local berryShelf = createShelf(interior, "Berry Bites Shelf", 10, -1, 6, "BERRY BITES")
-    local goldenAppleShelf =
-        createShelf(interior, "Golden Apples Produce Shelf", -17, 0, 4, "GOLDEN APPLES")
-    createShelf(interior, "Pantry Shelf", 0, -1, 6, "SNACKS")
-    createShelf(interior, "Breakfast and Pantry Shelf", -10, -9, 6, "PANTRY")
-    local cerealShelf = createShelf(interior, "Sunrise Cereal Shelf", 0, -9, 6, "SUNRISE CEREAL")
+    local retailDepartmentFolder = Instance.new("Folder")
+    retailDepartmentFolder.Name = "Retail Department Shelves"
+    retailDepartmentFolder.Parent = interior
+    local retailDepartmentShelves = {}
+    local retailShelfPositions = {}
+    local function createDepartmentShelf(productId, name, x, z, width, department)
+        local model = createShelf(retailDepartmentFolder, name, x, z, width, department)
+        model:SetAttribute("RetailProductId", productId)
+        retailDepartmentShelves[productId] = model
+        retailShelfPositions[productId] = { x = x, z = z, rotation = 0 }
+        return model
+    end
+    local shelf = createDepartmentShelf("citrusPop", "Citrus Pop Shelf", -10, -1, 6, "CITRUS POP")
+    local berryShelf =
+        createDepartmentShelf("berryBites", "Berry Bites Shelf", 10, -1, 6, "BERRY BITES")
+    local goldenAppleShelf = createDepartmentShelf(
+        "goldenApples",
+        "Golden Apples Produce Shelf",
+        -8,
+        -9,
+        4,
+        "GOLDEN APPLES"
+    )
+    local cerealShelf =
+        createDepartmentShelf("sunriseCereal", "Sunrise Cereal Shelf", 0, -9, 6, "SUNRISE CEREAL")
     local priceTags = {}
     local pricePrompts = {}
     local initialPrices = {
@@ -648,7 +667,7 @@ function WorldBuilder.build()
     }
     local function createPriceTag(productId, displayName, shelfModel, x, z)
         local tag = label(
-            interior,
+            shelfModel,
             displayName .. " Shelf Price Tag",
             string.format("$%d", initialPrices[productId]),
             Vector3.new(1.45, 0.58, 0.12),
@@ -664,7 +683,7 @@ function WorldBuilder.build()
     end
     createPriceTag("citrusPop", "Citrus Pop", shelf, -10, -1)
     createPriceTag("berryBites", "Berry Bites", berryShelf, 10, -1)
-    createPriceTag("goldenApples", "Golden Apples", goldenAppleShelf, -17, 0)
+    createPriceTag("goldenApples", "Golden Apples", goldenAppleShelf, -8, -9)
     createPriceTag("sunriseCereal", "Sunrise Cereal", cerealShelf, 0, -9)
     createRefrigeratedCase(interior, 9, -14.5)
     part(
@@ -920,8 +939,34 @@ function WorldBuilder.build()
     local customerProductName = "Citrus Pop"
     local customerBasketName = "Citrus Pop x1"
     local customerPreferenceName = "Everyday"
-    local customerProductPosition = Vector3.new(-10, 0.45, 4)
-    local customerProductPositions = { customerProductPosition }
+    local customerProductPositions = {}
+    local function customerBrowsePosition(productId)
+        local shelfPosition = retailShelfPositions[productId]
+        if not shelfPosition then
+            return Vector3.new(-10, 0.45, 2)
+        end
+        local forwardOffset = CFrame.Angles(0, math.rad(shelfPosition.rotation or 0), 0)
+            :VectorToWorldSpace(Vector3.new(0, 0, 3))
+        return Vector3.new(shelfPosition.x, 0.45, shelfPosition.z) + forwardOffset
+    end
+    local function updateCustomerBasketPositions()
+        customerProductPositions = {}
+        local productPositions = {
+            { id = "berryBites", name = "Berry Bites" },
+            { id = "citrusPop", name = "Citrus Pop" },
+            { id = "goldenApples", name = "Golden Apples" },
+            { id = "sunriseCereal", name = "Sunrise Cereal" },
+        }
+        for _, product in ipairs(productPositions) do
+            if string.find(customerBasketName, product.name, 1, true) then
+                table.insert(customerProductPositions, customerBrowsePosition(product.id))
+            end
+        end
+        if #customerProductPositions == 0 then
+            table.insert(customerProductPositions, customerBrowsePosition("citrusPop"))
+        end
+    end
+    updateCustomerBasketPositions()
     local function customerQueueStatus(queueNumber)
         if currentStage == "Spill" then
             return "WAITING • SPILL"
@@ -1841,6 +1886,31 @@ function WorldBuilder.build()
     local layoutPrompt =
         prompt(layoutAnchor, "Edit Storage Layout", "Warehouse Build Board", "EditLayout", 10)
     layoutPrompt.Enabled = false
+    local retailLayoutAnchor = part(
+        interior,
+        "Retail Layout Station",
+        Vector3.new(4.2, 2.4, 0.6),
+        CFrame.new(-18.2, 1.55, 10.5),
+        COLORS.teal,
+        Enum.Material.WoodPlanks
+    )
+    label(
+        interior,
+        "Retail Layout Station Header",
+        "MOVE DEPARTMENT SHELVES",
+        Vector3.new(4.2, 0.75, 0.24),
+        CFrame.new(-18.2, 3.15, 10.12),
+        COLORS.deepTeal,
+        COLORS.warmWhite
+    )
+    local retailLayoutPrompt = prompt(
+        retailLayoutAnchor,
+        "Arrange Store Shelves",
+        "Retail Layout Station",
+        "EditRetailLayout",
+        12
+    )
+    retailLayoutPrompt.Enabled = false
     local deliveryBoardLabel
     local deliveryCrateSurface
     local deliveryCrate
@@ -2173,6 +2243,7 @@ function WorldBuilder.build()
         spillPrompt.Enabled = stage == "Spill"
         powerPrompt.Enabled = stage == "PowerOutage"
         layoutPrompt.Enabled = warehousePurchased and stage == "Complete"
+        retailLayoutPrompt.Enabled = stage == "Complete"
         upgradePrompt.Enabled = stage == "Upgrade"
         aisleExpansionPrompt.Enabled = stage == "Complete"
             and not aisleExpansionPurchased
@@ -2338,32 +2409,17 @@ function WorldBuilder.build()
         end,
         setCustomerProduct = function(displayName)
             customerProductName = displayName or "Citrus Pop"
-            customerProductPosition = customerProductName == "Berry Bites"
-                    and Vector3.new(10, 0.45, 4)
+            local productId = customerProductName == "Berry Bites" and "berryBites"
                 or (
-                    customerProductName == "Sunrise Cereal" and Vector3.new(0, 0.45, -9)
-                    or Vector3.new(-10, 0.45, 4)
+                    customerProductName == "Golden Apples" and "goldenApples"
+                    or (customerProductName == "Sunrise Cereal" and "sunriseCereal" or "citrusPop")
                 )
+            customerProductPositions = { customerBrowsePosition(productId) }
         end,
         setCustomerBasket = function(displayName, preferenceName)
             customerBasketName = displayName or "Citrus Pop x1"
             customerPreferenceName = preferenceName or "Everyday"
-            customerProductPositions = {}
-            if string.find(customerBasketName, "Berry Bites", 1, true) then
-                table.insert(customerProductPositions, Vector3.new(10, 0.45, 4))
-            end
-            if string.find(customerBasketName, "Citrus Pop", 1, true) then
-                table.insert(customerProductPositions, Vector3.new(-10, 0.45, 4))
-            end
-            if string.find(customerBasketName, "Golden Apples", 1, true) then
-                table.insert(customerProductPositions, Vector3.new(-17, 0.45, -3))
-            end
-            if string.find(customerBasketName, "Sunrise Cereal", 1, true) then
-                table.insert(customerProductPositions, Vector3.new(0, 0.45, -9))
-            end
-            if #customerProductPositions == 0 then
-                table.insert(customerProductPositions, customerProductPosition)
-            end
+            updateCustomerBasketPositions()
         end,
         setCustomerVisible = setCustomerVisible,
         setCustomerCount = setCustomerCount,
@@ -2397,6 +2453,7 @@ function WorldBuilder.build()
         deliveryWorkerAutomationPrompt = deliveryWorkerAutomationPrompt,
         warehousePrompt = warehousePrompt,
         layoutPrompt = layoutPrompt,
+        retailLayoutPrompt = retailLayoutPrompt,
         layoutAnchor = layoutAnchor,
         setStorageLayout = function(layout)
             if not warehousePurchased or not layoutFixtureFolder then
@@ -2416,6 +2473,30 @@ function WorldBuilder.build()
                 placedShelfModel:SetAttribute("LayoutId", item.id)
                 placedShelfModel:SetAttribute("PlayerPurchased", true)
             end
+        end,
+        setRetailLayout = function(layout)
+            if type(layout) ~= "table" or type(layout.shelves) ~= "table" then
+                return
+            end
+            for productId, shelfPosition in pairs(layout.shelves) do
+                local model = retailDepartmentShelves[productId]
+                if model and type(shelfPosition) == "table" then
+                    local x = shelfPosition.x
+                    local z = shelfPosition.z
+                    local rotation = shelfPosition.rotation
+                    if
+                        type(x) == "number"
+                        and type(z) == "number"
+                        and (rotation == 0 or rotation == 90)
+                    then
+                        model:PivotTo(
+                            CFrame.new(x, 1.2, z) * CFrame.Angles(0, math.rad(rotation), 0)
+                        )
+                        retailShelfPositions[productId] = { x = x, z = z, rotation = rotation }
+                    end
+                end
+            end
+            updateCustomerBasketPositions()
         end,
         marketStylePrompt = stylePrompt,
         marketStylePreviewPrompt = stylePreviewPrompt,

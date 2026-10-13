@@ -39,5 +39,6 @@
 | [Warehouse layout editor verification](operations/PHASE29_WAREHOUSE_LAYOUT_EDITOR.md) | Persistent shelf placement, movement, rotation, collision bounds and authorization |
 | [Customer preference verification](operations/PHASE30_CUSTOMER_PREFERENCES.md) | Weighted shopping profiles, deterministic reconstruction, stock fallback and checkout behavior |
 | [Chaos Director verification](operations/PHASE31_CHAOS_DIRECTOR.md) | Shift-specific event schedules, event timing, recovery and rejoin reconstruction |
+| [Retail layout verification](operations/PHASE32_RETAIL_LAYOUT.md) | Persistent product shelf movement, rotation, collision checks and customer routing |
 
 Keep this index and linked documents current as implementation changes. See [AGENTS.md](../AGENTS.md) for repository rules.

@@ -32,4 +32,5 @@ ShiftService.init(stateEvent, {
     memberAction = remote("StoreMemberAction", "RemoteEvent"),
     memberState = remote("StoreMemberState", "RemoteEvent"),
     layoutRequest = remote("WarehouseLayoutRequest", "RemoteEvent"),
+    retailLayoutRequest = remote("RetailLayoutRequest", "RemoteEvent"),
 })
