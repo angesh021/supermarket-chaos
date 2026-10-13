@@ -41,6 +41,7 @@ G0 was approved on 2026-10-12. The user authorized continued phase implementatio
 - [x] Add persistent Owner/Manager control of three bounded price choices per SKU, with shelf tags and server-priced checkout; see `operations/PHASE22_PRODUCT_PRICING.md`.
 - [x] Make deterministic basket quantities respond to price tier and available stock; see `operations/PHASE23_PRICE_SENSITIVE_BASKETS.md`.
 - [x] Extend stocker automation to replenish the next preferred empty SKU and allow repeat Citrus Pop restocking; see `operations/PHASE24_STOCKER_REPLENISHMENT.md`.
+- [x] Add a persistent Customer Assistant employee who speeds customer browsing without changing checkout authority; see `operations/PHASE25_CUSTOMER_ASSISTANT.md`.
 - [ ] Add delivery/customer-assistant roles, departments and further customization.
 - [ ] Studio verification of cleaner hire/migration, save/rejoin, automatic cleanup and player/employee races.
 

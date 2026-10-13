@@ -36,6 +36,7 @@ local ROLE_ACTIONS = {
         HireStocker = true,
         HireCleaner = true,
         HireDeliveryWorker = true,
+        HireCustomerAssistant = true,
         ToggleCashierAutomation = true,
         ToggleStockerAutomation = true,
         ToggleCleanerAutomation = true,
@@ -153,6 +154,7 @@ local function snapshot(message, recipient)
             goldenApples = current.productPrices.goldenApples,
             sunriseCereal = current.productPrices.sunriseCereal,
         } or nil,
+        customerAssistantHired = hasStoreAccess and current.customerAssistantHired or false,
     }
 end
 
@@ -929,6 +931,15 @@ function ShiftService.init(event, membershipRemotes)
         broadcast(message)
     end)
 
+    bind("HireCustomerAssistant", world.customerAssistantHirePrompt, 12, function()
+        local ok, message = Economy.hireCustomerAssistant(state)
+        if ok then
+            world.setCustomerAssistantHired(true)
+            commit("employeeHired")
+        end
+        broadcast(message)
+    end)
+
     bind("ToggleCashierAutomation", world.cashierAutomationPrompt, 12, function()
         local ok, message = Economy.toggleEmployeeAutomation(state, "cashier")
         if ok then
@@ -1120,6 +1131,7 @@ function ShiftService.init(event, membershipRemotes)
             world.setStockerHired(state.stockerHired)
             world.setCleanerHired(state.cleanerHired)
             world.setDeliveryWorkerHired(state.deliveryWorkerHired)
+            world.setCustomerAssistantHired(state.customerAssistantHired)
             world.setCashierAutomationEnabled(state.cashierAutomationEnabled)
             world.setStockerAutomationEnabled(state.stockerAutomationEnabled)
             world.setCleanerAutomationEnabled(state.cleanerAutomationEnabled)

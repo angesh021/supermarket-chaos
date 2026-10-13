@@ -9,6 +9,7 @@ Economy.CASHIER_COST = 100
 Economy.STOCKER_COST = 80
 Economy.CLEANER_COST = 120
 Economy.DELIVERY_WORKER_COST = 140
+Economy.CUSTOMER_ASSISTANT_COST = 160
 Economy.WAREHOUSE_COST = 200
 Economy.MARKET_STYLE_COST = 180
 Economy.DELIVERY_COST = 60
@@ -125,6 +126,9 @@ function Economy.newState(profile)
         cleanerHired = (profile.hiredEmployees and profile.hiredEmployees.cleaner) or false,
         deliveryWorkerHired = (profile.hiredEmployees and profile.hiredEmployees.deliveryWorker)
             or false,
+        customerAssistantHired = (
+            profile.hiredEmployees and profile.hiredEmployees.customerAssistant
+        ) or false,
         cashierAutomationEnabled = employeeAutomation.cashier ~= false,
         stockerAutomationEnabled = employeeAutomation.stocker ~= false,
         cleanerAutomationEnabled = employeeAutomation.cleaner ~= false,
@@ -781,6 +785,22 @@ function Economy.hireDeliveryWorker(state)
     state.deliveryWorkerHired = true
     state.deliveryWorkerAutomationEnabled = true
     return true, "Delivery worker hired! They will receive arrived shipments automatically."
+end
+
+function Economy.hireCustomerAssistant(state)
+    if state.stage ~= "Complete" or state.customerAssistantHired then
+        return false, "The customer assistant is only available after a completed shift."
+    end
+    if state.cash < Economy.CUSTOMER_ASSISTANT_COST then
+        return false,
+            string.format(
+                "You need $%d to hire a customer assistant.",
+                Economy.CUSTOMER_ASSISTANT_COST
+            )
+    end
+    state.cash -= Economy.CUSTOMER_ASSISTANT_COST
+    state.customerAssistantHired = true
+    return true, "Customer assistant hired! Shoppers will move through the store faster."
 end
 
 function Economy.toggleEmployeeAutomation(state, employeeId)

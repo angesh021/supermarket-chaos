@@ -123,6 +123,11 @@ Currency and stock changes occur only after server-side validation. Transactions
 - Citrus Pop can be restocked in Checkout or Customer Rush and uses a 24-can shelf cap. Profile schema remains v15; malformed/out-of-bound saved shelf stock is rejected.
 - See `operations/PHASE24_STOCKER_REPLENISHMENT.md`; timers, stock races and rejoin recovery remain pending in Studio.
 
+## Phase 4 Customer Assistant
+- Hiring is an Owner/Manager-only server transaction after a completed shift. Profile schema v16 persists the employee; older profiles default to not hired.
+- The visible assistant shortens only the procedural browse route. Basket intent, inventory, checkout readiness and sale math remain unchanged and server-owned.
+- See `operations/PHASE25_CUSTOMER_ASSISTANT.md`; route timing and persistence checks remain pending in Studio.
+
 ## Open technical decisions
 See `docs/decisions/README.md` for accepted ownership policy. Remaining decisions include multi-store/guest permissions, production Studio place configuration, analytics implementation/privacy review, and any changes to persistence recovery. Verify platform APIs against official documentation when implementation starts.
 # Cooperative ownership and cashier extension

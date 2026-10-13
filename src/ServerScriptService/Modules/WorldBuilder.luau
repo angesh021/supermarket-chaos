@@ -334,6 +334,7 @@ local function createLowPolyPerson(parent, name, position, shirtColor, pantsColo
 end
 
 function WorldBuilder.build()
+    local customerAssistantHired = false
     local previous = workspace:FindFirstChild("SupermarketChaosWorld")
     if previous then
         previous:Destroy()
@@ -937,8 +938,9 @@ function WorldBuilder.build()
     end
 
     local function browseCustomerBasket(entry, speed, flowVersion)
+        local browseSpeed = customerAssistantHired and speed * 0.7 or speed
         for _, position in ipairs(customerProductPositions) do
-            if not moveCustomer(entry, position, speed, flowVersion) then
+            if not moveCustomer(entry, position, browseSpeed, flowVersion) then
                 return false
             end
         end
@@ -1441,6 +1443,36 @@ function WorldBuilder.build()
         end
     end
     local deliveryWorkerHired = false
+    local customerAssistantBoard = label(
+        interior,
+        "Customer Assistant Hiring Board",
+        "HIRE CUSTOMER ASSISTANT  $160",
+        Vector3.new(5, 2, 0.45),
+        CFrame.new(-5.6, 3.4, -18.4),
+        COLORS.blue,
+        COLORS.deepTeal
+    )
+    local customerAssistantHirePrompt = prompt(
+        customerAssistantBoard,
+        "Hire Customer Assistant ($160)",
+        "Staff Board",
+        "HireCustomerAssistant",
+        10
+    )
+    local customerAssistantModel = createLowPolyPerson(
+        interior,
+        "Customer Assistant",
+        Vector3.new(-8, 0.45, -14.5),
+        COLORS.blue,
+        COLORS.teal,
+        COLORS.ink
+    )
+    for _, item in ipairs(customerAssistantModel:GetDescendants()) do
+        if item:IsA("BasePart") then
+            item.Transparency = 1
+            item.CanCollide = false
+        end
+    end
     local stockPrompt = prompt(shelf.PrimaryPart, "Stock Shelf", "Citrus Pop", "Stock", 9)
     stockPrompt.Enabled = false
     local citrusStockAvailable = false
@@ -2074,6 +2106,7 @@ function WorldBuilder.build()
         deliveryWorkerHirePrompt.Enabled = stage == "Complete"
             and warehousePurchased
             and not deliveryWorkerHired
+        customerAssistantHirePrompt.Enabled = stage == "Complete" and not customerAssistantHired
         cashierAutomationPrompt.Enabled = stage ~= "Loading"
             and stage ~= "OwnerOffline"
             and cashierHired
@@ -2255,6 +2288,17 @@ function WorldBuilder.build()
         stockerAutomationPrompt = stockerAutomationPrompt,
         cleanerAutomationPrompt = cleanerAutomationPrompt,
         deliveryWorkerHirePrompt = deliveryWorkerHirePrompt,
+        customerAssistantHirePrompt = customerAssistantHirePrompt,
+        setCustomerAssistantHired = function(hired)
+            customerAssistantHired = hired == true
+            customerAssistantHirePrompt.Enabled = currentStage == "Complete"
+                and not customerAssistantHired
+            for _, item in ipairs(customerAssistantModel:GetDescendants()) do
+                if item:IsA("BasePart") then
+                    item.Transparency = customerAssistantHired and 0 or 1
+                end
+            end
+        end,
         deliveryWorkerAutomationPrompt = deliveryWorkerAutomationPrompt,
         warehousePrompt = warehousePrompt,
         marketStylePrompt = stylePrompt,

@@ -4,7 +4,7 @@ local HttpService = game:GetService("HttpService")
 
 local ProfileService = {}
 
-local SCHEMA_VERSION = 15
+local SCHEMA_VERSION = 16
 local SESSION_LEASE_SECONDS = 180
 local MAX_RETRIES = 3
 local STORE_NAME = "SupermarketChaos_PlayerProfiles_v1"
@@ -51,6 +51,7 @@ local function defaultProfile()
             stocker = false,
             cleaner = false,
             deliveryWorker = false,
+            customerAssistant = false,
         },
         employeeAutomation = {
             cashier = true,
@@ -187,9 +188,12 @@ local function normalizeProfile(value)
             )
             or (value.hiredEmployees.stocker ~= nil and type(value.hiredEmployees.stocker) ~= "boolean")
             or (value.hiredEmployees.cleaner ~= nil and type(value.hiredEmployees.cleaner) ~= "boolean")
+            or (value.hiredEmployees.deliveryWorker ~= nil and type(
+                value.hiredEmployees.deliveryWorker
+            ) ~= "boolean")
             or (
-                value.hiredEmployees.deliveryWorker ~= nil
-                and type(value.hiredEmployees.deliveryWorker) ~= "boolean"
+                value.hiredEmployees.customerAssistant ~= nil
+                and type(value.hiredEmployees.customerAssistant) ~= "boolean"
             )
         then
             return nil, "Stored employee flag is malformed."
@@ -198,6 +202,7 @@ local function normalizeProfile(value)
         profile.hiredEmployees.stocker = value.hiredEmployees.stocker == true
         profile.hiredEmployees.cleaner = value.hiredEmployees.cleaner == true
         profile.hiredEmployees.deliveryWorker = value.hiredEmployees.deliveryWorker == true
+        profile.hiredEmployees.customerAssistant = value.hiredEmployees.customerAssistant == true
     end
     if profile.hiredEmployees.deliveryWorker and not profile.ownedUpgrades.warehouse then
         return nil, "Stored delivery worker does not have warehouse ownership."
@@ -406,6 +411,7 @@ local function copyProfile(profile)
             stocker = profile.hiredEmployees.stocker,
             cleaner = profile.hiredEmployees.cleaner,
             deliveryWorker = profile.hiredEmployees.deliveryWorker,
+            customerAssistant = profile.hiredEmployees.customerAssistant,
         },
         employeeAutomation = {
             cashier = profile.employeeAutomation.cashier,
@@ -639,6 +645,7 @@ function ProfileService.saveProgress(player, state, eventName)
     profile.hiredEmployees.stocker = state.stockerHired
     profile.hiredEmployees.cleaner = state.cleanerHired
     profile.hiredEmployees.deliveryWorker = state.deliveryWorkerHired
+    profile.hiredEmployees.customerAssistant = state.customerAssistantHired
     profile.employeeAutomation.cashier = state.cashierAutomationEnabled
     profile.employeeAutomation.stocker = state.stockerAutomationEnabled
     profile.employeeAutomation.cleaner = state.cleanerAutomationEnabled

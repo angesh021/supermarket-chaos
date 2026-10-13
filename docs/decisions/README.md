@@ -136,6 +136,13 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Consequences:** Citrus Pop shelf stock is now capped at 24 in schema v15 validation. No new employee profile fields or client-selected SKU/quantity are introduced. Forecasting, wages and full shelf maintenance remain future work.
 - **Verification:** See `docs/operations/PHASE24_STOCKER_REPLENISHMENT.md`; Studio timer, stock, permission and recovery checks remain pending.
 
+## ADR-0023 — Keep Customer Assistant benefits in presentation
+- **Status:** Accepted — 2026-10-12.
+- **Context:** The employee specification calls for a Customer Assistant while customer basket and checkout rules must remain server-authoritative and reproducible.
+- **Decision:** Hire a persistent assistant for a fixed `$160` after a completed shift. The employee shortens only customer aisle-browsing travel time by a fixed 30%; it cannot select products, alter basket math or grant sales.
+- **Consequences:** Profile schema v16 adds one optional hire flag; older profiles default to not hired. The existing customer route and server sale transaction remain authoritative.
+- **Verification:** See `docs/operations/PHASE25_CUSTOMER_ASSISTANT.md`; timing, role and migration checks remain pending in Studio.
+
 ## ADR-0009 — Keep product inventory and supplier orders SKU-specific
 - **Status:** Accepted — 2026-10-12.
 - **Context:** The retail loop needs visible department variety and product-specific stock behavior while keeping stock and money authoritative.
