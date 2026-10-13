@@ -18,6 +18,11 @@ Economy.SPILL_CLEAN_REWARD = 5
 Economy.BERRY_BITES_STOCK_PER_RESTOCK = 4
 Economy.BERRY_BITES_SHELF_CAPACITY = 24
 Economy.POWER_OUTAGE_DURATION = 30
+Economy.CUSTOMER_RUSH_DURATION = 60
+Economy.CUSTOMER_RUSH_EXTRA_CUSTOMERS = 2
+Economy.CUSTOMER_RUSH_REWARD = 20
+Economy.MAX_CUSTOMERS_PER_SHIFT = Economy.CUSTOMERS_PER_SHIFT
+    + Economy.CUSTOMER_RUSH_EXTRA_CUSTOMERS
 
 Economy.PRODUCTS = {
     citrusPop = {
@@ -55,6 +60,21 @@ Economy.CHAOS_EVENTS = {
         cleanup = "RestorePower",
         failureRecovery = "AutoRestoreAfterDeadline",
     },
+    CustomerRush = {
+        id = "customer_rush",
+        eligibility = {
+            stage = "Checkout",
+            triggerSales = Economy.CUSTOMERS_PER_SHIFT,
+            minimumRemainingShelfStock = Economy.CUSTOMER_RUSH_EXTRA_CUSTOMERS,
+        },
+        triggerSales = Economy.CUSTOMERS_PER_SHIFT,
+        extraCustomers = Economy.CUSTOMER_RUSH_EXTRA_CUSTOMERS,
+        duration = Economy.CUSTOMER_RUSH_DURATION,
+        objective = "Serve the rush customers before time runs out.",
+        reward = Economy.CUSTOMER_RUSH_REWARD,
+        cleanup = "ServeRushQueue",
+        failureRecovery = "EndRushWithoutBonus",
+    },
 }
 
 function Economy.newState(profile)
@@ -72,6 +92,7 @@ function Economy.newState(profile)
         cartRecovered = savedShift.cartRecovered or false,
         shiftClosed = savedShift.shiftClosed or false,
         powerOutageUntil = savedShift.powerOutageUntil or 0,
+        customerRushUntil = savedShift.customerRushUntil or 0,
         upgradePurchased = upgrades.shelfBay or false,
         warehousePurchased = upgrades.warehouse or false,
         cashierHired = (profile.hiredEmployees and profile.hiredEmployees.cashier) or false,
@@ -84,6 +105,17 @@ function Economy.newState(profile)
         shipmentProductId = warehouseInventory.shipmentProductId == "berryBites" and "berryBites"
             or (shipmentQuantity > 0 and "citrusPop" or ""),
     }
+end
+
+function Economy.getCustomerTarget(state)
+    if (state.customerRushUntil or 0) > 0 then
+        return Economy.MAX_CUSTOMERS_PER_SHIFT
+    end
+    return Economy.CUSTOMERS_PER_SHIFT
+end
+
+function Economy.getRemainingCustomers(state)
+    return math.max(0, Economy.getCustomerTarget(state) - state.sales)
 end
 
 function Economy.canRecoverCart(state)
@@ -219,11 +251,18 @@ function Economy.getNextCheckoutProductId(state)
 end
 
 function Economy.sellProduct(state, now)
-    if state.stage ~= "Checkout" then
+    if state.stage ~= "Checkout" and state.stage ~= "CustomerRush" then
         return false, "The checkout is waiting for the next customer."
     end
-    if state.sales >= Economy.CUSTOMERS_PER_SHIFT then
+    local target = Economy.getCustomerTarget(state)
+    if state.sales >= target then
         return false, "The checkout queue is already clear."
+    end
+    if
+        state.stage == "CustomerRush"
+        and (type(now) ~= "number" or now ~= now or now % 1 ~= 0 or now >= state.customerRushUntil)
+    then
+        return false, "The customer rush has ended. Finish the shift at the board."
     end
     local productId = Economy.getNextCheckoutProductId(state)
     if not productId then
@@ -231,8 +270,13 @@ function Economy.sellProduct(state, now)
     end
     local product = Economy.PRODUCTS[productId]
     if
-        state.sales + 1 == Economy.CHAOS_EVENTS.PowerOutage.triggerSales
-        and (type(now) ~= "number" or now ~= now or now % 1 ~= 0 or now < 1)
+        (
+            state.sales + 1 == Economy.CHAOS_EVENTS.PowerOutage.triggerSales
+            or (
+                state.customerRushUntil == 0
+                and state.sales + 1 == Economy.CHAOS_EVENTS.CustomerRush.triggerSales
+            )
+        ) and (type(now) ~= "number" or now ~= now or now % 1 ~= 0 or now < 1)
     then
         return false, "The event time could not be confirmed. Try again."
     end
@@ -262,7 +306,32 @@ function Economy.sellProduct(state, now)
                 product.displayName
             )
     end
-    if state.sales >= Economy.CUSTOMERS_PER_SHIFT then
+    if
+        state.sales == Economy.CHAOS_EVENTS.CustomerRush.triggerSales
+        and state.customerRushUntil == 0
+        and state.stock + state.berryStock >= Economy.CUSTOMER_RUSH_EXTRA_CUSTOMERS
+    then
+        state.customerRushUntil = now + Economy.CHAOS_EVENTS.CustomerRush.duration
+        state.stage = "CustomerRush"
+        return true,
+            string.format(
+                "Sale complete! +$%d for %s. Customer rush! Serve %d more shoppers within 60 seconds.",
+                product.salePrice,
+                product.displayName,
+                Economy.CUSTOMER_RUSH_EXTRA_CUSTOMERS
+            )
+    end
+    if state.customerRushUntil > 0 and state.sales >= Economy.MAX_CUSTOMERS_PER_SHIFT then
+        state.cash += Economy.CUSTOMER_RUSH_REWARD
+        state.customerRushUntil = 0
+        state.stage = "CloseShift"
+        return true,
+            string.format(
+                "Rush cleared! +$%d bonus. All customers served; close out your shift.",
+                Economy.CUSTOMER_RUSH_REWARD
+            )
+    end
+    if state.customerRushUntil == 0 and state.sales >= Economy.CUSTOMERS_PER_SHIFT then
         state.stage = "CloseShift"
         return true,
             string.format(
@@ -276,8 +345,20 @@ function Economy.sellProduct(state, now)
             "Sale complete! +$%d for %s. %d customers remain in the queue.",
             product.salePrice,
             product.displayName,
-            Economy.CUSTOMERS_PER_SHIFT - state.sales
+            Economy.getCustomerTarget(state) - state.sales
         )
+end
+
+function Economy.expireCustomerRush(state, now)
+    if state.stage ~= "CustomerRush" or state.customerRushUntil <= 0 then
+        return false, "There is no active customer rush."
+    end
+    if type(now) ~= "number" or now ~= now or now % 1 ~= 0 or now < state.customerRushUntil then
+        return false, "The customer rush is still active."
+    end
+    state.customerRushUntil = 0
+    state.stage = "CloseShift"
+    return true, "The rush is over. Finish the shift at the board; no bonus was earned."
 end
 
 function Economy.cleanSpill(state)
@@ -294,6 +375,7 @@ function Economy.restorePower(state)
         return false, "The store power is already on."
     end
     state.powerOutageUntil = 0
+    state.customerRushUntil = 0
     state.stage = "Checkout"
     return true, "Power restored. The checkout queue is moving again."
 end

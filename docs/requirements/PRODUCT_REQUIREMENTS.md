@@ -88,3 +88,10 @@ Instrument funnel events for first interaction, first stock, first sale, first u
 - Persist the outage stage/deadline so rejoining cannot skip the event or leave the shift stuck.
 - Permit Owner, Manager and Maintenance to restore power early; Cashier automation pauses until the outage resolves.
 - Manual breaker use and timer fallback must restore service without an extra reward, sale, or inventory change. See `operations/PHASE12_POWER_OUTAGE.md`.
+
+### Phase 4 Customer Rush increment
+- After the three baseline customers, offer two additional shoppers for a 60-second bounded rush.
+- Require two remaining shelf units after the third sale; when stock is insufficient, proceed to ordinary closeout without trapping the player in an unserviceable bonus queue.
+- Serve both through the ordinary server-priced product transaction to earn one `$20` bonus; if time expires, allow normal shift closeout without the bonus.
+- Persist the active deadline, reconstruct queue state after rejoin, cap active NPCs at five, and keep the client countdown display-only.
+- See `operations/PHASE13_CUSTOMER_RUSH.md` for reward, timeout, race, cashier and recovery checks.

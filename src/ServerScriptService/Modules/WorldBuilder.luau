@@ -776,11 +776,15 @@ function WorldBuilder.build()
         { COLORS.blue, COLORS.deepTeal, COLORS.orange },
         { COLORS.coral, COLORS.gray, COLORS.deepTeal },
         { COLORS.green, COLORS.blue, COLORS.gold },
+        { COLORS.orange, COLORS.deepTeal, COLORS.cream },
+        { COLORS.paleGreen, COLORS.wood, COLORS.coral },
     }
     local customerPositions = {
         Vector3.new(17.5, 0.45, 4),
         Vector3.new(17.5, 0.45, 8),
         Vector3.new(17.5, 0.45, 12),
+        Vector3.new(17.5, 0.45, 15),
+        Vector3.new(14, 0.45, 15),
     }
     for index, position in ipairs(customerPositions) do
         local colors = customerColors[index]
@@ -834,6 +838,7 @@ function WorldBuilder.build()
     local customerFlowVersion = 0
     local customerFlowTweens = {}
     local remainingCustomers
+    local customerTotal = 0
     local checkoutReady = false
     local function cancelCustomerFlow()
         customerFlowVersion += 1
@@ -905,7 +910,7 @@ function WorldBuilder.build()
         entry.label.Text = queueNumber == 1 and "NEXT CUSTOMER" or "IN QUEUE"
         if queueNumber == 1 then
             checkoutReady = true
-            register.Enabled = currentStage == "Checkout"
+            register.Enabled = currentStage == "Checkout" or currentStage == "CustomerRush"
         end
     end
 
@@ -929,7 +934,7 @@ function WorldBuilder.build()
         entry.label.Text = queueNumber == 1 and "NEXT CUSTOMER" or "IN QUEUE"
         if queueNumber == 1 then
             checkoutReady = true
-            register.Enabled = currentStage == "Checkout"
+            register.Enabled = currentStage == "Checkout" or currentStage == "CustomerRush"
         end
     end
 
@@ -955,9 +960,9 @@ function WorldBuilder.build()
 
     local function recoverCustomerQueue()
         cancelCustomerFlow()
-        local served = #customerModels - (remainingCustomers or 0)
+        local served = customerTotal - (remainingCustomers or 0)
         for index, entry in ipairs(customerModels) do
-            local visible = index > served
+            local visible = index > served and index <= customerTotal
             if visible then
                 local queueNumber = index - served
                 local targetPosition = customerPositions[queueNumber]
@@ -972,19 +977,27 @@ function WorldBuilder.build()
             entry.billboard.Enabled = visible
         end
         checkoutReady = (remainingCustomers or 0) > 0
-        register.Enabled = currentStage == "Checkout" and checkoutReady
+        register.Enabled = (currentStage == "Checkout" or currentStage == "CustomerRush")
+            and checkoutReady
     end
 
-    local function setCustomerCount(count)
+    local function setCustomerCount(count, targetCount)
         local activeStage = currentStage == "Checkout"
             or currentStage == "Spill"
             or currentStage == "PowerOutage"
+            or currentStage == "CustomerRush"
         local countAllowed = activeStage or currentStage == "CloseShift"
-        local remaining = countAllowed and math.min(math.max(math.floor(count), 0), #customerModels)
+        local target = countAllowed
+                and math.min(
+                    math.max(math.floor(targetCount or #customerModels), 0),
+                    #customerModels
+                )
             or 0
+        local remaining = countAllowed and math.min(math.max(math.floor(count), 0), target) or 0
         if not activeStage and currentStage ~= "CloseShift" then
             cancelCustomerFlow()
             remainingCustomers = nil
+            customerTotal = 0
             checkoutReady = false
             register.Enabled = false
             for _, entry in ipairs(customerModels) do
@@ -997,32 +1010,38 @@ function WorldBuilder.build()
             end
             return
         end
-        if remainingCustomers == remaining then
+        if remainingCustomers == remaining and customerTotal == target then
             return
         end
 
         local previousRemaining = remainingCustomers
+        local previousTotal = customerTotal
         remainingCustomers = remaining
+        customerTotal = target
         checkoutReady = false
         register.Enabled = false
         cancelCustomerFlow()
         local flowVersion = customerFlowVersion
-        local served = #customerModels - remaining
+        local served = target - remaining
 
         for index, entry in ipairs(customerModels) do
-            local visible = index > served
-            if visible then
-                for _, item in ipairs(entry.model:GetDescendants()) do
-                    if item:IsA("BasePart") then
-                        item.Transparency = 0
-                    end
+            local visible = index > served and index <= target
+            for _, item in ipairs(entry.model:GetDescendants()) do
+                if item:IsA("BasePart") then
+                    item.Transparency = visible and 0 or 1
                 end
-                entry.billboard.Enabled = true
             end
+            entry.billboard.Enabled = visible
         end
 
-        if previousRemaining and remaining < previousRemaining then
-            local servedIndex = #customerModels - previousRemaining + 1
+        if
+            previousRemaining
+            and (
+                (target == previousTotal and remaining < previousRemaining)
+                or target > previousTotal
+            )
+        then
+            local servedIndex = previousTotal - previousRemaining + 1
             local servedEntry = customerModels[servedIndex]
             if servedEntry then
                 task.spawn(runCustomerExit, servedEntry, flowVersion)
@@ -1039,16 +1058,16 @@ function WorldBuilder.build()
             end
         end
 
-        for index = served + 1, #customerModels do
+        for index = served + 1, target do
             local entry = customerModels[index]
             local queueNumber = index - served
             local homePosition = customerPositions[index]
-            if previousRemaining == nil then
+            if previousRemaining == nil or index > previousTotal then
                 local spawnPosition = Vector3.new((index - 2) * 1.7, 0.45, 22)
                 entry.model:PivotTo(entry.homePivot + (spawnPosition - entry.homePosition))
             end
             local queuePosition = customerPositions[queueNumber] or homePosition
-            if previousRemaining == nil then
+            if previousRemaining == nil or index > previousTotal then
                 task.spawn(runCustomerVisit, entry, queuePosition, queueNumber, flowVersion)
             else
                 task.spawn(runCustomerAdvance, entry, queuePosition, queueNumber, flowVersion)
@@ -1070,7 +1089,7 @@ function WorldBuilder.build()
     end
 
     local function setCustomerVisible(visible)
-        setCustomerCount(visible and #customerModels or 0)
+        setCustomerCount(visible and #customerModels or 0, #customerModels)
     end
 
     local spillModel = Instance.new("Model")
@@ -1742,7 +1761,7 @@ function WorldBuilder.build()
             and stage ~= "Loading"
             and stage ~= "OwnerOffline"
             and stage ~= "PowerOutage"
-        register.Enabled = stage == "Checkout" and checkoutReady
+        register.Enabled = (stage == "Checkout" or stage == "CustomerRush") and checkoutReady
         closePrompt.Enabled = stage == "CloseShift"
         spillPrompt.Enabled = stage == "Spill"
         powerPrompt.Enabled = stage == "PowerOutage"

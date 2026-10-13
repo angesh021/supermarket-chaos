@@ -487,12 +487,31 @@ workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(function()
 end)
 
 local messageRevision = 0
+local customerRushUntil = 0
+local rushRemaining = 0
+local rushReward = 0
+
+local function renderRushObjective()
+    if customerRushUntil > 0 and ownerView then
+        objective.Text = string.format(
+            "Rush: %d shoppers | %d sec. Clear it for +$%d.",
+            rushRemaining,
+            math.max(0, customerRushUntil - os.time()),
+            rushReward
+        )
+    end
+end
+
 local function update(state)
     if typeof(state) ~= "table" then
         return
     end
     objective.Text = tostring(state.objective or "Keep the store running.")
     ownerView = state.hasStoreAccess == true or state.isOwner ~= false
+    customerRushUntil = state.customerRushUntil or 0
+    rushRemaining = state.rushRemaining or 0
+    rushReward = state.rushReward or 0
+    renderRushObjective()
     warehouseView = state.warehousePurchased == true
     backroomValue.Text = string.format(
         "BACKROOM  CITRUS %d  |  BERRY %d",
@@ -539,3 +558,9 @@ local function update(state)
 end
 
 stateEvent.OnClientEvent:Connect(update)
+task.spawn(function()
+    while gui.Parent do
+        task.wait(1)
+        renderRushObjective()
+    end
+end)

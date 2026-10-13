@@ -55,6 +55,7 @@ local OBJECTIVES = {
     Checkout = "Serve the customers waiting in the checkout queue.",
     Spill = "Clean up the dropped groceries by checkout.",
     PowerOutage = "Power outage: restore power at the breaker by checkout.",
+    CustomerRush = "Customer rush: serve the bonus queue before the timer ends.",
     CloseShift = "All customers are served. Close the shift at the shift board.",
     Upgrade = "Upgrade: use the gold pad just inside the front entrance. Press E to spend $45.",
     Complete = "Shift complete. Visit the shift board to start another shift.",
@@ -67,7 +68,7 @@ local function snapshot(message, recipient)
     local hasStoreAccess = isOwner or isHelper
     local objective = OBJECTIVES[current.stage] or "Your store is starting up."
     if current.stage == "Checkout" then
-        local remaining = math.max(0, Economy.CUSTOMERS_PER_SHIFT - current.sales)
+        local remaining = Economy.getRemainingCustomers(current)
         local productId = Economy.getNextCheckoutProductId(current)
         local nextProduct = productId and Economy.PRODUCTS[productId].displayName
             or "restock a shelf"
@@ -78,7 +79,7 @@ local function snapshot(message, recipient)
             nextProduct
         )
     elseif current.stage == "Spill" then
-        local remaining = math.max(0, Economy.CUSTOMERS_PER_SHIFT - current.sales)
+        local remaining = Economy.getRemainingCustomers(current)
         local productId = Economy.getNextCheckoutProductId(current)
         local nextProduct = productId and Economy.PRODUCTS[productId].displayName
             or "restock a shelf"
@@ -88,6 +89,8 @@ local function snapshot(message, recipient)
             remaining == 1 and "" or "s",
             nextProduct
         )
+    elseif current.stage == "CustomerRush" then
+        objective = "Customer rush: serve the remaining shoppers before the timer ends."
     end
     if not isOwner and not isHelper then
         if ownerPlayer then
@@ -114,6 +117,9 @@ local function snapshot(message, recipient)
         warehousePurchased = hasStoreAccess and current.warehousePurchased or false,
         backstock = hasStoreAccess and current.backstock or 0,
         berryBackstock = hasStoreAccess and current.berryBackstock or 0,
+        customerRushUntil = hasStoreAccess and current.customerRushUntil or 0,
+        rushRemaining = hasStoreAccess and Economy.getRemainingCustomers(current) or 0,
+        rushReward = hasStoreAccess and Economy.CUSTOMER_RUSH_REWARD or 0,
         nextProductName = hasStoreAccess and Economy.PRODUCTS[Economy.getNextCheckoutProductId(
             current
         ) or "citrusPop"].displayName or "",
@@ -293,7 +299,11 @@ function ShiftService.init(event, membershipRemotes)
     local function scheduleCashierSale()
         cashierScheduleVersion += 1
         local scheduleVersion = cashierScheduleVersion
-        if not state or not state.cashierHired or state.stage ~= "Checkout" then
+        if
+            not state
+            or not state.cashierHired
+            or (state.stage ~= "Checkout" and state.stage ~= "CustomerRush")
+        then
             return
         end
 
@@ -306,7 +316,7 @@ function ShiftService.init(event, membershipRemotes)
                     or not ownerPlayer
                     or not state
                     or not state.cashierHired
-                    or state.stage ~= "Checkout"
+                    or (state.stage ~= "Checkout" and state.stage ~= "CustomerRush")
                     or ProfileService.getSaveStatus(ownerPlayer) == "lock lost"
                     or ProfileService.getSaveStatus(ownerPlayer) == "save pending"
                 then
@@ -433,6 +443,43 @@ function ShiftService.init(event, membershipRemotes)
         end)
     end
 
+    local scheduledCustomerRushAt
+    local function scheduleCustomerRushExpiry()
+        if not state or state.stage ~= "CustomerRush" or state.customerRushUntil <= 0 then
+            scheduledCustomerRushAt = nil
+            return
+        end
+        local expiresAt = state.customerRushUntil
+        if scheduledCustomerRushAt == expiresAt then
+            return
+        end
+        scheduledCustomerRushAt = expiresAt
+        task.delay(math.max(0, expiresAt - os.time()), function()
+            if
+                not ownerReady
+                or not ownerPlayer
+                or not state
+                or state.stage ~= "CustomerRush"
+                or state.customerRushUntil ~= expiresAt
+            then
+                return
+            end
+            local saveStatus = ProfileService.getSaveStatus(ownerPlayer)
+            if saveStatus == "lock lost" then
+                return
+            elseif saveStatus == "save pending" then
+                scheduledCustomerRushAt = nil
+                task.delay(1, scheduleCustomerRushExpiry)
+                return
+            end
+            local ok, message = Economy.expireCustomerRush(state, os.time())
+            if ok then
+                commit("customerRushExpired")
+                broadcast(message)
+            end
+        end)
+    end
+
     commit = function(eventName)
         ProfileService.saveProgress(ownerPlayer, state, eventName)
         TelemetryService.record(ownerPlayer, eventName)
@@ -444,13 +491,17 @@ function ShiftService.init(event, membershipRemotes)
             state.warehousePurchased
                 and state.berryBackstock >= Economy.BERRY_BITES_STOCK_PER_RESTOCK
         )
-        world.setCustomerCount(math.max(0, Economy.CUSTOMERS_PER_SHIFT - state.sales))
+        world.setCustomerCount(
+            Economy.getRemainingCustomers(state),
+            Economy.getCustomerTarget(state)
+        )
         broadcast()
         scheduleStocker()
         scheduleCashierSale()
         scheduleCleaner()
         scheduleDeliveryArrival()
         schedulePowerOutageRecovery()
+        scheduleCustomerRushExpiry()
     end
 
     bind("Cart", world.cartPrompt, 12, function()
@@ -787,7 +838,10 @@ function ShiftService.init(event, membershipRemotes)
                 Economy.PRODUCTS[Economy.getNextCheckoutProductId(state) or "citrusPop"].displayName
             )
             world.setStage(state.stage)
-            world.setCustomerCount(math.max(0, Economy.CUSTOMERS_PER_SHIFT - state.sales))
+            world.setCustomerCount(
+                Economy.getRemainingCustomers(state),
+                Economy.getCustomerTarget(state)
+            )
             if state.stage == "Cart" then
                 startCart()
             end
@@ -796,6 +850,7 @@ function ShiftService.init(event, membershipRemotes)
             scheduleCleaner()
             scheduleDeliveryArrival()
             schedulePowerOutageRecovery()
+            scheduleCustomerRushExpiry()
             broadcast(
                 status == "session only" and "Data saving is off; this session will not persist."
                     or "Store profile loaded."

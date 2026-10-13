@@ -4,7 +4,7 @@ local HttpService = game:GetService("HttpService")
 
 local ProfileService = {}
 
-local SCHEMA_VERSION = 8
+local SCHEMA_VERSION = 9
 local SESSION_LEASE_SECONDS = 180
 local MAX_RETRIES = 3
 local STORE_NAME = "SupermarketChaos_PlayerProfiles_v1"
@@ -35,6 +35,7 @@ local function defaultProfile()
             berryStock = 0,
             sales = 0,
             powerOutageUntil = 0,
+            customerRushUntil = 0,
             cartRecovered = false,
             shiftClosed = false,
         },
@@ -212,6 +213,7 @@ local function normalizeProfile(value)
                 and stage ~= "Checkout"
                 and stage ~= "Spill"
                 and stage ~= "PowerOutage"
+                and stage ~= "CustomerRush"
                 and stage ~= "CloseShift"
                 and stage ~= "Upgrade"
                 and stage ~= "Complete"
@@ -225,11 +227,22 @@ local function normalizeProfile(value)
             or not validCounter(value.shift.berryStock)
             or not validCounter(value.shift.sales)
             or not validTimestamp(value.shift.powerOutageUntil)
+            or not validTimestamp(value.shift.customerRushUntil)
         then
             return nil, "Stored shift counters are invalid."
         end
         if nonNegativeInteger(value.shift.berryStock, 0) > 24 then
             return nil, "Stored Berry Bites shelf stock is outside the supported limit."
+        end
+        if nonNegativeInteger(value.shift.sales, 0) > 5 then
+            return nil, "Stored shift sales are outside the supported limit."
+        end
+        local savedSales = nonNegativeInteger(value.shift.sales, 0)
+        if
+            (profile.shift.stage == "PowerOutage" and savedSales ~= 2)
+            or (profile.shift.stage == "CustomerRush" and (savedSales < 3 or savedSales > 4))
+        then
+            return nil, "Stored chaos event does not match the saved shift progress."
         end
         if
             (value.shift.cartRecovered ~= nil and type(value.shift.cartRecovered) ~= "boolean")
@@ -241,9 +254,12 @@ local function normalizeProfile(value)
         profile.shift.berryStock = nonNegativeInteger(value.shift.berryStock, 0)
         profile.shift.sales = nonNegativeInteger(value.shift.sales, 0)
         profile.shift.powerOutageUntil = nonNegativeInteger(value.shift.powerOutageUntil, 0)
+        profile.shift.customerRushUntil = nonNegativeInteger(value.shift.customerRushUntil, 0)
         if
             (profile.shift.stage == "PowerOutage" and profile.shift.powerOutageUntil == 0)
             or (profile.shift.stage ~= "PowerOutage" and profile.shift.powerOutageUntil ~= 0)
+            or (profile.shift.stage == "CustomerRush" and profile.shift.customerRushUntil == 0)
+            or (profile.shift.stage ~= "CustomerRush" and profile.shift.customerRushUntil ~= 0)
         then
             return nil, "Stored power outage state is inconsistent."
         end
@@ -263,6 +279,7 @@ local function copyProfile(profile)
             berryStock = profile.shift.berryStock,
             sales = profile.shift.sales,
             powerOutageUntil = profile.shift.powerOutageUntil,
+            customerRushUntil = profile.shift.customerRushUntil,
             cartRecovered = profile.shift.cartRecovered,
             shiftClosed = profile.shift.shiftClosed,
         },
@@ -481,6 +498,7 @@ function ProfileService.saveProgress(player, state, eventName)
     profile.shift.berryStock = state.berryStock
     profile.shift.sales = state.sales
     profile.shift.powerOutageUntil = state.powerOutageUntil
+    profile.shift.customerRushUntil = state.customerRushUntil
     profile.shift.cartRecovered = state.cartRecovered
     profile.shift.shiftClosed = state.shiftClosed
     profile.ownedUpgrades.shelfBay = state.upgradePurchased

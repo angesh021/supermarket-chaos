@@ -60,6 +60,12 @@ Currency and stock changes occur only after server-side validation. Transactions
 - Owner/Manager/Maintenance may restore power, with the common prompt range, role, profile lease and rate checks. Cashier automation is paused by the stage and restarts on recovery. `WorldBuilder` owns only presentation: lighting, breaker sign and prompt.
 - See `operations/PHASE12_POWER_OUTAGE.md`; Studio timer, persistence, role and visual behavior remain unverified.
 
+## Phase 4 Customer Rush increment
+- Profile schema v9 persists a `customerRushUntil` timestamp with the `CustomerRush` stage. Earlier schema versions default to no active rush; inconsistent stage/deadline pairs reject the profile.
+- Completing the three normal sales starts a 60-second rush with two additional shoppers only when two shelf units remain. All rush sales use `Economy.sellProduct` and the existing product catalog. Clearing both pays one `$20` reward and proceeds to closeout; timeout drops only the unserved bonus queue and offers normal closeout without the reward. Insufficient stock proceeds to ordinary closeout without a rush.
+- Customer models are bounded to five and reconstructed from saved sales/deadline. Cashier automation is allowed during the rush but the economy checks its deadline. `ShiftService` expires it only after checking the owner and save lock.
+- See `operations/PHASE13_CUSTOMER_RUSH.md`; Studio queue, payout, timeout, automation and persistence checks remain pending.
+
 ## Open technical decisions
 See `docs/decisions/README.md` for accepted ownership policy. Remaining decisions include multi-store/guest permissions, production Studio place configuration, analytics implementation/privacy review, and any changes to persistence recovery. Verify platform APIs against official documentation when implementation starts.
 # Cooperative ownership and cashier extension

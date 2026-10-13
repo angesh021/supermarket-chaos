@@ -49,7 +49,8 @@ G0 was approved on 2026-10-12. The user authorized continued phase implementatio
 - [x] Require an authorized player to clean the spill; pay a small server-owned cleanup reward and resume the queue.
 - [x] Persist the interruption using the versioned shift stage so rejoin restores the cleanup objective.
 - [x] Add a bounded Power Outage after the second sale, with a physical breaker, role permissions, persisted deadline and automatic recovery.
-- [ ] Add Customer Rush with duration, eligibility, bounded extra customers and safe recovery.
+- [x] Add Customer Rush after the normal three sales: two bonus customers, a persisted 60-second deadline, server-priced checkout, a one-time `$20` clear bonus and safe no-bonus timeout.
+- [ ] Studio verification of the Customer Rush queue, payout, timeout, cashier behavior and save/rejoin; see `operations/PHASE13_CUSTOMER_RUSH.md`.
 - [ ] Studio verification of Power Outage, including early/manual recovery, auto recovery, save/rejoin and helper roles; see `operations/PHASE12_POWER_OUTAGE.md`.
 - [ ] Studio verification of role permissions, reward idempotency, save/rejoin and cashier behavior during the event.
 

@@ -52,6 +52,13 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Consequences:** Profile schema v8 adds one timestamp and allows `PowerOutage`; previous profiles migrate to zero/no outage. The event does not grant an extra reward, destroy stock, or punish players if unattended. Lighting and checkout readiness are presentation controlled by the server stage.
 - **Verification:** See `docs/operations/PHASE12_POWER_OUTAGE.md`; Studio timing, save/rejoin and role tests remain pending.
 
+## ADR-0011 — Make Customer Rush a bounded bonus queue
+- **Status:** Accepted — 2026-10-12.
+- **Context:** The core supermarket needs a meaningful rush event without making normal shift completion depend on an optional event.
+- **Decision:** After the three baseline customers, open a 60-second queue with two bonus customers. Serving both grants `$20` once; timeout closes only the bonus queue and leaves the normal shift available for closeout.
+- **Consequences:** Profile schema v9 saves the rush deadline; up to five customers are reconstructed from sales and the active deadline. Sales still use server catalog prices and inventory. The client timer is display-only; the server validates sale deadline, completion reward and timeout.
+- **Verification:** See `docs/operations/PHASE13_CUSTOMER_RUSH.md`; Studio timing, cashier, race and rejoin tests remain pending.
+
 ## ADR-0009 — Keep product inventory and supplier orders SKU-specific
 - **Status:** Accepted — 2026-10-12.
 - **Context:** The retail loop needs visible department variety and product-specific stock behavior while keeping stock and money authoritative.
