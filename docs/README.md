@@ -37,5 +37,6 @@
 | [Household aisle expansion verification](operations/PHASE27_HOUSEHOLD_AISLE_EXPANSION.md) | Persistent fixed-slot store expansion, server price and schema v17 migration |
 | [Shift payroll verification](operations/PHASE28_SHIFT_PAYROLL.md) | Fixed per-shift wages, one-time closeout deduction and HUD payroll display |
 | [Warehouse layout editor verification](operations/PHASE29_WAREHOUSE_LAYOUT_EDITOR.md) | Persistent shelf placement, movement, rotation, collision bounds and authorization |
+| [Customer preference verification](operations/PHASE30_CUSTOMER_PREFERENCES.md) | Weighted shopping profiles, deterministic reconstruction, stock fallback and checkout behavior |
 
 Keep this index and linked documents current as implementation changes. See [AGENTS.md](../AGENTS.md) for repository rules.

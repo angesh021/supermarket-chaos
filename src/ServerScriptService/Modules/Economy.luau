@@ -123,6 +123,7 @@ function Economy.newState(profile)
         goldenAppleStock = savedShift.goldenAppleStock or 0,
         cerealStock = savedShift.cerealStock or 0,
         sales = savedShift.sales or 0,
+        completedShifts = math.max(0, math.floor(profile.completedShifts or 0)),
         cartRecovered = savedShift.cartRecovered or false,
         shiftClosed = savedShift.shiftClosed or false,
         powerOutageUntil = savedShift.powerOutageUntil or 0,
@@ -425,18 +426,29 @@ function Economy.getNextCheckoutProductId(state)
     return basket and basket.items[1] and basket.items[1].productId or nil
 end
 
--- Basket intent is derived from the next customer number. The server resolves it
--- against current shelf stock, so a rejoin or a depleted preferred SKU is safe.
+-- The reproducible weighted draw is derived from the saved completed-shift count
+-- and next sale number. The server resolves each preference against live stock.
 function Economy.getNextCheckoutBasket(state)
     local customerNumber = state.sales + 1
-    local intents = {
-        { "citrusPop" },
-        { "berryBites" },
-        { "citrusPop", "sunriseCereal" },
-        { "goldenApples" },
-        { "berryBites", "berryBites" },
+    local shiftNumber = math.max(0, math.floor(state.completedShifts or 0))
+    local weightedIntents = {
+        { name = "Everyday", weight = 40, products = { "citrusPop" } },
+        { name = "Value shopper", weight = 25, products = { "berryBites", "berryBites" } },
+        { name = "Family shop", weight = 20, products = { "goldenApples", "sunriseCereal" } },
+        { name = "Treat stop", weight = 15, products = { "citrusPop", "berryBites" } },
     }
-    local intent = intents[((customerNumber - 1) % #intents) + 1]
+    local draw = (
+        (customerNumber * 73 + shiftNumber * 191 + customerNumber * shiftNumber * 17) % 100
+    ) + 1
+    local intent = weightedIntents[1]
+    for _, candidate in ipairs(weightedIntents) do
+        draw -= candidate.weight
+        if draw <= 0 then
+            intent = candidate
+            break
+        end
+    end
+    local preferredProducts = intent.products
     local available = {
         citrusPop = math.max(0, math.floor(state.stock or 0)),
         berryBites = math.max(0, math.floor(state.berryStock or 0)),
@@ -447,7 +459,7 @@ function Economy.getNextCheckoutBasket(state)
     local counts = {}
     local fulfilledCount = 0
 
-    for _, productId in ipairs(intent) do
+    for _, productId in ipairs(preferredProducts) do
         if available[productId] > 0 then
             available[productId] -= 1
             counts[productId] = (counts[productId] or 0) + 1
@@ -510,7 +522,7 @@ function Economy.getNextCheckoutBasket(state)
         table.insert(labels, string.format("%s x%d", item.displayName, item.quantity))
     end
     local preferredProductIds = {}
-    for _, productId in ipairs(intent) do
+    for _, productId in ipairs(preferredProducts) do
         table.insert(preferredProductIds, productId)
     end
     return {
@@ -518,6 +530,7 @@ function Economy.getNextCheckoutBasket(state)
         total = total,
         displayName = #labels > 0 and table.concat(labels, " + ") or "No shelf stock",
         preferredProductIds = preferredProductIds,
+        preferenceName = intent.name,
     }
 end
 
@@ -717,6 +730,7 @@ function Economy.closeShift(state)
         return false, "Serve the waiting customer before closing."
     end
     state.shiftClosed = true
+    state.completedShifts = (state.completedShifts or 0) + 1
     state.cash += Economy.SHIFT_REWARD
     local payroll = Economy.getShiftPayroll(state)
     state.cash -= payroll

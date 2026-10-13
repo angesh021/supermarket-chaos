@@ -150,6 +150,7 @@ Currency and stock changes occur only after server-side validation. Transactions
 - Owner/Manager opens the editor from a physical warehouse prompt. The client previews and proposes edits, while `ShiftService` rechecks membership, stage, warehouse ownership, profile lock, proximity, rate, action ID and payload before creating/moving/removing a shelf.
 - Placement/removal cash changes and compact layout records persist via the existing serialized profile path. Schema v18 migrates old profiles to an empty layout; `WorldBuilder` rebuilds from validated records.
 - See `operations/PHASE29_WAREHOUSE_LAYOUT_EDITOR.md`; client preview, Studio authorization, collision and DataStore recovery checks remain pending.
+- Customer basket preferences use a deterministic weighted draw from completed-shift count and sale number. Only server logic reads stock/prices to fulfill the preference; billboards receive display strings. See `operations/PHASE30_CUSTOMER_PREFERENCES.md`.
 
 ## Open technical decisions
 See `docs/decisions/README.md` for accepted ownership policy. Remaining decisions include multi-store/guest permissions, production Studio place configuration, analytics implementation/privacy review, and any changes to persistence recovery. Verify platform APIs against official documentation when implementation starts.

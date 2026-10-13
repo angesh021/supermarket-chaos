@@ -171,6 +171,13 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Consequences:** Profile schema v18 stores compact versioned shelf records. Layouts cap at six shelves, rotate in 90-degree increments, cost `$50` to place and refund `$25` to remove. Main-floor placement, other object types and plots remain future work.
 - **Verification:** See `docs/operations/PHASE29_WAREHOUSE_LAYOUT_EDITOR.md`; Studio and DataStore checks remain pending.
 
+## ADR-0028 — Make customer preference variety reproducible
+- **Status:** Accepted — 2026-10-12.
+- **Context:** The short customer loop repeated a fixed five-basket sequence and showed no shopping persona, while rejoin reconstruction must remain stable.
+- **Decision:** Draw Everyday, Value shopper, Family shop, and Treat stop preferences with respective 40/25/20/15 weights using completed-shift count and sale number. Keep stock resolution, price response, and checkout totals in Economy; send only display strings to the world presentation layer.
+- **Consequences:** No new profile schema or remote is required. A deterministic weighted sample may not match the nominal ratios in a small number of visits. Customer archetypes currently influence product preference only; deeper budget, patience and loyalty behavior remains future work.
+- **Verification:** See `docs/operations/PHASE30_CUSTOMER_PREFERENCES.md`; Studio and DataStore checks remain pending.
+
 ## ADR-0009 — Keep product inventory and supplier orders SKU-specific
 - **Status:** Accepted — 2026-10-12.
 - **Context:** The retail loop needs visible department variety and product-specific stock behavior while keeping stock and money authoritative.

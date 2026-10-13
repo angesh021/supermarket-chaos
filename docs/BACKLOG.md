@@ -46,7 +46,9 @@ G0 was approved on 2026-10-12. The user authorized continued phase implementatio
 - [x] Phase 27: add a persistent, server-priced second fixed household aisle slot behind the first shelf expansion; see `operations/PHASE27_HOUSEHOLD_AISLE_EXPANSION.md`.
 - [x] Phase 28: charge fixed employee wages once per completed shift and surface payroll in the existing HUD status line; see `operations/PHASE28_SHIFT_PAYROLL.md`.
 - [x] Phase 29: add a persistent warehouse shelf editor with server-validated placement, movement, rotation, collision limits and removal; see `operations/PHASE29_WAREHOUSE_LAYOUT_EDITOR.md`.
-- [ ] Add delivery/customer-assistant roles, departments and further customization.
+- [x] Phase 30: add reproducible weighted customer shopping preferences with visible customer labels; see `operations/PHASE30_CUSTOMER_PREFERENCES.md`.
+- [ ] Add more departments and main-floor customization; warehouse layout editing is implemented but not full store construction.
+- [ ] Add customer satisfaction, product substitution and patience effects to the Phase 30 preference profiles.
 - [ ] Studio verification of cleaner hire/migration, save/rejoin, automatic cleanup and player/employee races.
 
 ## Phase 4 — Customer operations (checkout queue increment implemented)
@@ -54,7 +56,7 @@ G0 was approved on 2026-10-12. The user authorized continued phase implementatio
 - [x] Serve customers through the existing server economy transaction; close the shift only when the queue is cleared.
 - [x] Reconstruct remaining queue positions from the persisted shift sales count after rejoin.
 - [x] Script bounded entrance, aisle browse, checkout queue and exit waypoints; add a 12-second queue recovery path.
-- [ ] Add broader, weighted shopping preferences; event reactions are implemented in Phase 16.
+- [x] Add reproducible weighted shopping preferences; event reactions are implemented in Phase 16. See Phase 30.
 - [x] Phase 16: add stage-derived customer reactions for spill, outage and rush with normal labels restored after recovery; see `operations/PHASE16_CUSTOMER_EVENT_REACTIONS.md`.
 - [x] Phase 14: add deterministic Citrus Pop/Berry Bites basket preferences, stock-aware fulfillment, atomic multi-item checkout and basket display; see `operations/PHASE14_CUSTOMER_BASKETS.md`.
 - [ ] Studio verification of three sales, queue visibility, cashier automation, helper races, and rejoin mid-queue.

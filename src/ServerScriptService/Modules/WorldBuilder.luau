@@ -919,6 +919,7 @@ function WorldBuilder.build()
 
     local customerProductName = "Citrus Pop"
     local customerBasketName = "Citrus Pop x1"
+    local customerPreferenceName = "Everyday"
     local customerProductPosition = Vector3.new(-10, 0.45, 4)
     local customerProductPositions = { customerProductPosition }
     local function customerQueueStatus(queueNumber)
@@ -961,7 +962,9 @@ function WorldBuilder.build()
         if not browseCustomerBasket(entry, 0.7, flowVersion) then
             return
         end
-        entry.label.Text = "BASKET: " .. string.upper(customerBasketName)
+        entry.label.Text = string.upper(customerPreferenceName)
+            .. " • "
+            .. string.upper(customerBasketName)
         task.wait(0.55)
         if not moveCustomer(entry, Vector3.new(5, 0.45, 4), 0.75, flowVersion) then
             return
@@ -977,7 +980,9 @@ function WorldBuilder.build()
     end
 
     local function runCustomerAdvance(entry, queuePosition, queueNumber, flowVersion)
-        entry.label.Text = "BASKET: " .. string.upper(customerBasketName)
+        entry.label.Text = string.upper(customerPreferenceName)
+            .. " • "
+            .. string.upper(customerBasketName)
         if not browseCustomerBasket(entry, 0.55, flowVersion) then
             return
         end
@@ -2340,8 +2345,9 @@ function WorldBuilder.build()
                     or Vector3.new(-10, 0.45, 4)
                 )
         end,
-        setCustomerBasket = function(displayName)
+        setCustomerBasket = function(displayName, preferenceName)
             customerBasketName = displayName or "Citrus Pop x1"
+            customerPreferenceName = preferenceName or "Everyday"
             customerProductPositions = {}
             if string.find(customerBasketName, "Berry Bites", 1, true) then
                 table.insert(customerProductPositions, Vector3.new(10, 0.45, 4))

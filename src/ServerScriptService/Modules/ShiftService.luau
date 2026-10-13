@@ -622,7 +622,8 @@ function ShiftService.init(event, membershipRemotes)
         world.setCustomerProduct(
             Economy.PRODUCTS[Economy.getNextCheckoutProductId(state) or "citrusPop"].displayName
         )
-        world.setCustomerBasket(Economy.getNextCheckoutBasket(state).displayName)
+        local nextBasket = Economy.getNextCheckoutBasket(state)
+        world.setCustomerBasket(nextBasket.displayName, nextBasket.preferenceName)
         for productId in pairs(Economy.PRODUCTS) do
             world.setProductPrice(productId, Economy.getProductPrice(state, productId))
         end
@@ -1304,7 +1305,8 @@ function ShiftService.init(event, membershipRemotes)
             world.setCustomerProduct(
                 Economy.PRODUCTS[Economy.getNextCheckoutProductId(state) or "citrusPop"].displayName
             )
-            world.setCustomerBasket(Economy.getNextCheckoutBasket(state).displayName)
+            local nextBasket = Economy.getNextCheckoutBasket(state)
+            world.setCustomerBasket(nextBasket.displayName, nextBasket.preferenceName)
             for productId in pairs(Economy.PRODUCTS) do
                 world.setProductPrice(productId, Economy.getProductPrice(state, productId))
             end
