@@ -322,6 +322,9 @@ local function normalizeProfile(value)
         if nonNegativeInteger(value.shift.berryStock, 0) > 24 then
             return nil, "Stored Berry Bites shelf stock is outside the supported limit."
         end
+        if nonNegativeInteger(value.shift.stock, 0) > 24 then
+            return nil, "Stored Citrus Pop shelf stock is outside the supported limit."
+        end
         if nonNegativeInteger(value.shift.goldenAppleStock, 0) > 24 then
             return nil, "Stored Golden Apples shelf stock is outside the supported limit."
         end

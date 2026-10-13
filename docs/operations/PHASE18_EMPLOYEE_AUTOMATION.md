@@ -36,5 +36,5 @@ If a save is pending or the session lease is lost, the standard action gate reje
 
 ## Known limits
 
-- Employee behavior still covers only the existing starter stock, checkout, and spill automation loops. Wages, schedules, broader SKU handling, and full staff simulation are not included.
+- At this phase, stocker automation only handles starter stock; Phase24 later extends it to an empty preferred SKU. Wages, schedules, demand forecasting, and full staff simulation remain outside scope.
 - Studio timers, permission behavior, persistence, legacy migration, and player/employee races have not been run locally.

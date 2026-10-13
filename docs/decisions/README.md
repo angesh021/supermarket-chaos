@@ -129,6 +129,13 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Consequences:** Basket quantity is derived from the existing sales count, current saved price and shelf inventory; no new schema fields or random customer state are needed. Satisfaction and product substitution remain future work.
 - **Verification:** See `docs/operations/PHASE23_PRICE_SENSITIVE_BASKETS.md`; Studio quantity, stock, race and rejoin checks remain pending.
 
+## ADR-0022 — Reuse player restock transitions for the stock clerk
+- **Status:** Accepted — 2026-10-12.
+- **Context:** The first stock clerk only filled Citrus Pop at shift start, leaving the warehouse SKUs and later empty shelves to manual restocking.
+- **Decision:** After the initial objective, let a hired enabled stocker inspect the next server-owned basket and restock one preferred empty SKU when a complete batch is in backstock. Manual and employee work share existing SKU transitions; repeated Citrus Pop restocking uses the same bounded batch path.
+- **Consequences:** Citrus Pop shelf stock is now capped at 24 in schema v15 validation. No new employee profile fields or client-selected SKU/quantity are introduced. Forecasting, wages and full shelf maintenance remain future work.
+- **Verification:** See `docs/operations/PHASE24_STOCKER_REPLENISHMENT.md`; Studio timer, stock, permission and recovery checks remain pending.
+
 ## ADR-0009 — Keep product inventory and supplier orders SKU-specific
 - **Status:** Accepted — 2026-10-12.
 - **Context:** The retail loop needs visible department variety and product-specific stock behavior while keeping stock and money authoritative.

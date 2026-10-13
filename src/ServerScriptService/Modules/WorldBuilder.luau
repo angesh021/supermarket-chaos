@@ -1204,12 +1204,15 @@ function WorldBuilder.build()
         end
         stockedCans = {}
         for index = 1, count do
-            local x = -10 + (index - (count + 1) / 2) * 0.9
+            local column = (index - 1) % 8
+            local row = math.floor((index - 1) / 8)
+            local x = -12.45 + column * 0.7
+            local y = 2.35 + row * 1.3
             local can = part(
                 interior,
                 "Stocked Citrus Pop Can",
                 Vector3.new(0.62, 0.8, 0.62),
-                CFrame.new(x, 3.75, -0.54) * CFrame.Angles(0, 0, math.rad(90)),
+                CFrame.new(x, y, -0.54) * CFrame.Angles(0, 0, math.rad(90)),
                 index % 2 == 0 and COLORS.green or COLORS.coral,
                 Enum.Material.Metal
             )
@@ -1439,6 +1442,16 @@ function WorldBuilder.build()
     end
     local deliveryWorkerHired = false
     local stockPrompt = prompt(shelf.PrimaryPart, "Stock Shelf", "Citrus Pop", "Stock", 9)
+    stockPrompt.Enabled = false
+    local citrusStockAvailable = false
+    local function updateCitrusStockPrompt()
+        stockPrompt.Enabled = citrusStockAvailable
+            and (
+                currentStage == "Stock"
+                or currentStage == "Checkout"
+                or currentStage == "CustomerRush"
+            )
+    end
     local berryStockPrompt =
         prompt(berryShelf.PrimaryPart, "Stock Shelf", "Berry Bites", "StockBerryBites", 9)
     berryStockPrompt.Enabled = false
@@ -2032,13 +2045,16 @@ function WorldBuilder.build()
             end
         end
         cartPrompt.Enabled = stage == "Cart"
-        stockPrompt.Enabled = stage == "Stock"
+        updateCitrusStockPrompt()
         berryStockPrompt.Enabled = berryStockAvailable
             and stage ~= "Cart"
             and stage ~= "Upgrade"
             and stage ~= "Loading"
             and stage ~= "OwnerOffline"
             and stage ~= "PowerOutage"
+            and stage ~= "Spill"
+            and stage ~= "CloseShift"
+            and stage ~= "Complete"
         register.Enabled = (stage == "Checkout" or stage == "CustomerRush") and checkoutReady
         closePrompt.Enabled = stage == "CloseShift"
         spillPrompt.Enabled = stage == "Spill"
@@ -2078,6 +2094,9 @@ function WorldBuilder.build()
             and stage ~= "Loading"
             and stage ~= "OwnerOffline"
             and stage ~= "PowerOutage"
+            and stage ~= "Spill"
+            and stage ~= "CloseShift"
+            and stage ~= "Complete"
         cerealStockPrompt.Enabled = cerealStockAvailable
             and warehousePurchased
             and stage ~= "Cart"
@@ -2085,6 +2104,9 @@ function WorldBuilder.build()
             and stage ~= "Loading"
             and stage ~= "OwnerOffline"
             and stage ~= "PowerOutage"
+            and stage ~= "Spill"
+            and stage ~= "CloseShift"
+            and stage ~= "Complete"
         if orderDeliveryPrompt then
             orderDeliveryPrompt.Enabled = warehousePurchased and deliveryQuantity == 0
         end
@@ -2118,6 +2140,10 @@ function WorldBuilder.build()
         end,
         stockPrompt = stockPrompt,
         setStockVisual = setStockVisual,
+        setStockAvailable = function(available)
+            citrusStockAvailable = available == true
+            updateCitrusStockPrompt()
+        end,
         berryStockPrompt = berryStockPrompt,
         setBerryStockVisual = setBerryStockVisual,
         goldenAppleStockPrompt = goldenAppleStockPrompt,
@@ -2150,6 +2176,9 @@ function WorldBuilder.build()
                 and currentStage ~= "Loading"
                 and currentStage ~= "OwnerOffline"
                 and currentStage ~= "PowerOutage"
+                and currentStage ~= "Spill"
+                and currentStage ~= "CloseShift"
+                and currentStage ~= "Complete"
         end,
         setGoldenAppleStockAvailable = function(available)
             goldenAppleStockAvailable = available == true
@@ -2160,6 +2189,9 @@ function WorldBuilder.build()
                 and currentStage ~= "Loading"
                 and currentStage ~= "OwnerOffline"
                 and currentStage ~= "PowerOutage"
+                and currentStage ~= "Spill"
+                and currentStage ~= "CloseShift"
+                and currentStage ~= "Complete"
         end,
         setBerryStockAvailable = function(available)
             berryStockAvailable = available == true
@@ -2170,6 +2202,9 @@ function WorldBuilder.build()
                 and currentStage ~= "Loading"
                 and currentStage ~= "OwnerOffline"
                 and currentStage ~= "PowerOutage"
+                and currentStage ~= "Spill"
+                and currentStage ~= "CloseShift"
+                and currentStage ~= "Complete"
         end,
         cerealDeliveryPrompt = function()
             return cerealDeliveryOrderPrompt

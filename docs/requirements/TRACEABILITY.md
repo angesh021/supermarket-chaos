@@ -29,6 +29,7 @@
 | STORE-INV-005 | Sunrise Cereal fourth SKU, bounded restock, tagged shipment, atomic basket sales, visible pantry shelf, and v14 migration | `decisions/README.md`, `architecture/ARCHITECTURE.md`, `security/THREAT_MODEL.md` | `operations/PHASE21_SUNRISE_CEREAL.md` | Implemented; Studio verification pending |
 | STORE-ECO-006 | Shelf pricing is bounded, role-gated, persisted, visible and used by server checkout | `decisions/README.md`, `architecture/ARCHITECTURE.md`, `security/THREAT_MODEL.md` | `operations/PHASE22_PRODUCT_PRICING.md` | Implemented; Studio verification pending |
 | CUSTOMER-OPS-004 | Basket quantities respond deterministically to price and available stock without client authority or added profile state | `decisions/README.md`, `architecture/ARCHITECTURE.md`, `security/THREAT_MODEL.md` | `operations/PHASE23_PRICE_SENSITIVE_BASKETS.md` | Implemented; Studio verification pending |
+| EMPLOYEE-OPS-005 | Stocker replenishes one preferred empty SKU using bounded server restock rules; Citrus Pop supports repeat restocks | `decisions/README.md`, `architecture/ARCHITECTURE.md`, `security/THREAT_MODEL.md` | `operations/PHASE24_STOCKER_REPLENISHMENT.md` | Implemented; Studio verification pending |
 | OPS-01 | Reproducible local setup and quality checks | `operations/BEGINNER_SETUP.md`, `operations/QUALITY.md` | Fresh setup and CI run | In progress |
 
 No requirement is marked verified until the documented check is actually run and its evidence is recorded.

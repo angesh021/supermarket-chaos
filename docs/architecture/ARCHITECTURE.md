@@ -118,6 +118,11 @@ Currency and stock changes occur only after server-side validation. Transactions
 - Basket labels and totals are projections; checkout recomputes the same bounded quantities and price and commits one atomic sale. No new persistence fields or random demand state are introduced.
 - See `operations/PHASE23_PRICE_SENSITIVE_BASKETS.md`; customer behavior and recovery checks remain pending in Studio.
 
+## Phase 4 stocker replenishment
+- The stock clerk handles the introductory Citrus Pop action and later checks the next server-owned basket intent. It restocks at most one empty preferred SKU when a full batch exists in backstock, using the same bounded economy transitions as player prompts.
+- Citrus Pop can be restocked in Checkout or Customer Rush and uses a 24-can shelf cap. Profile schema remains v15; malformed/out-of-bound saved shelf stock is rejected.
+- See `operations/PHASE24_STOCKER_REPLENISHMENT.md`; timers, stock races and rejoin recovery remain pending in Studio.
+
 ## Open technical decisions
 See `docs/decisions/README.md` for accepted ownership policy. Remaining decisions include multi-store/guest permissions, production Studio place configuration, analytics implementation/privacy review, and any changes to persistence recovery. Verify platform APIs against official documentation when implementation starts.
 # Cooperative ownership and cashier extension

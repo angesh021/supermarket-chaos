@@ -15,6 +15,8 @@ Economy.DELIVERY_COST = 60
 Economy.DELIVERY_QUANTITY = 24
 Economy.BACKSTOCK_CAPACITY = 500
 Economy.STARTING_STOCK = 3
+Economy.CITRUS_POP_STOCK_PER_RESTOCK = 3
+Economy.CITRUS_POP_SHELF_CAPACITY = 24
 Economy.CUSTOMERS_PER_SHIFT = 3
 Economy.SPILL_CLEAN_REWARD = 5
 Economy.BERRY_BITES_STOCK_PER_RESTOCK = 4
@@ -204,16 +206,23 @@ function Economy.recoverCart(state)
 end
 
 function Economy.stockProduct(state)
-    if state.stage ~= "Stock" then
-        return false, "Finish the current objective first."
+    local firstRestock = state.stage == "Stock"
+    if not firstRestock and state.stage ~= "Checkout" and state.stage ~= "CustomerRush" then
+        return false, "Citrus Pop cannot be restocked during this stage."
     end
-    if state.backstock < Economy.STARTING_STOCK then
+    if state.backstock < Economy.CITRUS_POP_STOCK_PER_RESTOCK then
         return false, "The backroom is out of Citrus Pop. Order a delivery from the warehouse."
     end
-    state.backstock -= Economy.STARTING_STOCK
-    state.stock += Economy.STARTING_STOCK
-    state.stage = "Checkout"
-    return true, "Citrus Pop stocked. A customer is ready at checkout."
+    if state.stock + Economy.CITRUS_POP_STOCK_PER_RESTOCK > Economy.CITRUS_POP_SHELF_CAPACITY then
+        return false, "The Citrus Pop shelf is full."
+    end
+    state.backstock -= Economy.CITRUS_POP_STOCK_PER_RESTOCK
+    state.stock += Economy.CITRUS_POP_STOCK_PER_RESTOCK
+    if firstRestock then
+        state.stage = "Checkout"
+        return true, "Citrus Pop stocked. A customer is ready at checkout."
+    end
+    return true, "Citrus Pop restocked from the warehouse."
 end
 
 function Economy.stockBerryBites(state)
@@ -223,6 +232,9 @@ function Economy.stockBerryBites(state)
         or state.stage == "Loading"
         or state.stage == "OwnerOffline"
         or state.stage == "PowerOutage"
+        or state.stage == "Spill"
+        or state.stage == "CloseShift"
+        or state.stage == "Complete"
     then
         return false, "Wait until store operations are underway before restocking Berry Bites."
     end
@@ -250,6 +262,9 @@ function Economy.stockGoldenApples(state)
         or state.stage == "Loading"
         or state.stage == "OwnerOffline"
         or state.stage == "PowerOutage"
+        or state.stage == "Spill"
+        or state.stage == "CloseShift"
+        or state.stage == "Complete"
     then
         return false, "Wait until store operations are underway before restocking Golden Apples."
     end
@@ -277,6 +292,9 @@ function Economy.stockSunriseCereal(state)
         or state.stage == "Loading"
         or state.stage == "OwnerOffline"
         or state.stage == "PowerOutage"
+        or state.stage == "Spill"
+        or state.stage == "CloseShift"
+        or state.stage == "Complete"
     then
         return false, "Wait until store operations are underway before restocking Sunrise Cereal."
     end
@@ -466,11 +484,59 @@ function Economy.getNextCheckoutBasket(state)
         total += item.quantity * item.unitPrice
         table.insert(labels, string.format("%s x%d", item.displayName, item.quantity))
     end
+    local preferredProductIds = {}
+    for _, productId in ipairs(intent) do
+        table.insert(preferredProductIds, productId)
+    end
     return {
         items = items,
         total = total,
         displayName = #labels > 0 and table.concat(labels, " + ") or "No shelf stock",
+        preferredProductIds = preferredProductIds,
     }
+end
+
+function Economy.stockNextRequestedProduct(state)
+    if state.stage ~= "Checkout" and state.stage ~= "CustomerRush" then
+        return false, "The stock clerk is waiting for active checkout."
+    end
+    local basket = Economy.getNextCheckoutBasket(state)
+    local shelfByProduct = {
+        citrusPop = state.stock,
+        berryBites = state.berryStock,
+        goldenApples = state.goldenAppleStock,
+        sunriseCereal = state.cerealStock,
+    }
+    local backstockByProduct = {
+        citrusPop = state.backstock,
+        berryBites = state.berryBackstock,
+        goldenApples = state.goldenAppleBackstock,
+        sunriseCereal = state.cerealBackstock,
+    }
+    local restockByProduct = {
+        citrusPop = Economy.CITRUS_POP_STOCK_PER_RESTOCK,
+        berryBites = Economy.BERRY_BITES_STOCK_PER_RESTOCK,
+        goldenApples = Economy.GOLDEN_APPLES_STOCK_PER_RESTOCK,
+        sunriseCereal = Economy.SUNRISE_CEREAL_STOCK_PER_RESTOCK,
+    }
+    local stockActionByProduct = {
+        citrusPop = Economy.stockProduct,
+        berryBites = Economy.stockBerryBites,
+        goldenApples = Economy.stockGoldenApples,
+        sunriseCereal = Economy.stockSunriseCereal,
+    }
+    for _, productId in ipairs(basket.preferredProductIds) do
+        if
+            shelfByProduct[productId] == 0
+            and backstockByProduct[productId] >= restockByProduct[productId]
+        then
+            local ok, message = stockActionByProduct[productId](state)
+            if ok then
+                return true, message, productId
+            end
+        end
+    end
+    return false, "The stock clerk found no preferred empty shelf with enough backroom stock."
 end
 
 function Economy.sellProduct(state, now)

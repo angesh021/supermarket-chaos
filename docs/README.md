@@ -31,5 +31,6 @@
 | [Sunrise Cereal verification](operations/PHASE21_SUNRISE_CEREAL.md) | Fourth SKU, pantry stock, shipment, baskets, HUD and v14 migration |
 | [Product pricing verification](operations/PHASE22_PRODUCT_PRICING.md) | Persistent shelf prices, role permissions, basket totals and v15 migration |
 | [Price-sensitive basket verification](operations/PHASE23_PRICE_SENSITIVE_BASKETS.md) | Deterministic price response, quantity limits, basket totals and checkout stock changes |
+| [Stocker replenishment verification](operations/PHASE24_STOCKER_REPLENISHMENT.md) | Repeat Citrus Pop restocking, SKU automation, prompt stages and stock caps |
 
 Keep this index and linked documents current as implementation changes. See [AGENTS.md](../AGENTS.md) for repository rules.

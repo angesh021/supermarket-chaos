@@ -301,11 +301,16 @@ function ShiftService.init(event, membershipRemotes)
     local function scheduleStocker()
         stockerScheduleVersion += 1
         local scheduleVersion = stockerScheduleVersion
+        local scheduledStage = state and state.stage
         if
             not state
             or not state.stockerHired
             or not state.stockerAutomationEnabled
-            or state.stage ~= "Stock"
+            or (
+                scheduledStage ~= "Stock"
+                and scheduledStage ~= "Checkout"
+                and scheduledStage ~= "CustomerRush"
+            )
         then
             return
         end
@@ -317,22 +322,31 @@ function ShiftService.init(event, membershipRemotes)
                 or not state
                 or not state.stockerHired
                 or not state.stockerAutomationEnabled
-                or state.stage ~= "Stock"
+                or state.stage ~= scheduledStage
                 or ProfileService.getSaveStatus(ownerPlayer) == "lock lost"
                 or ProfileService.getSaveStatus(ownerPlayer) == "save pending"
             then
                 return
             end
-            local ok, message = Economy.stockProduct(state)
+            local ok, message, productId
+            if scheduledStage == "Stock" then
+                ok, message = Economy.stockProduct(state)
+                productId = "citrusPop"
+            else
+                ok, message, productId = Economy.stockNextRequestedProduct(state)
+            end
             if ok then
                 world.setStockVisual(state.stock)
                 world.setBerryStockVisual(state.berryStock)
                 world.setGoldenAppleStockVisual(state.goldenAppleStock)
-                world.setBerryStockAvailable(
-                    state.berryBackstock >= Economy.BERRY_BITES_STOCK_PER_RESTOCK
-                )
+                world.setCerealStockVisual(state.cerealStock)
                 commit("stock")
-                broadcast("Stock clerk restocked Citrus Pop automatically. " .. message)
+                broadcast(
+                    "Stock clerk restocked "
+                        .. Economy.PRODUCTS[productId].displayName
+                        .. " automatically. "
+                        .. message
+                )
             end
         end)
     end
@@ -596,18 +610,29 @@ function ShiftService.init(event, membershipRemotes)
         for productId in pairs(Economy.PRODUCTS) do
             world.setProductPrice(productId, Economy.getProductPrice(state, productId))
         end
+        world.setStockAvailable(
+            state.backstock >= Economy.CITRUS_POP_STOCK_PER_RESTOCK
+                and state.stock + Economy.CITRUS_POP_STOCK_PER_RESTOCK
+                    <= Economy.CITRUS_POP_SHELF_CAPACITY
+        )
         world.setBerryStockAvailable(
             state.warehousePurchased
                 and state.berryBackstock >= Economy.BERRY_BITES_STOCK_PER_RESTOCK
+                and state.berryStock + Economy.BERRY_BITES_STOCK_PER_RESTOCK
+                    <= Economy.BERRY_BITES_SHELF_CAPACITY
         )
         world.setGoldenAppleStockAvailable(
             state.warehousePurchased
                 and state.goldenAppleBackstock >= Economy.GOLDEN_APPLES_STOCK_PER_RESTOCK
+                and state.goldenAppleStock + Economy.GOLDEN_APPLES_STOCK_PER_RESTOCK
+                    <= Economy.GOLDEN_APPLES_SHELF_CAPACITY
         )
         world.setCerealStockVisual(state.cerealStock)
         world.setCerealStockAvailable(
             state.warehousePurchased
                 and state.cerealBackstock >= Economy.SUNRISE_CEREAL_STOCK_PER_RESTOCK
+                and state.cerealStock + Economy.SUNRISE_CEREAL_STOCK_PER_RESTOCK
+                    <= Economy.SUNRISE_CEREAL_SHELF_CAPACITY
         )
         world.setCustomerCount(
             Economy.getRemainingCustomers(state),
@@ -650,7 +675,10 @@ function ShiftService.init(event, membershipRemotes)
         if ok then
             world.setBerryStockVisual(state.berryStock)
             world.setBerryStockAvailable(
-                state.berryBackstock >= Economy.BERRY_BITES_STOCK_PER_RESTOCK
+                state.warehousePurchased
+                    and state.berryBackstock >= Economy.BERRY_BITES_STOCK_PER_RESTOCK
+                    and state.berryStock + Economy.BERRY_BITES_STOCK_PER_RESTOCK
+                        <= Economy.BERRY_BITES_SHELF_CAPACITY
             )
             commit("berryStock")
         end
@@ -662,7 +690,10 @@ function ShiftService.init(event, membershipRemotes)
         if ok then
             world.setGoldenAppleStockVisual(state.goldenAppleStock)
             world.setGoldenAppleStockAvailable(
-                state.goldenAppleBackstock >= Economy.GOLDEN_APPLES_STOCK_PER_RESTOCK
+                state.warehousePurchased
+                    and state.goldenAppleBackstock >= Economy.GOLDEN_APPLES_STOCK_PER_RESTOCK
+                    and state.goldenAppleStock + Economy.GOLDEN_APPLES_STOCK_PER_RESTOCK
+                        <= Economy.GOLDEN_APPLES_SHELF_CAPACITY
             )
             commit("goldenAppleStock")
         end
@@ -706,6 +737,11 @@ function ShiftService.init(event, membershipRemotes)
         local ok, message = Economy.sellProduct(state, os.time())
         if ok then
             world.setStockVisual(state.stock)
+            world.setStockAvailable(
+                state.backstock >= Economy.CITRUS_POP_STOCK_PER_RESTOCK
+                    and state.stock + Economy.CITRUS_POP_STOCK_PER_RESTOCK
+                        <= Economy.CITRUS_POP_SHELF_CAPACITY
+            )
             world.setBerryStockVisual(state.berryStock)
             world.setGoldenAppleStockVisual(state.goldenAppleStock)
             commit("sale")
@@ -1092,17 +1128,28 @@ function ShiftService.init(event, membershipRemotes)
             world.setBerryStockVisual(state.berryStock)
             world.setGoldenAppleStockVisual(state.goldenAppleStock)
             world.setCerealStockVisual(state.cerealStock)
+            world.setStockAvailable(
+                state.backstock >= Economy.CITRUS_POP_STOCK_PER_RESTOCK
+                    and state.stock + Economy.CITRUS_POP_STOCK_PER_RESTOCK
+                        <= Economy.CITRUS_POP_SHELF_CAPACITY
+            )
             world.setCerealStockAvailable(
                 state.warehousePurchased
                     and state.cerealBackstock >= Economy.SUNRISE_CEREAL_STOCK_PER_RESTOCK
+                    and state.cerealStock + Economy.SUNRISE_CEREAL_STOCK_PER_RESTOCK
+                        <= Economy.SUNRISE_CEREAL_SHELF_CAPACITY
             )
             world.setBerryStockAvailable(
                 state.warehousePurchased
                     and state.berryBackstock >= Economy.BERRY_BITES_STOCK_PER_RESTOCK
+                    and state.berryStock + Economy.BERRY_BITES_STOCK_PER_RESTOCK
+                        <= Economy.BERRY_BITES_SHELF_CAPACITY
             )
             world.setGoldenAppleStockAvailable(
                 state.warehousePurchased
                     and state.goldenAppleBackstock >= Economy.GOLDEN_APPLES_STOCK_PER_RESTOCK
+                    and state.goldenAppleStock + Economy.GOLDEN_APPLES_STOCK_PER_RESTOCK
+                        <= Economy.GOLDEN_APPLES_SHELF_CAPACITY
             )
             world.setCustomerProduct(
                 Economy.PRODUCTS[Economy.getNextCheckoutProductId(state) or "citrusPop"].displayName
