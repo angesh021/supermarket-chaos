@@ -269,6 +269,11 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Consequences:** Profile schema v29 stores café ownership, coffee quantity and coffee sales. Owner/Manager purchase, Stocker restock and Cashier serve permissions use the existing role gate; café activity does not change supermarket shift customer counts.
 - **Verification:** See `docs/operations/PHASE47_CORNER_CAFE.md`.
 
+## ADR-0046: Add the Market Table restaurant
+- **Decision:** Add a fixed persistent restaurant after café ownership, with server-priced Garden Bowl prep and sales using the shared business balance.
+- **Consequences:** Profile schema v30 stores restaurant ownership, meal stock and sales. Owner/Manager build, Stocker prep and Cashier serve are authorized; restaurant service does not alter supermarket shift customer progression.
+- **Verification:** See `docs/operations/PHASE48_MARKET_TABLE_RESTAURANT.md`.
+
 ## ADR-0009 — Keep product inventory and supplier orders SKU-specific
 - **Status:** Accepted — 2026-10-12.
 - **Context:** The retail loop needs visible department variety and product-specific stock behavior while keeping stock and money authoritative.

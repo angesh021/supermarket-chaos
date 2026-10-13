@@ -23,6 +23,11 @@ Economy.CAFE_RESTOCK_COST = 45
 Economy.CAFE_RESTOCK_QUANTITY = 6
 Economy.CAFE_SHELF_CAPACITY = 24
 Economy.CAFE_COFFEE_PRICE = 18
+Economy.RESTAURANT_COST = 1200
+Economy.RESTAURANT_RESTOCK_COST = 80
+Economy.RESTAURANT_RESTOCK_QUANTITY = 4
+Economy.RESTAURANT_SHELF_CAPACITY = 16
+Economy.RESTAURANT_MEAL_PRICE = 38
 Economy.ONLINE_ORDER_PRODUCTS = {
     { "citrusPop", "berryBites", "goldenApples" },
     { "sunriseCereal", "citrusPop", "goldenApples" },
@@ -250,6 +255,9 @@ function Economy.newState(profile, playerSeed)
         cafePurchased = upgrades.cafe or false,
         cafeStock = savedShift.cafeStock or 0,
         cafeSales = savedShift.cafeSales or 0,
+        restaurantPurchased = upgrades.restaurant or false,
+        restaurantStock = savedShift.restaurantStock or 0,
+        restaurantSales = savedShift.restaurantSales or 0,
     }
 end
 
@@ -298,6 +306,58 @@ function Economy.serveCafeCoffee(state)
     state.cash += Economy.CAFE_COFFEE_PRICE
     state.cafeSales += 1
     return true, string.format("Coffee served! +$%d.", Economy.CAFE_COFFEE_PRICE)
+end
+
+function Economy.buyRestaurant(state)
+    if state.stage ~= "Complete" or not state.cafePurchased or state.restaurantPurchased then
+        return false, "The Market Table restaurant opens after the café, between shifts."
+    end
+    if state.cash < Economy.RESTAURANT_COST then
+        return false,
+            string.format("You need $%d to open the Market Table.", Economy.RESTAURANT_COST)
+    end
+    state.cash -= Economy.RESTAURANT_COST
+    state.restaurantPurchased = true
+    state.restaurantStock = 0
+    return true, "Market Table is open! Prep a batch of meals to start serving."
+end
+
+function Economy.restockRestaurant(state)
+    if not state.restaurantPurchased or state.stage ~= "Complete" then
+        return false, "Prep restaurant meals between supermarket shifts."
+    end
+    if
+        state.restaurantStock + Economy.RESTAURANT_RESTOCK_QUANTITY
+        > Economy.RESTAURANT_SHELF_CAPACITY
+    then
+        return false, "The restaurant meal warmer is full."
+    end
+    if state.cash < Economy.RESTAURANT_RESTOCK_COST then
+        return false,
+            string.format("You need $%d to prep four meals.", Economy.RESTAURANT_RESTOCK_COST)
+    end
+    state.cash -= Economy.RESTAURANT_RESTOCK_COST
+    state.restaurantStock += Economy.RESTAURANT_RESTOCK_QUANTITY
+    return true, string.format("Prepped %d Garden Bowls.", Economy.RESTAURANT_RESTOCK_QUANTITY)
+end
+
+function Economy.serveRestaurantMeal(state)
+    if not state.restaurantPurchased then
+        return false, "Open the Market Table before serving meals."
+    end
+    if state.stage == "Loading" or state.stage == "OwnerOffline" then
+        return false, "Wait until the restaurant owner profile is ready."
+    end
+    if state.restaurantStock < 1 then
+        return false, "The meal warmer is empty. Prep another restaurant batch."
+    end
+    if state.restaurantSales >= 1000000000 then
+        return false, "The restaurant sales counter has reached its supported limit."
+    end
+    state.restaurantStock -= 1
+    state.cash += Economy.RESTAURANT_MEAL_PRICE
+    state.restaurantSales += 1
+    return true, string.format("Garden Bowl served! +$%d.", Economy.RESTAURANT_MEAL_PRICE)
 end
 
 function Economy.getNextOnlineOrder(state)

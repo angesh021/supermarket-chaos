@@ -2278,6 +2278,14 @@ function WorldBuilder.build()
     local cafeMenuLabel
     local cafeRestockPrompt
     local cafeServePrompt
+    local restaurantPurchased = false
+    local restaurantStock = 0
+    local restaurantSales = 0
+    local restaurantModel
+    local restaurantMealVisuals = {}
+    local restaurantMenuLabel
+    local restaurantRestockPrompt
+    local restaurantServePrompt
     part(
         exterior,
         "Cafe Plaza Walkway",
@@ -2291,6 +2299,30 @@ function WorldBuilder.build()
         "Cafe Plaza Walkway Connector",
         Vector3.new(14, 0.18, 8),
         CFrame.new(-58, 0.1, 13),
+        COLORS.gray,
+        Enum.Material.Concrete
+    )
+    part(
+        exterior,
+        "Restaurant Plaza Walkway",
+        Vector3.new(8, 0.18, 56),
+        CFrame.new(-80, 0.1, -7),
+        COLORS.gray,
+        Enum.Material.Concrete
+    )
+    part(
+        exterior,
+        "Restaurant Walkway Connector",
+        Vector3.new(30, 0.18, 10),
+        CFrame.new(-65, 0.1, -25.8),
+        COLORS.gray,
+        Enum.Material.Concrete
+    )
+    part(
+        exterior,
+        "Cafe Side Walkway Connector",
+        Vector3.new(10, 0.18, 8),
+        CFrame.new(-75, 0.1, 19),
         COLORS.gray,
         Enum.Material.Concrete
     )
@@ -2333,6 +2365,52 @@ function WorldBuilder.build()
     if cafeMenuSurface then
         cafeMenuSurface.Enabled = false
         cafeMenuLabel = cafeMenuSurface:FindFirstChildOfClass("TextLabel")
+    end
+    local restaurantBuildPad = part(
+        exterior,
+        "Market Table Restaurant Purchase Pad",
+        Vector3.new(4.5, 0.5, 4.5),
+        CFrame.new(-52.5, 0.45, -29.5),
+        COLORS.gold,
+        Enum.Material.Neon
+    )
+    local restaurantBuildPrompt = prompt(
+        restaurantBuildPad,
+        "Build Market Table ($1,200)",
+        "Plaza Business",
+        "BuildRestaurant",
+        10
+    )
+    restaurantBuildPrompt.Enabled = false
+    local restaurantCounter = part(
+        exterior,
+        "Market Table Service Counter",
+        Vector3.new(9, 1.5, 1.8),
+        CFrame.new(-65, 1.25, -38),
+        COLORS.wood,
+        Enum.Material.WoodPlanks,
+        1
+    )
+    restaurantRestockPrompt =
+        prompt(restaurantCounter, "Prep Meal Batch ($80)", "Market Table", "RestockRestaurant", 10)
+    restaurantServePrompt =
+        prompt(restaurantCounter, "Serve Market Bowl ($38)", "Market Table", "ServeRestaurant", 10)
+    restaurantRestockPrompt.Enabled = false
+    restaurantServePrompt.Enabled = false
+    local restaurantMenuBoard = label(
+        exterior,
+        "Market Table Menu Board",
+        "MARKET TABLE\nGARDEN BOWL $38\nSTOCK 0  •  SALES 0",
+        Vector3.new(8, 3, 0.35),
+        CFrame.new(-65, 5.3, -32.7),
+        COLORS.deepTeal,
+        COLORS.warmWhite
+    )
+    restaurantMenuBoard.Transparency = 1
+    local restaurantMenuSurface = restaurantMenuBoard:FindFirstChildOfClass("SurfaceGui")
+    if restaurantMenuSurface then
+        restaurantMenuSurface.Enabled = false
+        restaurantMenuLabel = restaurantMenuSurface:FindFirstChildOfClass("TextLabel")
     end
     local warehousePad = part(
         exterior,
@@ -2652,6 +2730,136 @@ function WorldBuilder.build()
         cafeBuildPad.Transparency = 1
         cafeBuildPad.CanCollide = false
         cafeBuildPrompt.Enabled = false
+    end
+
+    local function addRestaurant()
+        if restaurantModel then
+            return
+        end
+        restaurantPurchased = true
+        restaurantModel = Instance.new("Model")
+        restaurantModel.Name = "Market Table Restaurant Plaza Business"
+        restaurantModel.Parent = exterior
+        local center = Vector3.new(-65, 0, -42)
+        part(
+            restaurantModel,
+            "Restaurant Tile Floor",
+            Vector3.new(26, 0.35, 20),
+            CFrame.new(center + Vector3.new(0, 0.05, 0)),
+            COLORS.cream,
+            Enum.Material.CeramicTiles
+        )
+        part(
+            restaurantModel,
+            "Restaurant Back Wall",
+            Vector3.new(26, 9, 0.55),
+            CFrame.new(center + Vector3.new(0, 4.5, -9.7)),
+            COLORS.wood,
+            Enum.Material.WoodPlanks
+        )
+        for _, side in ipairs({ -12.7, 12.7 }) do
+            part(
+                restaurantModel,
+                "Restaurant Side Wall",
+                Vector3.new(0.6, 9, 20),
+                CFrame.new(center + Vector3.new(side, 4.5, 0)),
+                COLORS.cream
+            )
+        end
+        for _, side in ipairs({ -8.8, 8.8 }) do
+            part(
+                restaurantModel,
+                "Restaurant Front Pier",
+                Vector3.new(8.3, 9, 0.6),
+                CFrame.new(center + Vector3.new(side, 4.5, 9.7)),
+                COLORS.cream
+            )
+        end
+        part(
+            restaurantModel,
+            "Restaurant Roof",
+            Vector3.new(27, 0.8, 21),
+            CFrame.new(center + Vector3.new(0, 9.4, 0)),
+            COLORS.deepTeal,
+            Enum.Material.Metal
+        )
+        part(
+            restaurantModel,
+            "Restaurant Awning",
+            Vector3.new(20, 0.35, 2.4),
+            CFrame.new(center + Vector3.new(0, 7.4, 10.8)),
+            COLORS.gold,
+            Enum.Material.Fabric
+        )
+        restaurantMenuBoard.Parent = restaurantModel
+        restaurantMenuBoard.CFrame = CFrame.new(center + Vector3.new(0, 5.6, 10.05))
+        restaurantMenuBoard.Transparency = 0
+        if restaurantMenuSurface then
+            restaurantMenuSurface.Enabled = true
+        end
+        restaurantCounter.Parent = restaurantModel
+        restaurantCounter.CFrame = CFrame.new(center + Vector3.new(0, 1.45, 5.4))
+        restaurantCounter.Transparency = 0
+        restaurantCounter.CanCollide = true
+        part(
+            restaurantModel,
+            "Meal Warmer",
+            Vector3.new(2.8, 2, 1.8),
+            CFrame.new(center + Vector3.new(-2.8, 3, 4.9)),
+            COLORS.gray,
+            Enum.Material.Metal
+        )
+        for index = 1, 4 do
+            local meal = part(
+                restaurantModel,
+                "Garden Bowl Stock Visual",
+                Vector3.new(0.85, 0.28, 0.85),
+                CFrame.new(center + Vector3.new(-1 + index * 1.05, 2.4, 4.8)),
+                COLORS.green,
+                Enum.Material.SmoothPlastic
+            )
+            meal.Shape = Enum.PartType.Cylinder
+            meal.CanCollide = false
+            meal.Transparency = 1
+            table.insert(restaurantMealVisuals, meal)
+        end
+        for _, x in ipairs({ -7, 7 }) do
+            part(
+                restaurantModel,
+                "Dining Table",
+                Vector3.new(4.5, 0.35, 3.2),
+                CFrame.new(center + Vector3.new(x, 2.2, -2)),
+                COLORS.wood,
+                Enum.Material.WoodPlanks
+            )
+            for _, side in ipairs({ -1, 1 }) do
+                local seat = part(
+                    restaurantModel,
+                    "Dining Chair Seat",
+                    Vector3.new(1.2, 0.3, 1.2),
+                    CFrame.new(center + Vector3.new(x + side * 2.7, 1.2, -2)),
+                    COLORS.coral,
+                    Enum.Material.Wood
+                )
+                seat.CanCollide = false
+            end
+        end
+        local chef = createLowPolyPerson(
+            restaurantModel,
+            "Market Table Chef",
+            center + Vector3.new(3.1, 0.45, 2.2),
+            COLORS.green,
+            COLORS.wood,
+            COLORS.deepTeal
+        )
+        for _, item in ipairs(chef:GetDescendants()) do
+            if item:IsA("BasePart") then
+                item.CanCollide = false
+            end
+        end
+        restaurantBuildPad.Transparency = 1
+        restaurantBuildPad.CanCollide = false
+        restaurantBuildPrompt.Enabled = false
     end
 
     local function addWarehouse()
@@ -3038,7 +3246,7 @@ function WorldBuilder.build()
         end
     end
 
-    local function updateCafePrompts()
+    local function updatePlazaPrompts()
         cafeBuildPrompt.Enabled = currentStage == "Complete"
             and warehousePurchased
             and not cafePurchased
@@ -3047,6 +3255,16 @@ function WorldBuilder.build()
             and cafeStock + 6 <= 24
         cafeServePrompt.Enabled = cafePurchased
             and cafeStock > 0
+            and currentStage ~= "Loading"
+            and currentStage ~= "OwnerOffline"
+        restaurantBuildPrompt.Enabled = currentStage == "Complete"
+            and cafePurchased
+            and not restaurantPurchased
+        restaurantRestockPrompt.Enabled = restaurantPurchased
+            and currentStage == "Complete"
+            and restaurantStock + 4 <= 16
+        restaurantServePrompt.Enabled = restaurantPurchased
+            and restaurantStock > 0
             and currentStage ~= "Loading"
             and currentStage ~= "OwnerOffline"
     end
@@ -3245,7 +3463,7 @@ function WorldBuilder.build()
                 and deliveryQuantity > 0
                 and os.time() >= deliveryReadyAt
         end
-        updateCafePrompts()
+        updatePlazaPrompts()
         setSpillVisible(stage == "Spill")
         setPowerOutage(stage == "PowerOutage")
     end
@@ -3502,7 +3720,30 @@ function WorldBuilder.build()
                     cafeSales
                 )
             end
-            updateCafePrompts()
+            updatePlazaPrompts()
+        end,
+        restaurantBuildPrompt = restaurantBuildPrompt,
+        restaurantRestockPrompt = restaurantRestockPrompt,
+        restaurantServePrompt = restaurantServePrompt,
+        setRestaurantState = function(purchased, stock, sales)
+            restaurantPurchased = purchased == true
+            restaurantStock = math.max(0, math.min(math.floor(stock or 0), 16))
+            restaurantSales = math.max(0, math.floor(sales or 0))
+            if restaurantPurchased then
+                addRestaurant()
+            end
+            for index, meal in ipairs(restaurantMealVisuals) do
+                meal.Transparency = restaurantStock >= index * 4 - 3 and 0 or 1
+            end
+            if restaurantMenuLabel then
+                restaurantMenuLabel.Text = string.format(
+                    "MARKET TABLE\nGARDEN BOWL $%d\nSTOCK %d  •  SALES %d",
+                    Economy.RESTAURANT_MEAL_PRICE,
+                    restaurantStock,
+                    restaurantSales
+                )
+            end
+            updatePlazaPrompts()
         end,
         orderDeliveryPrompt = function()
             return orderDeliveryPrompt

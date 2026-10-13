@@ -184,6 +184,11 @@ See `docs/decisions/README.md` for accepted ownership policy. Remaining decision
 - `ShiftService` gates purchase/restock/serve prompts by Owner/Manager, Stocker or Cashier role, range, interaction rate, profile lease and the shared transaction lock. Purchase/restock require a completed shift; serving is available whenever the profile is ready and stock remains.
 - `WorldBuilder` creates the fixed café building and board from built-in Roblox parts. The menu board and cup visuals are presentation only and follow the saved server state.
 - Profile schema v29 persists café ownership plus coffee stock and sale count. Old profiles migrate to unowned/empty; invalid ownership without a warehouse, inventory above 24 or stock/sales without ownership are rejected.
+
+## Phase 48 Market Table restaurant
+- `Economy.buyRestaurant`, `restockRestaurant` and `serveRestaurantMeal` own the `$1,200` purchase, `$80` batch of four, 16-meal capacity and `$38` sale price. Restaurant sales share cash but do not increment grocery-shift customers or sales.
+- The restaurant is gated behind the café, which already implies warehouse ownership. The same role/range/rate/profile-lock checks and shared transaction lock protect build, prep and service.
+- `WorldBuilder` renders the fixed dining building, awning, menu, tables, chef, warmer and meal visuals from built-in parts. `ProfileService` schema v30 validates restaurant ownership after café ownership, and meal stock/sales only when the restaurant exists.
 # Cooperative ownership and cashier extension
 - One owner profile remains the persistence boundary. Per-server membership grants temporary action permissions but does not load a guest's profile into the owner's economy.
 - Server role map: Owner (all), Manager (all shift actions including staff hiring), Cashier (checkout), Stocker (stock), Maintenance (cart recovery).
