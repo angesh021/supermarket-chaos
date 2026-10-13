@@ -4,7 +4,7 @@ local HttpService = game:GetService("HttpService")
 
 local ProfileService = {}
 
-local SCHEMA_VERSION = 14
+local SCHEMA_VERSION = 15
 local SESSION_LEASE_SECONDS = 180
 local MAX_RETRIES = 3
 local STORE_NAME = "SupermarketChaos_PlayerProfiles_v1"
@@ -65,6 +65,12 @@ local function defaultProfile()
             sunriseCereal = 0,
             shipmentReadyAt = 0,
             shipmentProductId = "",
+        },
+        productPrices = {
+            citrusPop = 25,
+            berryBites = 18,
+            goldenApples = 12,
+            sunriseCereal = 16,
         },
         completedShifts = 0,
         lifetimeSales = 0,
@@ -127,6 +133,28 @@ local function normalizeProfile(value)
     profile.balance = nonNegativeInteger(value.balance, 0)
     profile.completedShifts = nonNegativeInteger(value.completedShifts, 0)
     profile.lifetimeSales = nonNegativeInteger(value.lifetimeSales, 0)
+    if value.productPrices ~= nil and type(value.productPrices) ~= "table" then
+        return nil, "Stored product prices are malformed."
+    end
+    if type(value.productPrices) == "table" then
+        local priceOptions = {
+            citrusPop = { [20] = true, [25] = true, [32] = true },
+            berryBites = { [14] = true, [18] = true, [23] = true },
+            goldenApples = { [9] = true, [12] = true, [15] = true },
+            sunriseCereal = { [12] = true, [16] = true, [20] = true },
+        }
+        for productId, price in pairs(value.productPrices) do
+            if
+                not priceOptions[productId]
+                or type(price) ~= "number"
+                or price ~= price
+                or priceOptions[productId][price] ~= true
+            then
+                return nil, "Stored product price is outside the supported options."
+            end
+            profile.productPrices[productId] = price
+        end
+    end
     if value.ownedUpgrades ~= nil and type(value.ownedUpgrades) ~= "table" then
         return nil, "Stored upgrade data is malformed."
     end
@@ -391,6 +419,12 @@ local function copyProfile(profile)
             shipmentQuantity = profile.warehouseInventory.shipmentQuantity or 0,
             shipmentProductId = profile.warehouseInventory.shipmentProductId or "",
         },
+        productPrices = {
+            citrusPop = profile.productPrices.citrusPop,
+            berryBites = profile.productPrices.berryBites,
+            goldenApples = profile.productPrices.goldenApples,
+            sunriseCereal = profile.productPrices.sunriseCereal,
+        },
         completedShifts = profile.completedShifts,
         lifetimeSales = profile.lifetimeSales,
     }
@@ -613,6 +647,12 @@ function ProfileService.saveProgress(player, state, eventName)
     profile.warehouseInventory.shipmentReadyAt = state.shipmentReadyAt
     profile.warehouseInventory.shipmentQuantity = state.shipmentQuantity
     profile.warehouseInventory.shipmentProductId = state.shipmentProductId
+    profile.productPrices = {
+        citrusPop = state.productPrices.citrusPop,
+        berryBites = state.productPrices.berryBites,
+        goldenApples = state.productPrices.goldenApples,
+        sunriseCereal = state.productPrices.sunriseCereal,
+    }
     if eventName == "sale" then
         profile.lifetimeSales += 1
     elseif eventName == "shiftClosed" then

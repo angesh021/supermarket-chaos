@@ -108,6 +108,11 @@ Currency and stock changes occur only after server-side validation. Transactions
 - Profile schema v14 validates cereal counters and warehouse ownership, adds the SKU to the single pending shipment allow-list, and migrates older warehouse profiles with six boxes when absent. The delivery worker and manual dock use the same receipt transaction.
 - The pantry shelf, customer route, order label and four-SKU HUD reflect current server state only. See `operations/PHASE21_SUNRISE_CEREAL.md`; Studio acceptance remains pending.
 
+## Phase 2 product pricing
+- The owner or Manager cycles each shelf through three fixed prices derived from its catalog base. Shelf tags and the next basket total reflect the saved server state.
+- Profile schema v15 allow-lists four product IDs and their exact integer price options; schemas v1–v14 default to catalog prices. Checkout recomputes each unit price before applying an atomic basket sale.
+- See `operations/PHASE22_PRODUCT_PRICING.md`; demand response and Studio checks remain pending.
+
 ## Open technical decisions
 See `docs/decisions/README.md` for accepted ownership policy. Remaining decisions include multi-store/guest permissions, production Studio place configuration, analytics implementation/privacy review, and any changes to persistence recovery. Verify platform APIs against official documentation when implementation starts.
 # Cooperative ownership and cashier extension

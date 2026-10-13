@@ -38,6 +38,7 @@ G0 was approved on 2026-10-12. The user authorized continued phase implementatio
 - [x] Add persistent cashier, stocker and cleaner automation pause/resume controls; see `operations/PHASE18_EMPLOYEE_AUTOMATION.md`.
 - [x] Add a warehouse-gated delivery employee who receives arrived shipments; see `operations/PHASE20_DELIVERY_WORKER.md`.
 - [x] Turn the pantry fixture into the fourth functional SKU, Sunrise Cereal, with v14 inventory migration; see `operations/PHASE21_SUNRISE_CEREAL.md`.
+- [x] Add persistent Owner/Manager control of three bounded price choices per SKU, with shelf tags and server-priced checkout; see `operations/PHASE22_PRODUCT_PRICING.md`.
 - [ ] Add delivery/customer-assistant roles, departments and further customization.
 - [ ] Studio verification of cleaner hire/migration, save/rejoin, automatic cleanup and player/employee races.
 

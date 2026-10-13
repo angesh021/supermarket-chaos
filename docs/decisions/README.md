@@ -115,6 +115,13 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Consequences:** Profile schema v14 stores cereal quantities and allow-lists the shipment product ID. Warehouse profiles missing the new field receive six backstock boxes; non-warehouse profiles receive none. Shipment ordering remains one-at-a-time and uses the existing delivery worker/manual receipt.
 - **Verification:** See `docs/operations/PHASE21_SUNRISE_CEREAL.md`; Studio visual, migration, basket and receipt checks remain pending.
 
+## ADR-0020 — Keep player pricing within a bounded catalog range
+- **Status:** Accepted — 2026-10-12.
+- **Context:** Fixed retail prices left no store-management choice, while arbitrary client-selected prices would make checkout and persistence unsafe.
+- **Decision:** Let the owner or authorized Manager cycle each SKU through a server-derived 80%, 100%, and 125% price option. Persist the exact allow-listed integer per SKU and use it in basket display and checkout.
+- **Consequences:** Profile schema v15 stores four prices; schemas v1–v14 use catalog prices. Customers do not yet respond to price through demand or satisfaction.
+- **Verification:** See `docs/operations/PHASE22_PRODUCT_PRICING.md`; Studio role, transaction, tag and migration checks remain pending.
+
 ## ADR-0009 — Keep product inventory and supplier orders SKU-specific
 - **Status:** Accepted — 2026-10-12.
 - **Context:** The retail loop needs visible department variety and product-specific stock behavior while keeping stock and money authoritative.

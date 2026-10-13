@@ -643,6 +643,34 @@ function WorldBuilder.build()
     createShelf(interior, "Pantry Shelf", 0, -1, 6, "SNACKS")
     createShelf(interior, "Breakfast and Pantry Shelf", -10, -9, 6, "PANTRY")
     local cerealShelf = createShelf(interior, "Sunrise Cereal Shelf", 0, -9, 6, "SUNRISE CEREAL")
+    local priceTags = {}
+    local pricePrompts = {}
+    local initialPrices = {
+        citrusPop = 25,
+        berryBites = 18,
+        goldenApples = 12,
+        sunriseCereal = 16,
+    }
+    local function createPriceTag(productId, displayName, shelfModel, x, z)
+        local tag = label(
+            interior,
+            displayName .. " Shelf Price Tag",
+            string.format("$%d", initialPrices[productId]),
+            Vector3.new(1.45, 0.58, 0.12),
+            CFrame.new(x, 1.95, z - 1.17),
+            COLORS.gold,
+            COLORS.ink
+        )
+        local changePrompt =
+            prompt(shelfModel.PrimaryPart, "Change Price", displayName, "ChangePrice", 9)
+        priceTags[productId] = tag
+        pricePrompts[productId] = changePrompt
+        changePrompt.ActionText = string.format("Change Price ($%d)", initialPrices[productId])
+    end
+    createPriceTag("citrusPop", "Citrus Pop", shelf, -10, -1)
+    createPriceTag("berryBites", "Berry Bites", berryShelf, 10, -1)
+    createPriceTag("goldenApples", "Golden Apples", goldenAppleShelf, -17, 0)
+    createPriceTag("sunriseCereal", "Sunrise Cereal", cerealShelf, 0, -9)
     createRefrigeratedCase(interior, 9, -14.5)
     part(
         interior,
@@ -2096,6 +2124,23 @@ function WorldBuilder.build()
         setGoldenAppleStockVisual = setGoldenAppleStockVisual,
         cerealStockPrompt = cerealStockPrompt,
         setCerealStockVisual = setCerealStockVisual,
+        pricePrompt = function(productId)
+            return pricePrompts[productId]
+        end,
+        setProductPrice = function(productId, value)
+            local tag = priceTags[productId]
+            local changePrompt = pricePrompts[productId]
+            if tag then
+                local surface = tag:FindFirstChildOfClass("SurfaceGui")
+                local textLabel = surface and surface:FindFirstChildOfClass("TextLabel")
+                if textLabel then
+                    textLabel.Text = string.format("$%d", value)
+                end
+            end
+            if changePrompt then
+                changePrompt.ActionText = string.format("Change Price ($%d)", value)
+            end
+        end,
         setCerealStockAvailable = function(available)
             cerealStockAvailable = available == true
             cerealStockPrompt.Enabled = cerealStockAvailable

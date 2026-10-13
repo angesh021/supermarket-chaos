@@ -48,6 +48,10 @@ local ROLE_ACTIONS = {
         OrderAppleDelivery = true,
         OrderCerealDelivery = true,
         ReceiveDelivery = true,
+        PriceCitrusPop = true,
+        PriceBerryBites = true,
+        PriceGoldenApples = true,
+        PriceSunriseCereal = true,
         StockBerryBites = true,
         StockGoldenApples = true,
         StockSunriseCereal = true,
@@ -143,6 +147,12 @@ local function snapshot(message, recipient)
         nextBasketName = hasStoreAccess and Economy.getNextCheckoutBasket(current).displayName
             or "",
         nextBasketTotal = hasStoreAccess and Economy.getNextCheckoutBasket(current).total or 0,
+        productPrices = hasStoreAccess and {
+            citrusPop = current.productPrices.citrusPop,
+            berryBites = current.productPrices.berryBites,
+            goldenApples = current.productPrices.goldenApples,
+            sunriseCereal = current.productPrices.sunriseCereal,
+        } or nil,
     }
 end
 
@@ -583,6 +593,9 @@ function ShiftService.init(event, membershipRemotes)
             Economy.PRODUCTS[Economy.getNextCheckoutProductId(state) or "citrusPop"].displayName
         )
         world.setCustomerBasket(Economy.getNextCheckoutBasket(state).displayName)
+        for productId in pairs(Economy.PRODUCTS) do
+            world.setProductPrice(productId, Economy.getProductPrice(state, productId))
+        end
         world.setBerryStockAvailable(
             state.warehousePurchased
                 and state.berryBackstock >= Economy.BERRY_BITES_STOCK_PER_RESTOCK
@@ -663,6 +676,25 @@ function ShiftService.init(event, membershipRemotes)
         end
         broadcast(message)
     end)
+
+    local function bindPricePrompt(productId, actionId)
+        bind(actionId, world.pricePrompt(productId), 12, function()
+            local ok, message = Economy.cycleProductPrice(state, productId)
+            if ok then
+                commit("priceChanged")
+            end
+            broadcast(message)
+        end)
+    end
+
+    for productId, actionId in pairs({
+        citrusPop = "PriceCitrusPop",
+        berryBites = "PriceBerryBites",
+        goldenApples = "PriceGoldenApples",
+        sunriseCereal = "PriceSunriseCereal",
+    }) do
+        bindPricePrompt(productId, actionId)
+    end
 
     bind("Checkout", world.registerPrompt, 12, function()
         if not world.isCheckoutReady() then
@@ -1076,6 +1108,9 @@ function ShiftService.init(event, membershipRemotes)
                 Economy.PRODUCTS[Economy.getNextCheckoutProductId(state) or "citrusPop"].displayName
             )
             world.setCustomerBasket(Economy.getNextCheckoutBasket(state).displayName)
+            for productId in pairs(Economy.PRODUCTS) do
+                world.setProductPrice(productId, Economy.getProductPrice(state, productId))
+            end
             world.setStage(state.stage)
             world.setCustomerCount(
                 Economy.getRemainingCustomers(state),

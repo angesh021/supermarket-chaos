@@ -27,6 +27,7 @@
 | STORE-CUSTOM-002 | Temporary Owner/Manager storefront palette preview with cancel/reset and separate persistent purchase | `decisions/README.md`, `architecture/ARCHITECTURE.md`, `security/THREAT_MODEL.md` | `operations/PHASE19_STOREFRONT_PREVIEW.md` | Implemented; Studio verification pending |
 | EMPLOYEE-OPS-004 | Warehouse-gated delivery worker hire and optional automatic shipment receipt with persistent v13 flags | `decisions/README.md`, `architecture/ARCHITECTURE.md`, `security/THREAT_MODEL.md` | `operations/PHASE20_DELIVERY_WORKER.md` | Implemented; Studio verification pending |
 | STORE-INV-005 | Sunrise Cereal fourth SKU, bounded restock, tagged shipment, atomic basket sales, visible pantry shelf, and v14 migration | `decisions/README.md`, `architecture/ARCHITECTURE.md`, `security/THREAT_MODEL.md` | `operations/PHASE21_SUNRISE_CEREAL.md` | Implemented; Studio verification pending |
+| STORE-ECO-006 | Shelf pricing is bounded, role-gated, persisted, visible and used by server checkout | `decisions/README.md`, `architecture/ARCHITECTURE.md`, `security/THREAT_MODEL.md` | `operations/PHASE22_PRODUCT_PRICING.md` | Implemented; Studio verification pending |
 | OPS-01 | Reproducible local setup and quality checks | `operations/BEGINNER_SETUP.md`, `operations/QUALITY.md` | Fresh setup and CI run | In progress |
 
 No requirement is marked verified until the documented check is actually run and its evidence is recorded.

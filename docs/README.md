@@ -29,5 +29,6 @@
 | [Storefront preview verification](operations/PHASE19_STOREFRONT_PREVIEW.md) | Temporary palette preview, cancellation, purchase and existing profile compatibility |
 | [Delivery worker verification](operations/PHASE20_DELIVERY_WORKER.md) | Persistent warehouse employee, automatic shipment receipt, controls and v13 migration |
 | [Sunrise Cereal verification](operations/PHASE21_SUNRISE_CEREAL.md) | Fourth SKU, pantry stock, shipment, baskets, HUD and v14 migration |
+| [Product pricing verification](operations/PHASE22_PRODUCT_PRICING.md) | Persistent shelf prices, role permissions, basket totals and v15 migration |
 
 Keep this index and linked documents current as implementation changes. See [AGENTS.md](../AGENTS.md) for repository rules.

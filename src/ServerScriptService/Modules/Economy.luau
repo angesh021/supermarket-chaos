@@ -101,6 +101,7 @@ function Economy.newState(profile)
     local upgrades = profile.ownedUpgrades or {}
     local employeeAutomation = profile.employeeAutomation or {}
     local warehouseInventory = profile.warehouseInventory or {}
+    local savedPrices = profile.productPrices or {}
     local shipmentQuantity = warehouseInventory.shipmentQuantity or 0
     return {
         stage = savedShift.stage or "Cart",
@@ -130,12 +131,51 @@ function Economy.newState(profile)
         berryBackstock = warehouseInventory.berryBites or (upgrades.warehouse and 12 or 0),
         goldenAppleBackstock = warehouseInventory.goldenApples or (upgrades.warehouse and 6 or 0),
         cerealBackstock = warehouseInventory.sunriseCereal or (upgrades.warehouse and 6 or 0),
+        productPrices = {
+            citrusPop = savedPrices.citrusPop or Economy.PRODUCTS.citrusPop.salePrice,
+            berryBites = savedPrices.berryBites or Economy.PRODUCTS.berryBites.salePrice,
+            goldenApples = savedPrices.goldenApples or Economy.PRODUCTS.goldenApples.salePrice,
+            sunriseCereal = savedPrices.sunriseCereal or Economy.PRODUCTS.sunriseCereal.salePrice,
+        },
         shipmentReadyAt = warehouseInventory.shipmentReadyAt or 0,
         shipmentQuantity = shipmentQuantity,
         shipmentProductId = shipmentQuantity > 0
                 and (Economy.PRODUCTS[warehouseInventory.shipmentProductId] and warehouseInventory.shipmentProductId or "citrusPop")
             or "",
     }
+end
+
+function Economy.getProductPrice(state, productId)
+    local product = Economy.PRODUCTS[productId]
+    if not product then
+        return nil
+    end
+    return (state.productPrices and state.productPrices[productId]) or product.salePrice
+end
+
+function Economy.cycleProductPrice(state, productId)
+    local product = Economy.PRODUCTS[productId]
+    if not product then
+        return false, "That product is not in the store catalog."
+    end
+    if state.stage == "Loading" or state.stage == "OwnerOffline" then
+        return false, "Wait until the store is ready before changing prices."
+    end
+    local lowPrice = math.max(1, math.floor(product.salePrice * 0.8))
+    local highPrice = math.ceil(product.salePrice * 1.25)
+    local options = { lowPrice, product.salePrice, highPrice }
+    local currentPrice = Economy.getProductPrice(state, productId)
+    local currentIndex = 2
+    for index, option in ipairs(options) do
+        if option == currentPrice then
+            currentIndex = index
+            break
+        end
+    end
+    local nextPrice = options[(currentIndex % #options) + 1]
+    state.productPrices = state.productPrices or {}
+    state.productPrices[productId] = nextPrice
+    return true, string.format("%s now costs $%d.", product.displayName, nextPrice), nextPrice
 end
 
 function Economy.getCustomerTarget(state)
@@ -388,7 +428,7 @@ function Economy.getNextCheckoutBasket(state)
             productId = productId,
             quantity = quantity,
             displayName = Economy.PRODUCTS[productId].displayName,
-            unitPrice = Economy.PRODUCTS[productId].salePrice,
+            unitPrice = Economy.getProductPrice(state, productId),
         })
     end
     table.sort(items, function(left, right)
