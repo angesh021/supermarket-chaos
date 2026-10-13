@@ -21,3 +21,7 @@ Workflow permissions are restricted to `contents: read`. `setup-rokit` is pinned
 3. For later workflow changes, verify the runner uses `rokit.toml` and that the Rojo build output remains under `$RUNNER_TEMP`.
 
 Local checks for this change are recorded in `docs/PROJECT_STATUS.md`. A completed local run does not prove GitHub hosted-runner success; that requires an observed Actions run.
+
+## Observed result
+
+The `Project validation` run [#38376711286](https://github.com/angesh021/supermarket-chaos/actions/runs/38376711286) completed successfully for commit `3e504742b6c8006adcfaefc987092b1936c36245` on 2026-10-13. This confirms the hosted runner installed the pinned toolchain and completed the configured workflow. Future workflow changes still require their own run.
