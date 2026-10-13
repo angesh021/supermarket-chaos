@@ -31,5 +31,5 @@ No profile migration is needed. The existing schema v10 `ownedUpgrades.marketSty
 
 ## Known limits
 
-- This increment previews one fixed palette. Multiple owned palettes, interior floor/wall/material controls, logos, seasonal decor, and per-player isolated previews are future work.
+- Phase 39 expands the preview to three fixed palettes and persists the selected ID. Interior floor/wall/material controls, logos, seasonal decor, and per-player isolated previews remain future work.
 - Roblox Studio multiplayer visibility, purchase, and persistence have not been run locally.

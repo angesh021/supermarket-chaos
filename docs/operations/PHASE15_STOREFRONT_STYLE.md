@@ -1,6 +1,6 @@
 # Phase 15 storefront style verification
 
-The owner or an authorized Manager can buy the Coastal Market storefront style for `$180` at the physical style pad after completing a shift. It changes the exterior fascia/sign, entrance canopy, and interior front header. The purchase is saved as the player's `marketStyle` upgrade flag in profile schema v10 and is reconstructed on load. Previous profiles safely default to the original palette.
+The owner or an authorized Manager can buy a storefront style for `$180` at the physical style pad after completing a shift. Phase 39 adds the selectable Coastal Market, City Grocer, and Harvest Market palettes; the original purchase flag remains in profile schema v10 and the selected preset ID is saved in v24. Previous purchases migrate to Coastal Market, while unowned profiles remain at the original palette.
 
 This is one server-selected preset, not an editable color picker. It uses original procedural parts and no external assets. Roblox Studio appearance, purchase, and DataStore behavior have not been run locally.
 
@@ -30,5 +30,5 @@ This is one server-selected preset, not an editable color picker. It uses origin
 
 ## Known limits
 
-- One fixed palette is available; there is no preview, undo, custom placement, or per-part editing.
+- Phase 39 expands the fixed style package to three presets with preview/cancel and saves the selected preset ID in profile schema v24. Custom placement and per-part editing remain unavailable.
 - Visual color review and old-profile migration have not been exercised in Studio.

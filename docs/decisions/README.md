@@ -224,6 +224,11 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Consequences:** No schema migration. Offline time and blocked operations do not count toward patience.
 - **Verification:** See `docs/operations/PHASE38_LOYALTY_AND_PATIENCE.md`.
 
+## ADR-0037: Persist a server-defined storefront palette
+- **Decision:** Offer Coastal Market, City Grocer, and Harvest Market as fixed server-defined storefront presets; preview/cancel through physical prompts and persist the purchased preset ID.
+- **Consequences:** Schema v24 migrates existing storefront purchases without an ID to Coastal Market. Preview state is transient, and all players see the shared store palette.
+- **Verification:** See `docs/operations/PHASE39_STOREFRONT_PALETTE_CHOICES.md`.
+
 ## ADR-0009 — Keep product inventory and supplier orders SKU-specific
 - **Status:** Accepted — 2026-10-12.
 - **Context:** The retail loop needs visible department variety and product-specific stock behavior while keeping stock and money authoritative.

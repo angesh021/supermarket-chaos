@@ -1782,7 +1782,7 @@ function WorldBuilder.build()
         Enum.Material.Neon
     )
     local stylePrompt =
-        prompt(stylePad, "Install Coastal Style ($180)", "Storefront Refresh", "MarketStyle", 10)
+        prompt(stylePad, "Install Preview ($180)", "Storefront Refresh", "MarketStyle", 10)
     stylePrompt.Enabled = false
     local stylePreviewPad = part(
         interior,
@@ -1794,11 +1794,12 @@ function WorldBuilder.build()
     )
     local stylePreviewPrompt = prompt(
         stylePreviewPad,
-        "Preview Coastal Style",
+        "Preview Next Style",
         "Storefront Preview",
         "PreviewMarketStyle",
         10
     )
+    stylePreviewPrompt.ActionText = "Next Style / Cancel"
     stylePreviewPrompt.Enabled = false
     local styleSign = label(
         interior,
@@ -1809,34 +1810,69 @@ function WorldBuilder.build()
         COLORS.green
     )
     local marketStylePurchased = false
-    local marketStylePreviewing = false
-    local function applyMarketStyle(isActive)
-        stylePad.Color = isActive and COLORS.deepTeal or COLORS.green
-        styleSign.Color = isActive and COLORS.teal or COLORS.green
-        storefrontFascia.Color = isActive and COLORS.green or COLORS.teal
-        storefrontSign.Color = isActive and COLORS.green or COLORS.teal
-        entryCanopy.Color = isActive and COLORS.gold or COLORS.coral
-        canopyValance.Color = isActive and COLORS.teal or COLORS.deepTeal
-        frontHeader.Color = isActive and COLORS.green or COLORS.teal
+    local marketStylePreviewId = nil
+    local marketStyleId = ""
+    local MARKET_STYLES = {
+        coastal = {
+            name = "Coastal Market",
+            fascia = COLORS.green,
+            sign = COLORS.green,
+            canopy = COLORS.gold,
+            valance = COLORS.teal,
+            header = COLORS.green,
+        },
+        urban = {
+            name = "City Grocer",
+            fascia = COLORS.deepTeal,
+            sign = COLORS.deepTeal,
+            canopy = COLORS.gray,
+            valance = COLORS.coral,
+            header = COLORS.deepTeal,
+        },
+        harvest = {
+            name = "Harvest Market",
+            fascia = COLORS.coral,
+            sign = COLORS.green,
+            canopy = COLORS.gold,
+            valance = COLORS.green,
+            header = COLORS.coral,
+        },
+    }
+    local function applyMarketStyle(styleId)
+        local selectedStyle = MARKET_STYLES[styleId]
+        stylePad.Color = selectedStyle and COLORS.deepTeal or COLORS.green
+        styleSign.Color = selectedStyle and COLORS.teal or COLORS.green
+        storefrontFascia.Color = selectedStyle and selectedStyle.fascia or COLORS.teal
+        storefrontSign.Color = selectedStyle and selectedStyle.sign or COLORS.teal
+        entryCanopy.Color = selectedStyle and selectedStyle.canopy or COLORS.coral
+        canopyValance.Color = selectedStyle and selectedStyle.valance or COLORS.deepTeal
+        frontHeader.Color = selectedStyle and selectedStyle.header or COLORS.teal
         local surface = styleSign:FindFirstChildOfClass("SurfaceGui")
         local signText = surface and surface:FindFirstChildOfClass("TextLabel")
         if signText then
-            signText.Text = marketStylePurchased and "COASTAL MARKET\nINSTALLED"
-                or (marketStylePreviewing and "COASTAL MARKET\nPREVIEW" or "COASTAL MARKET\n$180")
+            local name = selectedStyle and selectedStyle.name or "STOREFRONT REFRESH"
+            signText.Text = if marketStylePurchased
+                then string.upper(name) .. "\nINSTALLED"
+                elseif selectedStyle then string.upper(name) .. "\nPREVIEW"
+                else "CHOOSE A STYLE\n$180"
         end
         stylePrompt.Enabled = not marketStylePurchased and currentStage == "Complete"
         stylePreviewPrompt.Enabled = not marketStylePurchased and currentStage == "Complete"
-        stylePreviewPrompt.ActionText = marketStylePreviewing and "Cancel Preview"
-            or "Preview Coastal Style"
     end
-    local function setMarketStyle(purchased)
+    local function setMarketStyle(purchased, styleId)
         marketStylePurchased = purchased == true
-        marketStylePreviewing = false
-        applyMarketStyle(marketStylePurchased)
+        marketStyleId = marketStylePurchased and MARKET_STYLES[styleId] and styleId or ""
+        marketStylePreviewId = nil
+        local displayStyleId = marketStylePurchased and marketStyleId or nil
+        applyMarketStyle(displayStyleId)
     end
-    local function setMarketStylePreview(previewing)
-        marketStylePreviewing = previewing == true and not marketStylePurchased
-        applyMarketStyle(marketStylePurchased or marketStylePreviewing)
+    local function setMarketStylePreview(styleId)
+        marketStylePreviewId = MARKET_STYLES[styleId] and styleId or nil
+        applyMarketStyle(marketStylePurchased and marketStyleId or marketStylePreviewId)
+    end
+    local function getMarketStyleName(styleId)
+        local style = MARKET_STYLES[styleId]
+        return style and style.name or "Coastal Market"
     end
 
     -- A single anchored cart root is tweened only while the opening event is active.
@@ -2550,8 +2586,8 @@ function WorldBuilder.build()
                 or (stage == "Upgrade" and "ADD SHELF BAY\n$45" or "STORE UPGRADE")
         end
         stylePrompt.Enabled = stage == "Complete" and not marketStylePurchased
-        if stage ~= "Complete" and marketStylePreviewing then
-            setMarketStylePreview(false)
+        if stage ~= "Complete" and marketStylePreviewId then
+            setMarketStylePreview(nil)
         else
             stylePreviewPrompt.Enabled = stage == "Complete" and not marketStylePurchased
         end
@@ -2831,6 +2867,7 @@ function WorldBuilder.build()
         marketStylePreviewPrompt = stylePreviewPrompt,
         setMarketStyle = setMarketStyle,
         setMarketStylePreview = setMarketStylePreview,
+        getMarketStyleName = getMarketStyleName,
         orderDeliveryPrompt = function()
             return orderDeliveryPrompt
         end,

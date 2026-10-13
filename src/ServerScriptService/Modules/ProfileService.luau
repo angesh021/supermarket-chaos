@@ -6,7 +6,7 @@ local ProfileService = {}
 local LayoutService = require(script.Parent.LayoutService)
 local RetailLayoutService = require(script.Parent.RetailLayoutService)
 
-local SCHEMA_VERSION = 23
+local SCHEMA_VERSION = 24
 local SESSION_LEASE_SECONDS = 180
 local MAX_RETRIES = 3
 local STORE_NAME = "SupermarketChaos_PlayerProfiles_v1"
@@ -51,6 +51,7 @@ local function defaultProfile()
             aisleExpansion = false,
             floorExpansion = false,
             bakery = false,
+            marketStyleId = "",
         },
         hiredEmployees = {
             cashier = false,
@@ -198,6 +199,7 @@ local function normalizeProfile(value)
                 value.ownedUpgrades.floorExpansion
             ) ~= "boolean")
             or (value.ownedUpgrades.bakery ~= nil and type(value.ownedUpgrades.bakery) ~= "boolean")
+            or (value.ownedUpgrades.marketStyleId ~= nil and value.ownedUpgrades.marketStyleId ~= "" and value.ownedUpgrades.marketStyleId ~= "coastal" and value.ownedUpgrades.marketStyleId ~= "urban" and value.ownedUpgrades.marketStyleId ~= "harvest")
             or (
                 value.ownedUpgrades.marketStyle ~= nil
                 and type(value.ownedUpgrades.marketStyle) ~= "boolean"
@@ -211,6 +213,15 @@ local function normalizeProfile(value)
         profile.ownedUpgrades.aisleExpansion = value.ownedUpgrades.aisleExpansion == true
         profile.ownedUpgrades.floorExpansion = value.ownedUpgrades.floorExpansion == true
         profile.ownedUpgrades.bakery = value.ownedUpgrades.bakery == true
+        local savedStyleId = value.ownedUpgrades.marketStyleId
+        if savedStyleId == "coastal" or savedStyleId == "urban" or savedStyleId == "harvest" then
+            profile.ownedUpgrades.marketStyleId = savedStyleId
+        elseif profile.ownedUpgrades.marketStyle then
+            profile.ownedUpgrades.marketStyleId = "coastal"
+        end
+        if profile.ownedUpgrades.marketStyleId ~= "" and not profile.ownedUpgrades.marketStyle then
+            return nil, "Stored storefront palette exists without an owned style package."
+        end
     end
     if profile.ownedUpgrades.aisleExpansion and not profile.ownedUpgrades.shelfBay then
         return nil, "Stored aisle expansion exists without the first shelf bay."
@@ -510,6 +521,7 @@ local function copyProfile(profile)
             aisleExpansion = profile.ownedUpgrades.aisleExpansion,
             floorExpansion = profile.ownedUpgrades.floorExpansion,
             bakery = profile.ownedUpgrades.bakery,
+            marketStyleId = profile.ownedUpgrades.marketStyleId,
         },
         hiredEmployees = {
             cashier = profile.hiredEmployees.cashier,
@@ -780,6 +792,7 @@ function ProfileService.saveProgress(player, state, eventName)
     profile.ownedUpgrades.aisleExpansion = state.aisleExpansionPurchased
     profile.ownedUpgrades.floorExpansion = state.floorExpansionPurchased
     profile.ownedUpgrades.bakery = state.bakeryPurchased
+    profile.ownedUpgrades.marketStyleId = state.marketStyleId
     profile.warehouseLayout = state.warehouseLayout
     profile.retailLayout = RetailLayoutService.normalize(
         state.retailLayout,

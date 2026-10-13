@@ -302,6 +302,9 @@ function ShiftService.init(event, membershipRemotes)
     retailLayoutRequestEvent = membershipRemotes.retailLayoutRequest
     world = WorldBuilder.build()
     local marketStylePreviewing = false
+    local marketStylePreviewIndex = 0
+    local marketStylePreviewIds = { "coastal", "urban", "harvest" }
+    local marketStyleSelectedId = "coastal"
     world.setStage("Loading")
     ProfileService.startAutosave(function()
         broadcast()
@@ -636,7 +639,9 @@ function ShiftService.init(event, membershipRemotes)
         TelemetryService.record(ownerPlayer, eventName)
         if state.stage ~= "Complete" and marketStylePreviewing then
             marketStylePreviewing = false
-            world.setMarketStylePreview(false)
+            marketStylePreviewIndex = 0
+            marketStyleSelectedId = state.marketStyleId ~= "" and state.marketStyleId or "coastal"
+            world.setMarketStylePreview(nil)
         end
         world.setStage(state.stage)
         world.setRetailLayout(state.retailLayout)
@@ -892,23 +897,33 @@ function ShiftService.init(event, membershipRemotes)
     end)
 
     bind("MarketStyle", world.marketStylePrompt, 13, function()
-        local ok, message = Economy.buyMarketStyle(state)
+        local ok, message = Economy.buyMarketStyle(state, marketStyleSelectedId)
         if ok then
             marketStylePreviewing = false
-            world.setMarketStylePreview(false)
-            world.setMarketStyle(state.marketStylePurchased)
+            marketStylePreviewIndex = 0
+            world.setMarketStylePreview(nil)
+            world.setMarketStyle(state.marketStylePurchased, state.marketStyleId)
             commit("marketStyle")
         end
         broadcast(message)
     end)
 
     bind("PreviewMarketStyle", world.marketStylePreviewPrompt, 13, function()
-        marketStylePreviewing = not marketStylePreviewing
-        world.setMarketStylePreview(marketStylePreviewing)
+        marketStylePreviewIndex += 1
+        if marketStylePreviewIndex > #marketStylePreviewIds then
+            marketStylePreviewIndex = 0
+            marketStylePreviewing = false
+            marketStyleSelectedId = state.marketStyleId ~= "" and state.marketStyleId or "coastal"
+            world.setMarketStylePreview(nil)
+            broadcast("Storefront preview canceled. The original look is restored.")
+            return
+        end
+        marketStylePreviewing = true
+        marketStyleSelectedId = marketStylePreviewIds[marketStylePreviewIndex]
+        world.setMarketStylePreview(marketStyleSelectedId)
         broadcast(
-            marketStylePreviewing
-                    and "Coastal Market preview applied. Purchase it at the refresh pad to keep it."
-                or "Coastal Market preview canceled. Your saved storefront style is restored."
+            world.getMarketStyleName(marketStyleSelectedId)
+                .. " preview applied. Preview the next style or install this one at the refresh pad."
         )
     end)
 
@@ -1441,8 +1456,9 @@ function ShiftService.init(event, membershipRemotes)
             if state.floorExpansionPurchased then
                 world.addFloorExpansion()
             end
-            world.setMarketStyle(state.marketStylePurchased)
+            world.setMarketStyle(state.marketStylePurchased, state.marketStyleId)
             marketStylePreviewing = false
+            marketStylePreviewIndex = 0
             world.setWarehousePurchased(state.warehousePurchased)
             if state.bakeryPurchased then
                 world.addBakeryDepartment()

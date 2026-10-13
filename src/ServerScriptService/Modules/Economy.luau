@@ -16,6 +16,11 @@ Economy.MARKET_STYLE_COST = 180
 Economy.AISLE_EXPANSION_COST = 220
 Economy.FLOOR_EXPANSION_COST = 500
 Economy.BAKERY_DEPARTMENT_COST = 350
+Economy.MARKET_STYLE_PRESETS = {
+    coastal = { name = "Coastal Market", cost = 180 },
+    urban = { name = "City Grocer", cost = 180 },
+    harvest = { name = "Harvest Market", cost = 180 },
+}
 Economy.EMPLOYEE_WAGES = {
     cashier = 4,
     stocker = 4,
@@ -171,6 +176,7 @@ function Economy.newState(profile, playerSeed)
         upgradePurchased = upgrades.shelfBay or false,
         warehousePurchased = upgrades.warehouse or false,
         marketStylePurchased = upgrades.marketStyle or false,
+        marketStyleId = upgrades.marketStyleId or (upgrades.marketStyle and "coastal" or ""),
         aisleExpansionPurchased = upgrades.aisleExpansion or false,
         floorExpansionPurchased = upgrades.floorExpansion or false,
         bakeryPurchased = upgrades.bakery or false,
@@ -1231,17 +1237,21 @@ function Economy.buyWarehouse(state)
     return true, "Warehouse annex purchased! Your retail empire is expanding."
 end
 
-function Economy.buyMarketStyle(state)
+function Economy.buyMarketStyle(state, styleId)
     if state.stage ~= "Complete" or state.marketStylePurchased then
         return false, "The storefront style package is not available right now."
     end
-    if state.cash < Economy.MARKET_STYLE_COST then
-        return false,
-            string.format("You need $%d to refresh the storefront.", Economy.MARKET_STYLE_COST)
+    local style = Economy.MARKET_STYLE_PRESETS[styleId]
+    if not style then
+        return false, "Choose a valid storefront style preview first."
     end
-    state.cash -= Economy.MARKET_STYLE_COST
+    if state.cash < style.cost then
+        return false, string.format("You need $%d to refresh the storefront.", style.cost)
+    end
+    state.cash -= style.cost
     state.marketStylePurchased = true
-    return true, "Coastal Market style installed! Your storefront has a fresh new look."
+    state.marketStyleId = styleId
+    return true, style.name .. " style installed! Your storefront has a fresh new look."
 end
 
 function Economy.buyAisleExpansion(state)
