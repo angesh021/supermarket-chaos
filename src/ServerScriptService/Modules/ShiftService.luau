@@ -42,6 +42,7 @@ local ROLE_ACTIONS = {
         ToggleCleanerAutomation = true,
         ToggleDeliveryWorkerAutomation = true,
         Warehouse = true,
+        AisleExpansion = true,
         MarketStyle = true,
         PreviewMarketStyle = true,
         OrderDelivery = true,
@@ -794,6 +795,15 @@ function ShiftService.init(event, membershipRemotes)
         broadcast(message)
     end)
 
+    bind("AisleExpansion", world.aisleExpansionPrompt, 12, function()
+        local ok, message = Economy.buyAisleExpansion(state)
+        if ok then
+            world.addAisleExpansion()
+            commit("aisleExpansion")
+        end
+        broadcast(message)
+    end)
+
     bind("MarketStyle", world.marketStylePrompt, 13, function()
         local ok, message = Economy.buyMarketStyle(state)
         if ok then
@@ -1118,6 +1128,9 @@ function ShiftService.init(event, membershipRemotes)
             ownerReady = true
             if state.upgradePurchased then
                 world.addUpgrade()
+            end
+            if state.aisleExpansionPurchased then
+                world.addAisleExpansion()
             end
             world.setMarketStyle(state.marketStylePurchased)
             marketStylePreviewing = false

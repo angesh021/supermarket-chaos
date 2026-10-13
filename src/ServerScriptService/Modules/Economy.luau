@@ -12,6 +12,7 @@ Economy.DELIVERY_WORKER_COST = 140
 Economy.CUSTOMER_ASSISTANT_COST = 160
 Economy.WAREHOUSE_COST = 200
 Economy.MARKET_STYLE_COST = 180
+Economy.AISLE_EXPANSION_COST = 220
 Economy.DELIVERY_COST = 60
 Economy.DELIVERY_QUANTITY = 24
 Economy.BACKSTOCK_CAPACITY = 500
@@ -121,6 +122,7 @@ function Economy.newState(profile)
         upgradePurchased = upgrades.shelfBay or false,
         warehousePurchased = upgrades.warehouse or false,
         marketStylePurchased = upgrades.marketStyle or false,
+        aisleExpansionPurchased = upgrades.aisleExpansion or false,
         cashierHired = (profile.hiredEmployees and profile.hiredEmployees.cashier) or false,
         stockerHired = (profile.hiredEmployees and profile.hiredEmployees.stocker) or false,
         cleanerHired = (profile.hiredEmployees and profile.hiredEmployees.cleaner) or false,
@@ -868,6 +870,19 @@ function Economy.buyMarketStyle(state)
     state.cash -= Economy.MARKET_STYLE_COST
     state.marketStylePurchased = true
     return true, "Coastal Market style installed! Your storefront has a fresh new look."
+end
+
+function Economy.buyAisleExpansion(state)
+    if state.stage ~= "Complete" or not state.upgradePurchased or state.aisleExpansionPurchased then
+        return false, "The second aisle expansion is not available right now."
+    end
+    if state.cash < Economy.AISLE_EXPANSION_COST then
+        return false,
+            string.format("You need $%d to add the household aisle.", Economy.AISLE_EXPANSION_COST)
+    end
+    state.cash -= Economy.AISLE_EXPANSION_COST
+    state.aisleExpansionPurchased = true
+    return true, "Household aisle added! Your store has room for more shoppers."
 end
 
 return Economy

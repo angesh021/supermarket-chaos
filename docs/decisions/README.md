@@ -150,6 +150,13 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Consequences:** No schema, client remote, custom player identifier or economic payload is added. Analytics API failure is non-blocking; dashboard ingestion and retention interpretation still require platform verification.
 - **Verification:** See `docs/operations/PHASE26_REPEAT_SHIFT_ANALYTICS.md`; Studio/dashboard and failure-isolation checks remain pending.
 
+## ADR-0025 — Begin store construction with a fixed server-approved slot
+- **Status:** Accepted — 2026-10-12.
+- **Context:** The store-building requirements call for persistent construction, but free-form client transforms would add a large unreviewed input surface and collision risk.
+- **Decision:** Add one sequential `$220` department expansion after the first shelf bay. The server chooses a fixed interior slot and persists only the allow-listed ownership flag in profile schema v17.
+- **Consequences:** This visibly grows the store and exercises purchase, prerequisite, permission and persistence paths. Free placement, rotation, plot ownership and editable inventory layout remain future work.
+- **Verification:** See `docs/operations/PHASE27_HOUSEHOLD_AISLE_EXPANSION.md`; Studio and DataStore checks remain pending.
+
 ## ADR-0009 — Keep product inventory and supplier orders SKU-specific
 - **Status:** Accepted — 2026-10-12.
 - **Context:** The retail loop needs visible department variety and product-specific stock behavior while keeping stock and money authoritative.

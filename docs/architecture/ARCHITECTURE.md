@@ -133,6 +133,12 @@ Currency and stock changes occur only after server-side validation. Transactions
 - Funnel UUIDs and successful-step counters are ephemeral. Events remain gated to development universe `10770581249`; API failures do not affect gameplay or profile saving.
 - See `operations/PHASE26_REPEAT_SHIFT_ANALYTICS.md`; dashboard ingestion remains pending.
 
+## Phase 7 fixed-slot department expansion
+- `Economy.buyAisleExpansion` accepts only a completed shift, existing first shelf bay, sufficient server cash and no prior expansion; the cost is fixed at `$220`.
+- Profile schema v17 persists one allow-listed `ownedUpgrades.aisleExpansion` flag and rejects malformed or prerequisite-free records. Older profiles default to no expansion.
+- `ShiftService` authorizes Owner/Manager through its shared prompt gate; `WorldBuilder` creates the fixture in one fixed, reviewed slot and reconstructs it on profile load. Arbitrary placement and rotation are future work.
+- See `operations/PHASE27_HOUSEHOLD_AISLE_EXPANSION.md`; Studio purchase, multiplayer and save/rejoin checks remain pending.
+
 ## Open technical decisions
 See `docs/decisions/README.md` for accepted ownership policy. Remaining decisions include multi-store/guest permissions, production Studio place configuration, analytics implementation/privacy review, and any changes to persistence recovery. Verify platform APIs against official documentation when implementation starts.
 # Cooperative ownership and cashier extension

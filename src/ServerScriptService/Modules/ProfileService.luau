@@ -4,7 +4,7 @@ local HttpService = game:GetService("HttpService")
 
 local ProfileService = {}
 
-local SCHEMA_VERSION = 16
+local SCHEMA_VERSION = 17
 local SESSION_LEASE_SECONDS = 180
 local MAX_RETRIES = 3
 local STORE_NAME = "SupermarketChaos_PlayerProfiles_v1"
@@ -45,6 +45,7 @@ local function defaultProfile()
             shelfBay = false,
             warehouse = false,
             marketStyle = false,
+            aisleExpansion = false,
         },
         hiredEmployees = {
             cashier = false,
@@ -166,6 +167,9 @@ local function normalizeProfile(value)
                 and type(value.ownedUpgrades.shelfBay) ~= "boolean"
             )
             or (value.ownedUpgrades.warehouse ~= nil and type(value.ownedUpgrades.warehouse) ~= "boolean")
+            or (value.ownedUpgrades.aisleExpansion ~= nil and type(
+                value.ownedUpgrades.aisleExpansion
+            ) ~= "boolean")
             or (
                 value.ownedUpgrades.marketStyle ~= nil
                 and type(value.ownedUpgrades.marketStyle) ~= "boolean"
@@ -176,6 +180,10 @@ local function normalizeProfile(value)
         profile.ownedUpgrades.shelfBay = value.ownedUpgrades.shelfBay == true
         profile.ownedUpgrades.warehouse = value.ownedUpgrades.warehouse == true
         profile.ownedUpgrades.marketStyle = value.ownedUpgrades.marketStyle == true
+        profile.ownedUpgrades.aisleExpansion = value.ownedUpgrades.aisleExpansion == true
+    end
+    if profile.ownedUpgrades.aisleExpansion and not profile.ownedUpgrades.shelfBay then
+        return nil, "Stored aisle expansion exists without the first shelf bay."
     end
     if value.hiredEmployees ~= nil and type(value.hiredEmployees) ~= "table" then
         return nil, "Stored employee data is malformed."
@@ -405,6 +413,7 @@ local function copyProfile(profile)
             shelfBay = profile.ownedUpgrades.shelfBay,
             warehouse = profile.ownedUpgrades.warehouse,
             marketStyle = profile.ownedUpgrades.marketStyle,
+            aisleExpansion = profile.ownedUpgrades.aisleExpansion,
         },
         hiredEmployees = {
             cashier = profile.hiredEmployees.cashier,
@@ -641,6 +650,7 @@ function ProfileService.saveProgress(player, state, eventName)
     profile.ownedUpgrades.shelfBay = state.upgradePurchased
     profile.ownedUpgrades.warehouse = state.warehousePurchased
     profile.ownedUpgrades.marketStyle = state.marketStylePurchased
+    profile.ownedUpgrades.aisleExpansion = state.aisleExpansionPurchased
     profile.hiredEmployees.cashier = state.cashierHired
     profile.hiredEmployees.stocker = state.stockerHired
     profile.hiredEmployees.cleaner = state.cleanerHired

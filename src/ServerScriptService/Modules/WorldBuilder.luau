@@ -815,6 +815,7 @@ function WorldBuilder.build()
         end
     end
     local currentStage = "Loading"
+    local aisleExpansionPurchased = false
     local customerModels = {}
     local customerColors = {
         { COLORS.blue, COLORS.deepTeal, COLORS.orange },
@@ -1544,7 +1545,16 @@ function WorldBuilder.build()
         Enum.Material.Neon
     )
     local upgradePrompt = prompt(upgradePad, "Add Shelf Bay ($45)", "Store Upgrade", "Upgrade", 10)
-    label(
+    local aisleExpansionPad = upgradePad
+    local aisleExpansionPrompt = prompt(
+        aisleExpansionPad,
+        "Add Household Aisle ($220)",
+        "Store Expansion",
+        "AisleExpansion",
+        10
+    )
+    aisleExpansionPrompt.Enabled = false
+    local upgradeSign = label(
         interior,
         "Upgrade Sign",
         "UPGRADE\n$45",
@@ -2092,6 +2102,17 @@ function WorldBuilder.build()
         spillPrompt.Enabled = stage == "Spill"
         powerPrompt.Enabled = stage == "PowerOutage"
         upgradePrompt.Enabled = stage == "Upgrade"
+        aisleExpansionPrompt.Enabled = stage == "Complete"
+            and not aisleExpansionPurchased
+            and interior:FindFirstChild("Purchased Shelf Bay") ~= nil
+        aisleExpansionPad.Transparency = 0
+        local signSurface = upgradeSign:FindFirstChildOfClass("SurfaceGui")
+        local signText = signSurface and signSurface:FindFirstChildOfClass("TextLabel")
+        if signText then
+            signText.Text = aisleExpansionPurchased and "HOUSEHOLD AISLE\nINSTALLED"
+                or (aisleExpansionPrompt.Enabled and "HOUSEHOLD AISLE\n$220")
+                or (stage == "Upgrade" and "ADD SHELF BAY\n$45" or "STORE UPGRADE")
+        end
         stylePrompt.Enabled = stage == "Complete" and not marketStylePurchased
         if stage ~= "Complete" and marketStylePreviewing then
             setMarketStylePreview(false)
@@ -2099,7 +2120,8 @@ function WorldBuilder.build()
             stylePreviewPrompt.Enabled = stage == "Complete" and not marketStylePurchased
         end
         restartPrompt.Enabled = stage == "Complete"
-        upgradeMarker.Enabled = stage == "Upgrade"
+        upgradeMarker.Enabled = stage == "Upgrade" or aisleExpansionPrompt.Enabled
+        markerText.Text = aisleExpansionPrompt.Enabled and "AISLE  $220" or "UPGRADE  $45"
         cashierHirePrompt.Enabled = stage == "Complete" and not cashierHired
         stockerHirePrompt.Enabled = stage == "Complete" and not stockerHired
         cleanerHirePrompt.Enabled = stage == "Complete" and not cleanerHired
@@ -2319,6 +2341,7 @@ function WorldBuilder.build()
         end,
         setDeliveryState = setDeliveryState,
         upgradePrompt = upgradePrompt,
+        aisleExpansionPrompt = aisleExpansionPrompt,
         setStage = setStage,
         setUpgradeReady = function(ready)
             upgradeMarker.Enabled = ready
@@ -2338,6 +2361,28 @@ function WorldBuilder.build()
                 COLORS.green
             )
             sign:SetAttribute("PlayerPurchased", true)
+        end,
+        addAisleExpansion = function()
+            if aisleExpansionPurchased then
+                return
+            end
+            -- A fixed, allow-listed bay inside the current floor footprint; no client placement data is used.
+            local aisleExpansionModel =
+                createShelf(interior, "Purchased Household Aisle", 16, -8, 6, "HOUSEHOLD")
+            aisleExpansionModel:SetAttribute("PlayerPurchased", true)
+            local sign = label(
+                interior,
+                "Household Aisle Department Sign",
+                "HOME & EVERYDAY",
+                Vector3.new(7, 1.1, 0.3),
+                CFrame.new(16, 7.35, -9.18),
+                COLORS.green,
+                COLORS.warmWhite
+            )
+            sign:SetAttribute("PlayerPurchased", true)
+            aisleExpansionPurchased = true
+            aisleExpansionPrompt.Enabled = false
+            aisleExpansionPad.Transparency = 0
         end,
         setCashierHired = function(hired)
             cashierHired = hired == true

@@ -43,6 +43,7 @@ G0 was approved on 2026-10-12. The user authorized continued phase implementatio
 - [x] Extend stocker automation to replenish the next preferred empty SKU and allow repeat Citrus Pop restocking; see `operations/PHASE24_STOCKER_REPLENISHMENT.md`.
 - [x] Add a persistent Customer Assistant employee who speeds customer browsing without changing checkout authority; see `operations/PHASE25_CUSTOMER_ASSISTANT.md`.
 - [x] Add a development-only repeat-shift funnel using server-confirmed milestones and ephemeral IDs; see `operations/PHASE26_REPEAT_SHIFT_ANALYTICS.md`.
+- [x] Phase 27: add a persistent, server-priced second fixed household aisle slot behind the first shelf expansion; see `operations/PHASE27_HOUSEHOLD_AISLE_EXPANSION.md`.
 - [ ] Add delivery/customer-assistant roles, departments and further customization.
 - [ ] Studio verification of cleaner hire/migration, save/rejoin, automatic cleanup and player/employee races.
 
@@ -84,7 +85,7 @@ G0 was approved on 2026-10-12. The user authorized continued phase implementatio
 - [x] Phase 7 follow-up increment: Citrus Pop and Berry Bites have separate server-owned shelf/backroom quantities, prices, shelf visuals and product-specific delivery.
 - [x] Phase 17: add Golden Apples as a produce SKU with v11 inventory migration, server-priced shipment/checkout, stocking visuals and customer baskets; see `operations/PHASE17_GOLDEN_APPLES.md`.
 - [x] Phase 4 customer increment: server-derived five-pattern shopping baskets with atomic multi-item checkout, visible customer order, department browsing and no schema migration.
-- [ ] Phase 7 follow-up: warehouse inventory layout, additional departments and Studio verification of purchase/delivery/save/rejoin; see `operations/PHASE11_PRODUCTS.md`.
+- [ ] Phase 7 follow-up: editable warehouse inventory layout, free-form placement/rotation and Studio verification of purchase/delivery/save/rejoin; see `operations/PHASE11_PRODUCTS.md` and `operations/PHASE27_HOUSEHOLD_AISLE_EXPANSION.md`.
 - [ ] Studio verification of Golden Apples shipment, produce stock, migration, basket math, helper permissions, and save/rejoin; see `operations/PHASE17_GOLDEN_APPLES.md`.
 - [ ] Studio verification of employee automation toggles, delayed timer cancellation, roles, v1–v11 migration and save/rejoin; see `operations/PHASE18_EMPLOYEE_AUTOMATION.md`.
 - [ ] Studio verification of the palette preview/reset, purchase, role permissions and save/rejoin; see `operations/PHASE19_STOREFRONT_PREVIEW.md`.
