@@ -1188,10 +1188,11 @@ function ProfileService.createLocation(player, locationId)
     if not entry or locationId ~= "uptown" then
         return false
     end
+    beginProfileMutation(entry)
     if entry.profile.locations.uptown then
+        endProfileMutation(entry)
         return true
     end
-    beginProfileMutation(entry)
     local initialProfile = defaultProfile()
     entry.profile.locations.uptown = locationSnapshot(initialProfile)
     local saved = true

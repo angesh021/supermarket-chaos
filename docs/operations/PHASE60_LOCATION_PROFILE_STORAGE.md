@@ -20,7 +20,8 @@ Use the private development universe `10770581249` and a known v38 profile.
 2. Load and save under v39. Confirm there is still exactly one `locations.neighborhood` record and its contents and balance match the recorded values.
 3. Rejoin and compare the same values. Confirm `getLocation("neighborhood")` is read-only by mutating a returned copy and checking the next read is unchanged.
 4. In an isolated local migration harness, add an unknown location ID, malformed `uptown` record, or extra location; confirm profile normalization rejects it. Confirm two valid location records are accepted only when each is internally normalized.
-5. Confirm DataStore-unavailable/session-only behavior remains playable and does not claim persistence.
+5. Invoke server-side location creation concurrently twice for `uptown`. Confirm it creates one default snapshot and never resets the record after the first creation.
+6. Confirm DataStore-unavailable/session-only behavior remains playable and does not claim persistence.
 
 ## Verification status
 - Static checks are recorded in `docs/PROJECT_STATUS.md`.
