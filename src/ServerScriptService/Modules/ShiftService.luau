@@ -423,7 +423,8 @@ function ShiftService.init(event, membershipRemotes)
                     end
                     return
                 end
-                local ok, message = Economy.sellProduct(state, os.time())
+                local ok, message =
+                    Economy.sellProduct(state, os.time(), world.getCheckoutWaitSeconds())
                 if ok then
                     world.setStockVisual(state.stock)
                     world.setBerryStockVisual(state.berryStock)
@@ -787,7 +788,7 @@ function ShiftService.init(event, membershipRemotes)
             )
             return
         end
-        local ok, message = Economy.sellProduct(state, os.time())
+        local ok, message = Economy.sellProduct(state, os.time(), world.getCheckoutWaitSeconds())
         if ok then
             world.setStockVisual(state.stock)
             world.setStockAvailable(

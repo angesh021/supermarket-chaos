@@ -41,5 +41,9 @@
 | [Chaos Director verification](operations/PHASE31_CHAOS_DIRECTOR.md) | Shift-specific event schedules, event timing, recovery and rejoin reconstruction |
 | [Retail layout verification](operations/PHASE32_RETAIL_LAYOUT.md) | Persistent product shelf movement, rotation, collision checks and customer routing |
 | [Customer satisfaction verification](operations/PHASE33_CUSTOMER_SATISFACTION.md) | Persistent server-scored fulfillment rating, pricing impact, HUD and migration |
+| [Rear floor expansion verification](operations/PHASE35_REAR_FLOOR_EXPANSION.md) | Persistent rear-wing unlock, walk-through opening and rear shelf placement |
+| [Bakery department verification](operations/PHASE36_BAKERY_DEPARTMENT.md) | Bakery construction, Cinnamon Twists inventory, delivery, pricing and migration |
+| [Product substitution verification](operations/PHASE37_PRODUCT_SUBSTITUTION.md) | Related SKU substitution, actual-item routing, pricing, stock and satisfaction |
+| [Loyalty and patience verification](operations/PHASE38_LOYALTY_AND_PATIENCE.md) | High-satisfaction regulars and server-measured checkout patience |
 
 Keep this index and linked documents current as implementation changes. See [AGENTS.md](../AGENTS.md) for repository rules.

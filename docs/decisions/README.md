@@ -219,6 +219,11 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Consequences:** No schema migration or client authority is added; satisfaction reflects substitute and unfilled quantities.
 - **Verification:** See `docs/operations/PHASE37_PRODUCT_SUBSTITUTION.md`.
 
+## ADR-0036: Derive customer regulars and patience from satisfaction and queue time
+- **Decision:** High satisfaction adds a deterministic Neighborhood regular basket; server-measured front-of-line wait affects satisfaction with a bounded penalty.
+- **Consequences:** No schema migration. Offline time and blocked operations do not count toward patience.
+- **Verification:** See `docs/operations/PHASE38_LOYALTY_AND_PATIENCE.md`.
+
 ## ADR-0009 — Keep product inventory and supplier orders SKU-specific
 - **Status:** Accepted — 2026-10-12.
 - **Context:** The retail loop needs visible department variety and product-specific stock behavior while keeping stock and money authoritative.

@@ -934,6 +934,7 @@ function WorldBuilder.build()
     local remainingCustomers
     local customerTotal = 0
     local checkoutReady = false
+    local checkoutReadyAt = 0
     local function cancelCustomerFlow()
         customerFlowVersion += 1
         for _, tween in pairs(customerFlowTweens) do
@@ -1005,7 +1006,14 @@ function WorldBuilder.build()
             return "WAITING • SPILL"
         elseif currentStage == "PowerOutage" then
             return "WAITING • POWER OUT"
-        elseif currentStage == "CustomerRush" then
+        end
+        if queueNumber == 1 and checkoutReady and checkoutReadyAt > 0 then
+            local waitedSeconds = math.floor(os.clock() - checkoutReadyAt)
+            if waitedSeconds >= 20 then
+                return string.format("GETTING IMPATIENT • %ds", waitedSeconds)
+            end
+        end
+        if currentStage == "CustomerRush" then
             return "RUSH CUSTOMER"
         end
         return queueNumber == 1 and "NEXT CUSTOMER" or "IN QUEUE"
@@ -1070,6 +1078,7 @@ function WorldBuilder.build()
         entry.label.Text = customerQueueStatus(queueNumber)
         if queueNumber == 1 then
             checkoutReady = true
+            checkoutReadyAt = os.clock()
             register.Enabled = currentStage == "Checkout" or currentStage == "CustomerRush"
         end
     end
@@ -1101,6 +1110,7 @@ function WorldBuilder.build()
         entry.label.Text = customerQueueStatus(queueNumber)
         if queueNumber == 1 then
             checkoutReady = true
+            checkoutReadyAt = os.clock()
             register.Enabled = currentStage == "Checkout" or currentStage == "CustomerRush"
         end
     end
@@ -1144,6 +1154,7 @@ function WorldBuilder.build()
             entry.billboard.Enabled = visible
         end
         checkoutReady = (remainingCustomers or 0) > 0
+        checkoutReadyAt = checkoutReady and os.clock() or 0
         register.Enabled = (currentStage == "Checkout" or currentStage == "CustomerRush")
             and checkoutReady
     end
@@ -1166,6 +1177,7 @@ function WorldBuilder.build()
             remainingCustomers = nil
             customerTotal = 0
             checkoutReady = false
+            checkoutReadyAt = 0
             register.Enabled = false
             for _, entry in ipairs(customerModels) do
                 for _, item in ipairs(entry.model:GetDescendants()) do
@@ -1186,6 +1198,7 @@ function WorldBuilder.build()
         remainingCustomers = remaining
         customerTotal = target
         checkoutReady = false
+        checkoutReadyAt = 0
         register.Enabled = false
         cancelCustomerFlow()
         local flowVersion = customerFlowVersion
@@ -1258,6 +1271,19 @@ function WorldBuilder.build()
     local function setCustomerVisible(visible)
         setCustomerCount(visible and #customerModels or 0, #customerModels)
     end
+
+    task.spawn(function()
+        while interior.Parent do
+            task.wait(5)
+            if checkoutReady and (currentStage == "Checkout" or currentStage == "CustomerRush") then
+                local served = customerTotal - (remainingCustomers or 0)
+                local entry = customerModels[served + 1]
+                if entry then
+                    entry.label.Text = customerQueueStatus(1)
+                end
+            end
+        end
+    end)
 
     local spillModel = Instance.new("Model")
     spillModel.Name = "Checkout Spill"
@@ -2439,7 +2465,19 @@ function WorldBuilder.build()
     end
 
     local function setStage(stage)
+        local previousStage = currentStage
         currentStage = stage
+        if
+            (
+                previousStage == "Spill"
+                or previousStage == "PowerOutage"
+                or previousStage == "OwnerOffline"
+            )
+            and (stage == "Checkout" or stage == "CustomerRush")
+            and checkoutReady
+        then
+            checkoutReadyAt = os.clock()
+        end
         local served = customerTotal - (remainingCustomers or 0)
         for index, entry in ipairs(customerModels) do
             local queueNumber = index - served
@@ -2703,6 +2741,16 @@ function WorldBuilder.build()
         registerPrompt = register,
         isCheckoutReady = function()
             return checkoutReady
+        end,
+        getCheckoutWaitSeconds = function()
+            if
+                not checkoutReady
+                or checkoutReadyAt <= 0
+                or (currentStage ~= "Checkout" and currentStage ~= "CustomerRush")
+            then
+                return 0
+            end
+            return math.max(0, math.floor(os.clock() - checkoutReadyAt))
         end,
         recoverCustomerQueue = recoverCustomerQueue,
         spillPrompt = spillPrompt,

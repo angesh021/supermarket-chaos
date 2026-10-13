@@ -558,6 +558,54 @@ function Economy.getNextCheckoutBasket(state)
             },
         }
     end
+    if (state.customerSatisfaction or 75) >= 80 then
+        if state.bakeryPurchased then
+            weightedIntents = {
+                { name = "Everyday", weight = 30, products = { "citrusPop" } },
+                { name = "Value shopper", weight = 17, products = { "berryBites", "berryBites" } },
+                {
+                    name = "Family shop",
+                    weight = 17,
+                    products = { "goldenApples", "sunriseCereal", "cinnamonTwists" },
+                },
+                {
+                    name = "Treat stop",
+                    weight = 14,
+                    products = { "citrusPop", "berryBites", "cinnamonTwists" },
+                },
+                {
+                    name = "Bakery stop",
+                    weight = 12,
+                    products = { "cinnamonTwists", "cinnamonTwists" },
+                },
+                {
+                    name = "Neighborhood regular",
+                    weight = 10,
+                    products = { "citrusPop", "berryBites" },
+                },
+            }
+        else
+            weightedIntents = {
+                { name = "Everyday", weight = 35, products = { "citrusPop" } },
+                { name = "Value shopper", weight = 22, products = { "berryBites", "berryBites" } },
+                {
+                    name = "Family shop",
+                    weight = 18,
+                    products = { "goldenApples", "sunriseCereal" },
+                },
+                {
+                    name = "Treat stop",
+                    weight = 15,
+                    products = { "citrusPop", "berryBites" },
+                },
+                {
+                    name = "Neighborhood regular",
+                    weight = 10,
+                    products = { "citrusPop", "berryBites" },
+                },
+            }
+        end
+    end
     local draw = (
         (customerNumber * 73 + shiftNumber * 191 + customerNumber * shiftNumber * 17) % 100
     ) + 1
@@ -824,7 +872,17 @@ function Economy.stockNextRequestedProduct(state)
     return false, "The stock clerk found no preferred empty shelf with enough backroom stock."
 end
 
-function Economy.sellProduct(state, now)
+function Economy.sellProduct(state, now, waitSeconds)
+    waitSeconds = waitSeconds or 0
+    if
+        type(waitSeconds) ~= "number"
+        or waitSeconds ~= waitSeconds
+        or waitSeconds % 1 ~= 0
+        or waitSeconds < 0
+        or waitSeconds > 86400
+    then
+        return false, "The customer's checkout wait could not be confirmed. Try again."
+    end
     if state.stage ~= "Checkout" and state.stage ~= "CustomerRush" then
         return false, "The checkout is waiting for the next customer."
     end
@@ -869,12 +927,15 @@ function Economy.sellProduct(state, now)
     state.sales += 1
     state.cash += basket.total
     local previousSatisfaction = math.min(math.max(state.customerSatisfaction or 75, 0), 100)
+    local patiencePenalty = math.min(4, math.floor(waitSeconds / 20))
+    local satisfactionDelta = basket.satisfactionDelta - patiencePenalty
     state.customerSatisfaction =
-        math.min(math.max(previousSatisfaction + basket.satisfactionDelta, 0), 100)
+        math.min(math.max(previousSatisfaction + satisfactionDelta, 0), 100)
     local satisfactionFeedback = string.format(
-        " Customer satisfaction %s%d.",
-        basket.satisfactionDelta > 0 and "+" or "",
-        basket.satisfactionDelta
+        " Customer satisfaction %s%d%s.",
+        satisfactionDelta > 0 and "+" or "",
+        satisfactionDelta,
+        patiencePenalty > 0 and string.format(" (patience -%d)", patiencePenalty) or ""
     )
     if state.sales == state.chaosPlan.spillAt then
         state.stage = "Spill"

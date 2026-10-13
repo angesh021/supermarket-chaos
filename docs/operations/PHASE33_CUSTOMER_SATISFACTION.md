@@ -2,9 +2,9 @@
 
 ## Scope
 
-Each successful checkout adjusts a persistent 0–100 customer satisfaction score. The score starts at 75 for new and migrated profiles. Phase 37 supersedes the original fallback rule: exact fulfillment adds 3; each substitute reduces that result by 2; each unfilled unit reduces it by 4, with a minimum pre-premium delta of -10. Each premium-priced SKU still subtracts 2. The result is clamped to 0–100 and shown in the owner/helper HUD.
+Each successful checkout adjusts a persistent 0–100 customer satisfaction score. The score starts at 75 for new and migrated profiles. Phase 37 supersedes the original fallback rule: exact fulfillment adds 3; each substitute reduces that result by 2; each unfilled unit reduces it by 4, with a minimum pre-premium delta of -10. Each premium-priced SKU still subtracts 2. Phase 38 also applies a bounded queue-patience penalty. The result is clamped to 0–100 and shown in the owner/helper HUD.
 
-This is a server-owned management signal. Satisfaction does not change the cash total, stock deduction, sale count, queue size, or rush reward. Product substitutions use the actual SKU's server price and stock. Future loyalty and patience effects remain separate work.
+This is a server-owned management signal. Satisfaction does not change the cash total, stock deduction, sale count, queue size, or rush reward. Product substitutions use the actual SKU's server price and stock; high satisfaction can attract a Neighborhood regular preference. Patience changes satisfaction only.
 
 ## Server/client boundary and persistence
 
