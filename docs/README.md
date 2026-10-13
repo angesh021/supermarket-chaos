@@ -63,5 +63,6 @@
 | [Delivery fleet verification](operations/PHASE54_DELIVERY_FLEET.md) | Persistent two-truck fleet and bounded online-order automation |
 | [Distribution center verification](operations/PHASE55_DISTRIBUTION_CENTER.md) | Persistent regional facility and doubled per-SKU backstock capacity |
 | [Supplier partnership verification](operations/PHASE56_SUPPLIER_PARTNERSHIP.md) | Persistent supplier agreement and discounted inbound deliveries |
+| [Multi-store foundation](operations/PHASE57_MULTI_STORE_FOUNDATION.md) | Target architecture, safe profile migration and verification gate |
 
 Keep this index and linked documents current as implementation changes. See [AGENTS.md](../AGENTS.md) for repository rules.

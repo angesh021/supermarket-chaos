@@ -230,6 +230,13 @@ See `docs/decisions/README.md` for accepted ownership policy. Remaining decision
 - Owner/Manager can buy a one-time `$2,500` supplier contract after owning the regional distribution center. The existing inbound product catalog remains the source for all SKUs and quantities.
 - `Economy.getDeliveryCost` applies a fixed 20% discount using integer server prices. Order authorization and the transaction lock remain unchanged; neither price nor contract ownership comes from client arguments.
 - Profile schema v36 persists the partnership flag and requires the distribution center. Legacy profiles migrate to no contract. Warehouse order prompts show the same discounted costs that the server charges.
+
+## Phase 57 multi-store foundation (design; implementation pending)
+- The current runtime is a singleton: `ShiftService.init` owns one state, world and owner for the whole server. `ProfileService` currently stores flat fields for one location. Adding another lot without changing those boundaries would make its prompts mutate the same shift and inventory.
+- The target model is one owner profile and lease with a shared chain balance, plus independent location records for shift, stock, upgrades, employees, warehouse and shop businesses. Location IDs are created and validated by the server. Helpers are members of one location at a time.
+- Each location runtime needs its own world container, prompts, customer routes, state event audience, authorization context and interaction cooldowns. Saves to the shared profile must remain serialized even when separate branches commit at nearly the same time.
+- Migration must map the current flat profile to the stable `neighborhood` location exactly once, preserve cash and all gameplay state, and reject duplicate/unknown location IDs or exceeded branch limits. Cross-server lease behavior remains per owner profile.
+- See ADR-0055 and `operations/PHASE57_MULTI_STORE_FOUNDATION.md`. Do not describe multi-store gameplay as implemented until two locations can be played independently and the migration/race/rejoin checklist passes.
 # Cooperative ownership and cashier extension
 - One owner profile remains the persistence boundary. Per-server membership grants temporary action permissions but does not load a guest's profile into the owner's economy.
 - Server role map: Owner (all), Manager (all shift actions including staff hiring), Cashier (checkout), Stocker (stock), Maintenance (cart recovery).

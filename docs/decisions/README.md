@@ -314,6 +314,11 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Consequences:** Profile schema v36 persists the agreement and prerequisite; shipment quantities, capacity, delivery time and shelf pricing do not change. Warehouse prompts display the same rounded price as the server charge.
 - **Verification:** See `docs/operations/PHASE56_SUPPLIER_PARTNERSHIP.md`.
 
+## ADR-0055: Multi-store ownership and persistence boundary
+- **Decision:** Represent a player's chain as a shared company profile with one stable ID per location, independent location operations, and location-scoped helper roles. Preserve the original store as `neighborhood` during schema migration.
+- **Consequences:** Multi-store requires per-location server runtimes and isolated world/event state while keeping writes serialized at the owner profile lease. This ADR defines the boundary; it does not claim those runtime changes are implemented.
+- **Verification:** See `docs/operations/PHASE57_MULTI_STORE_FOUNDATION.md`.
+
 ## ADR-0009 — Keep product inventory and supplier orders SKU-specific
 - **Status:** Accepted — 2026-10-12.
 - **Context:** The retail loop needs visible department variety and product-specific stock behavior while keeping stock and money authoritative.
