@@ -38,6 +38,11 @@ Economy.GARDEN_RESTOCK_COST = 120
 Economy.GARDEN_RESTOCK_QUANTITY = 3
 Economy.GARDEN_SHELF_CAPACITY = 12
 Economy.GARDEN_ITEM_PRICE = 75
+Economy.FLORIST_STORE_COST = 1500
+Economy.FLORIST_RESTOCK_COST = 320
+Economy.FLORIST_RESTOCK_QUANTITY = 4
+Economy.FLORIST_SHELF_CAPACITY = 12
+Economy.FLORIST_BOUQUET_PRICE = 240
 Economy.PLAZA_STYLE_COST = 750
 Economy.DELIVERY_FLEET_COST = 3000
 Economy.DELIVERY_FLEET_ORDERS_PER_SHIFT = 3
@@ -281,6 +286,9 @@ function Economy.newState(profile, playerSeed)
         gardenStorePurchased = upgrades.gardenStore or false,
         gardenStock = savedShift.gardenStock or 0,
         gardenSales = savedShift.gardenSales or 0,
+        floristStorePurchased = upgrades.floristStore or false,
+        floristStock = savedShift.floristStock or 0,
+        floristSales = savedShift.floristSales or 0,
         plazaStylePurchased = upgrades.plazaStyleId ~= nil and upgrades.plazaStyleId ~= "",
         plazaStyleId = upgrades.plazaStyleId or "",
         deliveryFleetPurchased = upgrades.deliveryFleet or false,
@@ -496,6 +504,58 @@ function Economy.sellGardenItem(state)
     state.cash += Economy.GARDEN_ITEM_PRICE
     state.gardenSales += 1
     return true, string.format("Potted herb sold! +$%d.", Economy.GARDEN_ITEM_PRICE)
+end
+
+function Economy.buyFloristStore(state)
+    if
+        state.stage ~= "Complete"
+        or not state.gardenStorePurchased
+        or state.floristStorePurchased
+    then
+        return false, "Maple Corner Florist opens after Little Sprout, between shifts."
+    end
+    if state.cash < Economy.FLORIST_STORE_COST then
+        return false,
+            string.format("You need $%d to open Maple Corner Florist.", Economy.FLORIST_STORE_COST)
+    end
+    state.cash -= Economy.FLORIST_STORE_COST
+    state.floristStorePurchased = true
+    state.floristStock = 0
+    return true, "Maple Corner Florist is open! Stock bouquets to start selling."
+end
+
+function Economy.restockFlorist(state)
+    if not state.floristStorePurchased or state.stage ~= "Complete" then
+        return false, "Restock Maple Corner Florist between supermarket shifts."
+    end
+    if state.floristStock + Economy.FLORIST_RESTOCK_QUANTITY > Economy.FLORIST_SHELF_CAPACITY then
+        return false, "The florist display is full."
+    end
+    if state.cash < Economy.FLORIST_RESTOCK_COST then
+        return false, string.format("You need $%d for four bouquets.", Economy.FLORIST_RESTOCK_COST)
+    end
+    state.cash -= Economy.FLORIST_RESTOCK_COST
+    state.floristStock += Economy.FLORIST_RESTOCK_QUANTITY
+    return true, string.format("Stocked %d bouquets.", Economy.FLORIST_RESTOCK_QUANTITY)
+end
+
+function Economy.sellFloristBouquet(state)
+    if not state.floristStorePurchased then
+        return false, "Open Maple Corner Florist before selling bouquets."
+    end
+    if state.stage == "Loading" or state.stage == "OwnerOffline" then
+        return false, "Wait until the store owner profile is ready."
+    end
+    if state.floristStock < 1 then
+        return false, "The bouquet display is empty. Restock it between shifts."
+    end
+    if state.floristSales >= 1000000000 then
+        return false, "The florist sales counter has reached its supported limit."
+    end
+    state.floristStock -= 1
+    state.cash += Economy.FLORIST_BOUQUET_PRICE
+    state.floristSales += 1
+    return true, string.format("Bouquet sold! +$%d.", Economy.FLORIST_BOUQUET_PRICE)
 end
 
 function Economy.buyPlazaStyle(state, styleId)

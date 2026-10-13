@@ -319,6 +319,11 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Consequences:** Multi-store requires per-location server runtimes and isolated world/event state while keeping writes serialized at the owner profile lease. This ADR defines the boundary; it does not claim those runtime changes are implemented.
 - **Verification:** See `docs/operations/PHASE57_MULTI_STORE_FOUNDATION.md`.
 
+## ADR-0056: Add Maple Corner Florist
+- **Decision:** Unlock a persistent florist after Little Sprout Garden for `$1,500`; stock four bouquets for `$320` and sell each for `$240` (12-item cap).
+- **Consequences:** Profile schema v38 saves florist ownership, stock and sales, and migrates v37 neighborhood snapshots. Owner/Manager, Stocker and Cashier actions reuse server-authoritative prompt checks; visitors reuse the existing plaza sale lock and throttle.
+- **Verification:** See `docs/operations/PHASE59_MAPLE_CORNER_FLORIST.md`.
+
 ## ADR-0009 — Keep product inventory and supplier orders SKU-specific
 - **Status:** Accepted — 2026-10-12.
 - **Context:** The retail loop needs visible department variety and product-specific stock behavior while keeping stock and money authoritative.

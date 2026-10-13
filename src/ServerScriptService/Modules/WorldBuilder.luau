@@ -599,7 +599,7 @@ function WorldBuilder.build(locationId, origin)
             Enum.Material.SmoothPlastic
         )
     end
-    createNeighborhoodStorefront(
+    local floristShell = createNeighborhoodStorefront(
         exterior,
         "Maple Corner Florist Shell",
         Vector3.new(54, 0, -72),
@@ -2516,6 +2516,13 @@ function WorldBuilder.build(locationId, origin)
     local gardenMenuLabel
     local gardenRestockPrompt
     local gardenSalePrompt
+    local floristStorePurchased = false
+    local floristStock = 0
+    local floristSales = 0
+    local floristItemVisuals = {}
+    local floristMenuLabel
+    local floristRestockPrompt
+    local floristSalePrompt
     local plazaStylePurchased = false
     local plazaStyleId = ""
     local plazaStylePreviewId = nil
@@ -2777,6 +2784,63 @@ function WorldBuilder.build(locationId, origin)
     if gardenMenuSurface then
         gardenMenuSurface.Enabled = false
         gardenMenuLabel = gardenMenuSurface:FindFirstChildOfClass("TextLabel")
+    end
+    local floristBuildPad = part(
+        exterior,
+        "Maple Corner Florist Purchase Pad",
+        Vector3.new(4.5, 0.5, 4.5),
+        CFrame.new(43, 0.45, -57),
+        COLORS.gold,
+        Enum.Material.Neon
+    )
+    local floristBuildPrompt =
+        prompt(floristBuildPad, "Build Maple Corner ($1,500)", "Plaza Business", "BuildFlorist", 10)
+    floristBuildPrompt.Enabled = false
+    local floristCounter = part(
+        floristShell,
+        "Maple Corner Florist Counter",
+        Vector3.new(8, 1.4, 1.8),
+        CFrame.new(54, 1.2, -67.8),
+        COLORS.wood,
+        Enum.Material.WoodPlanks
+    )
+    floristRestockPrompt = prompt(
+        floristCounter,
+        "Restock Bouquets ($320)",
+        "Maple Corner Florist",
+        "RestockFlorist",
+        10
+    )
+    floristSalePrompt =
+        prompt(floristCounter, "Sell Bouquet ($240)", "Maple Corner Florist", "SellFlorist", 10)
+    floristRestockPrompt.Enabled = false
+    floristSalePrompt.Enabled = false
+    local floristSign = label(
+        floristShell,
+        "Maple Corner Florist Menu",
+        "MAPLE CORNER FLORIST\nFRESH BOUQUETS $240\nSTOCK 0  •  SALES 0",
+        Vector3.new(8, 2.5, 0.3),
+        CFrame.new(54, 4.8, -64.55),
+        COLORS.green,
+        COLORS.warmWhite
+    )
+    local floristSurface = floristSign:FindFirstChildOfClass("SurfaceGui")
+    if floristSurface then
+        floristMenuLabel = floristSurface:FindFirstChildOfClass("TextLabel")
+    end
+    for index = 1, Economy.FLORIST_SHELF_CAPACITY do
+        local bouquet = part(
+            floristShell,
+            "Fresh Bouquet Display",
+            Vector3.new(1.1, 1.7, 1.1),
+            CFrame.new(50.5 + ((index - 1) % 6) * 1.7, 1.2, -75 + math.floor((index - 1) / 6) * 2.3),
+            if index % 2 == 0 then COLORS.coral else COLORS.gold,
+            Enum.Material.SmoothPlastic
+        )
+        bouquet.Shape = Enum.PartType.Ball
+        bouquet.CanCollide = false
+        bouquet.Transparency = 1
+        table.insert(floristItemVisuals, bouquet)
     end
     local plazaStylePad = part(
         exterior,
@@ -3687,6 +3751,13 @@ function WorldBuilder.build(locationId, origin)
                         front = Vector3.new(-65, 0.45, -112),
                     })
                 end
+                if floristStorePurchased then
+                    table.insert(openBusinesses, {
+                        id = "florist",
+                        name = "MAPLE CORNER FLORIST",
+                        front = Vector3.new(54, 0.45, -64.5),
+                    })
+                end
                 if #openBusinesses == 0 then
                     entry.billboard.Enabled = false
                     for _, item in ipairs(entry.model:GetDescendants()) do
@@ -4308,6 +4379,16 @@ function WorldBuilder.build(locationId, origin)
             and gardenStock > 0
             and currentStage ~= "Loading"
             and currentStage ~= "OwnerOffline"
+        floristBuildPrompt.Enabled = currentStage == "Complete"
+            and gardenStorePurchased
+            and not floristStorePurchased
+        floristRestockPrompt.Enabled = floristStorePurchased
+            and currentStage == "Complete"
+            and floristStock + 4 <= 12
+        floristSalePrompt.Enabled = floristStorePurchased
+            and floristStock > 0
+            and currentStage ~= "Loading"
+            and currentStage ~= "OwnerOffline"
         plazaStylePrompt.Enabled = not plazaStylePurchased
             and gardenStorePurchased
             and currentStage == "Complete"
@@ -4869,6 +4950,28 @@ function WorldBuilder.build(locationId, origin)
                     gardenSales
                 )
             end
+            updatePlazaPrompts()
+        end,
+        floristBuildPrompt = floristBuildPrompt,
+        floristRestockPrompt = floristRestockPrompt,
+        floristSalePrompt = floristSalePrompt,
+        setFloristState = function(purchased, stock, sales)
+            floristStorePurchased = purchased == true
+            floristStock =
+                math.max(0, math.min(math.floor(stock or 0), Economy.FLORIST_SHELF_CAPACITY))
+            floristSales = math.max(0, math.floor(sales or 0))
+            for index, bouquet in ipairs(floristItemVisuals) do
+                bouquet.Transparency = floristStock >= index and 0 or 1
+            end
+            if floristMenuLabel then
+                floristMenuLabel.Text = string.format(
+                    "MAPLE CORNER FLORIST\nFRESH BOUQUETS $%d\nSTOCK %d  •  SALES %d",
+                    Economy.FLORIST_BOUQUET_PRICE,
+                    floristStock,
+                    floristSales
+                )
+            end
+            floristBuildPad.Transparency = floristStorePurchased and 1 or 0
             updatePlazaPrompts()
         end,
         plazaVisitEvent = plazaVisitEvent,

@@ -66,6 +66,9 @@ local ROLE_ACTIONS = {
         BuildGardenStore = true,
         RestockGarden = true,
         SellGarden = true,
+        BuildFlorist = true,
+        RestockFlorist = true,
+        SellFlorist = true,
         PlazaStyle = true,
         PreviewPlazaStyle = true,
         DeliveryFleet = true,
@@ -103,6 +106,7 @@ local ROLE_ACTIONS = {
         ServeRestaurant = true,
         SellElectronics = true,
         SellGarden = true,
+        SellFlorist = true,
     },
     Stocker = {
         Stock = true,
@@ -116,6 +120,7 @@ local ROLE_ACTIONS = {
         RestockRestaurant = true,
         RestockElectronics = true,
         RestockGarden = true,
+        RestockFlorist = true,
     },
     Maintenance = { Cart = true, Spill = true, RestorePower = true },
 }
@@ -833,6 +838,7 @@ function ShiftService.init(event, membershipRemotes)
             state.electronicsSales
         )
         world.setGardenStoreState(state.gardenStorePurchased, state.gardenStock, state.gardenSales)
+        world.setFloristState(state.floristStorePurchased, state.floristStock, state.floristSales)
         world.setPlazaStyle(state.plazaStylePurchased, state.plazaStyleId)
         world.setDeliveryFleetPurchased(state.deliveryFleetPurchased)
         world.setDistributionCenterPurchased(state.distributionCenterPurchased)
@@ -851,7 +857,7 @@ function ShiftService.init(event, membershipRemotes)
     world.plazaVisitEvent.Event:Connect(function(businessId)
         if
             type(businessId) ~= "string"
-            or (businessId ~= "cafe" and businessId ~= "restaurant" and businessId ~= "electronics" and businessId ~= "garden")
+            or (businessId ~= "cafe" and businessId ~= "restaurant" and businessId ~= "electronics" and businessId ~= "garden" and businessId ~= "florist")
             or saleTransactionInProgress
             or not ownerReady
             or not ownerPlayer
@@ -875,8 +881,10 @@ function ShiftService.init(event, membershipRemotes)
             ok, message = Economy.serveRestaurantMeal(state)
         elseif businessId == "electronics" then
             ok, message = Economy.sellElectronics(state)
-        else
+        elseif businessId == "garden" then
             ok, message = Economy.sellGardenItem(state)
+        else
+            ok, message = Economy.sellFloristBouquet(state)
         end
         if ok then
             lastPlazaSaleAt[businessId] = now
@@ -1202,6 +1210,11 @@ function ShiftService.init(event, membershipRemotes)
                 state.gardenStock,
                 state.gardenSales
             )
+            world.setFloristState(
+                state.floristStorePurchased,
+                state.floristStock,
+                state.floristSales
+            )
             commit("restaurantBuilt")
         end
         saleTransactionInProgress = false
@@ -1325,6 +1338,55 @@ function ShiftService.init(event, membershipRemotes)
         local ok, message = Economy.sellGardenItem(state)
         if ok then
             commit("gardenItemSold")
+        end
+        saleTransactionInProgress = false
+        broadcast(message)
+    end)
+
+    bind("BuildFlorist", world.floristBuildPrompt, 12, function()
+        if saleTransactionInProgress then
+            broadcast(
+                "A store transaction is saving. Try opening Maple Corner Florist again shortly."
+            )
+            return
+        end
+        saleTransactionInProgress = true
+        local ok, message = Economy.buyFloristStore(state)
+        if ok then
+            world.setFloristState(
+                state.floristStorePurchased,
+                state.floristStock,
+                state.floristSales
+            )
+            commit("floristStoreBuilt")
+        end
+        saleTransactionInProgress = false
+        broadcast(message)
+    end)
+
+    bind("RestockFlorist", world.floristRestockPrompt, 12, function()
+        if saleTransactionInProgress then
+            broadcast("A store transaction is saving. Try restocking Maple Corner again shortly.")
+            return
+        end
+        saleTransactionInProgress = true
+        local ok, message = Economy.restockFlorist(state)
+        if ok then
+            commit("floristRestocked")
+        end
+        saleTransactionInProgress = false
+        broadcast(message)
+    end)
+
+    bind("SellFlorist", world.floristSalePrompt, 12, function()
+        if saleTransactionInProgress then
+            broadcast("A store transaction is saving. Try selling the bouquet again shortly.")
+            return
+        end
+        saleTransactionInProgress = true
+        local ok, message = Economy.sellFloristBouquet(state)
+        if ok then
+            commit("floristBouquetSold")
         end
         saleTransactionInProgress = false
         broadcast(message)
@@ -2063,6 +2125,11 @@ function ShiftService.init(event, membershipRemotes)
                 state.gardenStorePurchased,
                 state.gardenStock,
                 state.gardenSales
+            )
+            world.setFloristState(
+                state.floristStorePurchased,
+                state.floristStock,
+                state.floristSales
             )
             world.setPlazaStyle(state.plazaStylePurchased, state.plazaStyleId)
             world.setCashierHired(state.cashierHired)

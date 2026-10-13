@@ -241,8 +241,14 @@ See `docs/decisions/README.md` for accepted ownership policy. Remaining decision
 
 ## Phase 58 commercial neighborhood buildout
 - The neighborhood ground now covers the plaza extent, and a delivery avenue meets the main road at a marked pedestrian crossing. Five original streetlights and two glass-front decorative shop shells fill the commercial block.
-- The shells are environmental scenery only: they have no prompts, ownership records, inventory, customers or economy behavior. Purchasable lots and branch management remain part of the pending multi-store runtime.
+- Riverside Bookshop remains scenery. Maple Corner Florist now has its own server-owned purchase, stock, sales and visitor transactions, stored on the existing neighborhood profile. This is not a second store location or separate branch runtime.
 - All scenery is generated from Roblox parts/materials, is contained in the location model and moves with its server-approved origin.
+
+## Phase 59 Maple Corner Florist
+- The persistent florist unlocks after Little Sprout Garden. Its server-priced purchase costs `$1,500`; each `$320` restock adds four bouquets up to 12, and a bouquet sale adds `$240` to the shared store balance.
+- Owner/Manager can build, restock and sell; Stocker can restock; Cashier can sell. Visitor purchases call the same sale transition, require an available profile and stock, share the transaction lock, and use the existing 15-second business throttle.
+- Profile schema v38 stores florist ownership, stock and sales. v37 migration supplies false/zero defaults and validates the old `locations.neighborhood` snapshot with those newly added fields omitted. Existing profile values remain the source of truth.
+- See ADR-0056 and `operations/PHASE59_MAPLE_CORNER_FLORIST.md`. Multi-store runtime and Studio verification remain pending.
 # Cooperative ownership and cashier extension
 - One owner profile remains the persistence boundary. Per-server membership grants temporary action permissions but does not load a guest's profile into the owner's economy.
 - Server role map: Owner (all), Manager (all shift actions including staff hiring), Cashier (checkout), Stocker (stock), Maintenance (cart recovery).

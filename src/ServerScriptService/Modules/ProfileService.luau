@@ -6,7 +6,7 @@ local ProfileService = {}
 local LayoutService = require(script.Parent.LayoutService)
 local RetailLayoutService = require(script.Parent.RetailLayoutService)
 
-local SCHEMA_VERSION = 37
+local SCHEMA_VERSION = 38
 local SESSION_LEASE_SECONDS = 180
 local MAX_RETRIES = 3
 local STORE_NAME = "SupermarketChaos_PlayerProfiles_v1"
@@ -102,6 +102,8 @@ local function defaultProfile()
             electronicsSales = 0,
             gardenStock = 0,
             gardenSales = 0,
+            floristStock = 0,
+            floristSales = 0,
         },
         ownedUpgrades = {
             shelfBay = false,
@@ -116,6 +118,7 @@ local function defaultProfile()
             restaurant = false,
             electronicsStore = false,
             gardenStore = false,
+            floristStore = false,
             plazaStyleId = "",
             deliveryFleet = false,
             distributionCenter = false,
@@ -284,6 +287,7 @@ local function normalizeProfile(value)
                 value.ownedUpgrades.electronicsStore
             ) ~= "boolean")
             or (value.ownedUpgrades.gardenStore ~= nil and type(value.ownedUpgrades.gardenStore) ~= "boolean")
+            or (value.ownedUpgrades.floristStore ~= nil and type(value.ownedUpgrades.floristStore) ~= "boolean")
             or (value.ownedUpgrades.deliveryFleet ~= nil and type(value.ownedUpgrades.deliveryFleet) ~= "boolean")
             or (value.ownedUpgrades.distributionCenter ~= nil and type(
                 value.ownedUpgrades.distributionCenter
@@ -312,6 +316,7 @@ local function normalizeProfile(value)
         profile.ownedUpgrades.restaurant = value.ownedUpgrades.restaurant == true
         profile.ownedUpgrades.electronicsStore = value.ownedUpgrades.electronicsStore == true
         profile.ownedUpgrades.gardenStore = value.ownedUpgrades.gardenStore == true
+        profile.ownedUpgrades.floristStore = value.ownedUpgrades.floristStore == true
         profile.ownedUpgrades.deliveryFleet = value.ownedUpgrades.deliveryFleet == true
         profile.ownedUpgrades.distributionCenter = value.ownedUpgrades.distributionCenter == true
         profile.ownedUpgrades.supplierPartnership = value.ownedUpgrades.supplierPartnership == true
@@ -351,6 +356,9 @@ local function normalizeProfile(value)
     if profile.ownedUpgrades.gardenStore and not profile.ownedUpgrades.electronicsStore then
         return nil,
             "Stored garden store ownership exists without the electronics store prerequisite."
+    end
+    if profile.ownedUpgrades.floristStore and not profile.ownedUpgrades.gardenStore then
+        return nil, "Stored florist ownership exists without the garden store prerequisite."
     end
     if profile.ownedUpgrades.plazaStyleId ~= "" and not profile.ownedUpgrades.gardenStore then
         return nil, "Stored plaza style exists without plaza customization ownership."
@@ -606,6 +614,8 @@ local function normalizeProfile(value)
             or not validCounter(value.shift.electronicsSales)
             or not validCounter(value.shift.gardenStock)
             or not validCounter(value.shift.gardenSales)
+            or not validCounter(value.shift.floristStock)
+            or not validCounter(value.shift.floristSales)
         then
             return nil, "Stored shift counters are invalid."
         end
@@ -639,6 +649,9 @@ local function normalizeProfile(value)
         if nonNegativeInteger(value.shift.gardenStock, 0) > 12 then
             return nil, "Stored garden stock is outside the supported limit."
         end
+        if nonNegativeInteger(value.shift.floristStock, 0) > 12 then
+            return nil, "Stored florist stock is outside the supported limit."
+        end
         if
             (
                 nonNegativeInteger(value.shift.electronicsStock, 0) > 0
@@ -654,6 +667,14 @@ local function normalizeProfile(value)
             ) and profile.ownedUpgrades.gardenStore ~= true
         then
             return nil, "Stored garden state exists without garden store ownership."
+        end
+        if
+            (
+                nonNegativeInteger(value.shift.floristStock, 0) > 0
+                or nonNegativeInteger(value.shift.floristSales, 0) > 0
+            ) and profile.ownedUpgrades.floristStore ~= true
+        then
+            return nil, "Stored florist state exists without florist ownership."
         end
         if
             (
@@ -754,10 +775,15 @@ local function normalizeProfile(value)
         profile.shift.electronicsSales = nonNegativeInteger(value.shift.electronicsSales, 0)
         profile.shift.gardenStock = nonNegativeInteger(value.shift.gardenStock, 0)
         profile.shift.gardenSales = nonNegativeInteger(value.shift.gardenSales, 0)
+        profile.shift.floristStock = nonNegativeInteger(value.shift.floristStock, 0)
+        profile.shift.floristSales = nonNegativeInteger(value.shift.floristSales, 0)
     end
     local snapshot = locationSnapshot(profile)
     if value.locations ~= nil then
-        if value.schemaVersion ~= SCHEMA_VERSION or type(value.locations) ~= "table" then
+        if
+            (value.schemaVersion ~= SCHEMA_VERSION and value.schemaVersion ~= 37)
+            or type(value.locations) ~= "table"
+        then
             return nil, "Stored location records are malformed or have an unsupported schema."
         end
         local count = 0
@@ -767,7 +793,14 @@ local function normalizeProfile(value)
                 return nil, "Stored profile contains an unknown or malformed location."
             end
         end
-        if count ~= 1 or not sameData(value.locations.neighborhood, snapshot) then
+        local expectedSnapshot = snapshot
+        if value.schemaVersion == 37 then
+            expectedSnapshot = cloneData(snapshot)
+            expectedSnapshot.shift.floristStock = nil
+            expectedSnapshot.shift.floristSales = nil
+            expectedSnapshot.ownedUpgrades.floristStore = nil
+        end
+        if count ~= 1 or not sameData(value.locations.neighborhood, expectedSnapshot) then
             return nil, "Stored neighborhood location does not match the migrated profile state."
         end
     end
@@ -802,6 +835,8 @@ local function copyProfile(profile)
             electronicsSales = profile.shift.electronicsSales,
             gardenStock = profile.shift.gardenStock,
             gardenSales = profile.shift.gardenSales,
+            floristStock = profile.shift.floristStock,
+            floristSales = profile.shift.floristSales,
         },
         ownedUpgrades = {
             shelfBay = profile.ownedUpgrades.shelfBay,
@@ -816,6 +851,7 @@ local function copyProfile(profile)
             restaurant = profile.ownedUpgrades.restaurant,
             electronicsStore = profile.ownedUpgrades.electronicsStore,
             gardenStore = profile.ownedUpgrades.gardenStore,
+            floristStore = profile.ownedUpgrades.floristStore,
             deliveryFleet = profile.ownedUpgrades.deliveryFleet,
             distributionCenter = profile.ownedUpgrades.distributionCenter,
             supplierPartnership = profile.ownedUpgrades.supplierPartnership,
@@ -1109,6 +1145,8 @@ function ProfileService.saveProgress(player, state, eventName)
     profile.shift.electronicsSales = state.electronicsSales
     profile.shift.gardenStock = state.gardenStock
     profile.shift.gardenSales = state.gardenSales
+    profile.shift.floristStock = state.floristStock
+    profile.shift.floristSales = state.floristSales
     profile.ownedUpgrades.shelfBay = state.upgradePurchased
     profile.ownedUpgrades.warehouse = state.warehousePurchased
     profile.ownedUpgrades.marketStyle = state.marketStylePurchased
@@ -1121,6 +1159,7 @@ function ProfileService.saveProgress(player, state, eventName)
     profile.ownedUpgrades.restaurant = state.restaurantPurchased
     profile.ownedUpgrades.electronicsStore = state.electronicsStorePurchased
     profile.ownedUpgrades.gardenStore = state.gardenStorePurchased
+    profile.ownedUpgrades.floristStore = state.floristStorePurchased
     profile.ownedUpgrades.deliveryFleet = state.deliveryFleetPurchased
     profile.ownedUpgrades.distributionCenter = state.distributionCenterPurchased
     profile.ownedUpgrades.supplierPartnership = state.supplierPartnershipPurchased

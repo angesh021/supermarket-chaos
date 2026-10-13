@@ -25,6 +25,7 @@ No production assets have been imported. Register each nontrivial asset with:
 - Phase 55 regional distribution center, storage racks, pallets and signage use original procedural Roblox Parts and built-in materials; no external asset IDs or third-party code are used.
 - Phase 56 supplier-partnership purchase pad uses original procedural Roblox Parts and built-in materials; no external asset IDs or third-party code were added.
 - Phase 58 commercial avenue, streetlights, crosswalk and two neighboring storefront shells use original procedural Roblox Parts, SurfaceGuis and built-in materials; no external asset IDs or third-party code were added.
+- Phase 59 florist counters, signs and bouquet display use original procedural Roblox Parts and SurfaceGuis; no external asset IDs or third-party code were added.
 - These are original, low-poly gameplay blockouts. No external assets, Toolbox items, textures or third-party scripts were added. Visual quality, mobile performance and camera readability are pending Studio review.
 
 Use original fictional products and signage. Do not use unverified Toolbox scripts or assets. Keep evidence of permission and attribution requirements.

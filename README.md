@@ -2,7 +2,7 @@
 
 **Start Small. Build Big. Survive the Chaos.**
 
-Roblox cooperative supermarket management game. This repository is at **Phase 1 — first playable implementation**. The first-shift Luau source is implemented, but it still needs Roblox Studio playtesting and visual review. See [project status](docs/PROJECT_STATUS.md), the [documentation index](docs/README.md), and [master specification](MASTER_SPECIFICATION.md).
+Roblox cooperative supermarket management game. Source milestones through Phase 59 include several implemented feature increments; remaining runtime work and Studio verification are tracked per milestone. The current playable server still runs one owner and one neighborhood store profile. See [project status](docs/PROJECT_STATUS.md), the [documentation index](docs/README.md), and [master specification](MASTER_SPECIFICATION.md).
 
 GitHub repository supplied by the project owner: [angesh021/supermarket-chaos](https://github.com/angesh021/supermarket-chaos).
 
@@ -12,4 +12,4 @@ Prerequisites, Studio setup, Rojo sync and local play instructions are in [the b
 
 ## Project status
 
-The Phase 1 first-shift slice is ready for a Studio review. Production publishing and commerce are out of scope until their explicit gates and approvals. The remote GitHub repository is not yet attached to local Git metadata because `.git` is read-only in this workspace.
+The development experience is configured for universe `10770581249`; production persistence, publishing and commerce remain disabled pending their explicit release gates. Studio checks still pending are listed in [project status](docs/PROJECT_STATUS.md). Use the phase-specific manual checklist before reporting runtime behavior.
