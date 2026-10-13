@@ -98,6 +98,11 @@ Currency and stock changes occur only after server-side validation. Transactions
 - Coastal Market preview is transient server state. Owner/Manager can apply or cancel the fixed palette at a separate prompt; leaving the completed-shift state resets an unpurchased preview.
 - Purchase remains the existing server economy transaction and profile v10 ownership flag. No preview preference or schema migration is saved. The shared physical store means all current server players see the preview. See `operations/PHASE19_STOREFRONT_PREVIEW.md`; Studio verification remains pending.
 
+## Phase 4 delivery worker
+- The worker is gated on warehouse ownership and a completed shift. Its Owner/Manager automation toggle is saved with the other employees in profile schema v13.
+- A delayed pickup is keyed to the current shipment ready timestamp and generation token; it rechecks hire, automation, owner/session and save-lock state before using `Economy.receiveDelivery`. Manual receipt and auto-receipt converge on that same transaction.
+- The shipment remains singular and SKU-specific. See `operations/PHASE20_DELIVERY_WORKER.md`; Studio timer, race and migration checks remain pending.
+
 ## Open technical decisions
 See `docs/decisions/README.md` for accepted ownership policy. Remaining decisions include multi-store/guest permissions, production Studio place configuration, analytics implementation/privacy review, and any changes to persistence recovery. Verify platform APIs against official documentation when implementation starts.
 # Cooperative ownership and cashier extension

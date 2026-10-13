@@ -1337,6 +1337,45 @@ function WorldBuilder.build()
         end
     end
     local cleanerHired = false
+    local deliveryWorkerBoard = label(
+        interior,
+        "Delivery Worker Hiring Board",
+        "HIRE DELIVERY WORKER  $140",
+        Vector3.new(5, 2, 0.45),
+        CFrame.new(17.8, 3.4, -18.4),
+        COLORS.orange,
+        COLORS.ink
+    )
+    local deliveryWorkerHirePrompt = prompt(
+        deliveryWorkerBoard,
+        "Hire Delivery Worker ($140)",
+        "Staff Board",
+        "HireDeliveryWorker",
+        10
+    )
+    local deliveryWorkerAutomationPrompt = prompt(
+        deliveryWorkerBoard,
+        "Pause Automation",
+        "Delivery Worker",
+        "ToggleDeliveryWorkerAutomation",
+        10
+    )
+    deliveryWorkerAutomationPrompt.Enabled = false
+    local deliveryWorkerModel = createLowPolyPerson(
+        exterior,
+        "Warehouse Delivery Worker",
+        Vector3.new(51, 0.45, 11),
+        COLORS.orange,
+        COLORS.wood,
+        COLORS.deepTeal
+    )
+    for _, item in ipairs(deliveryWorkerModel:GetDescendants()) do
+        if item:IsA("BasePart") then
+            item.Transparency = 1
+            item.CanCollide = false
+        end
+    end
+    local deliveryWorkerHired = false
     local stockPrompt = prompt(shelf.PrimaryPart, "Stock Shelf", "Citrus Pop", "Stock", 9)
     local berryStockPrompt =
         prompt(berryShelf.PrimaryPart, "Stock Shelf", "Berry Bites", "StockBerryBites", 9)
@@ -1939,6 +1978,9 @@ function WorldBuilder.build()
         cashierHirePrompt.Enabled = stage == "Complete" and not cashierHired
         stockerHirePrompt.Enabled = stage == "Complete" and not stockerHired
         cleanerHirePrompt.Enabled = stage == "Complete" and not cleanerHired
+        deliveryWorkerHirePrompt.Enabled = stage == "Complete"
+            and warehousePurchased
+            and not deliveryWorkerHired
         cashierAutomationPrompt.Enabled = stage ~= "Loading"
             and stage ~= "OwnerOffline"
             and cashierHired
@@ -1948,6 +1990,9 @@ function WorldBuilder.build()
         cleanerAutomationPrompt.Enabled = stage ~= "Loading"
             and stage ~= "OwnerOffline"
             and cleanerHired
+        deliveryWorkerAutomationPrompt.Enabled = stage ~= "Loading"
+            and stage ~= "OwnerOffline"
+            and deliveryWorkerHired
         warehousePrompt.Enabled = stage == "Complete" and not warehousePurchased
         goldenAppleStockPrompt.Enabled = goldenAppleStockAvailable
             and warehousePurchased
@@ -2049,6 +2094,8 @@ function WorldBuilder.build()
         cashierAutomationPrompt = cashierAutomationPrompt,
         stockerAutomationPrompt = stockerAutomationPrompt,
         cleanerAutomationPrompt = cleanerAutomationPrompt,
+        deliveryWorkerHirePrompt = deliveryWorkerHirePrompt,
+        deliveryWorkerAutomationPrompt = deliveryWorkerAutomationPrompt,
         warehousePrompt = warehousePrompt,
         marketStylePrompt = stylePrompt,
         marketStylePreviewPrompt = stylePreviewPrompt,
@@ -2126,6 +2173,21 @@ function WorldBuilder.build()
         end,
         setCleanerAutomationEnabled = function(enabled)
             cleanerAutomationPrompt.ActionText = enabled and "Pause Automation"
+                or "Resume Automation"
+        end,
+        setDeliveryWorkerHired = function(hired)
+            deliveryWorkerHired = hired == true
+            deliveryWorkerHirePrompt.Enabled = currentStage == "Complete"
+                and warehousePurchased
+                and not deliveryWorkerHired
+            for _, item in ipairs(deliveryWorkerModel:GetDescendants()) do
+                if item:IsA("BasePart") then
+                    item.Transparency = deliveryWorkerHired and 0 or 1
+                end
+            end
+        end,
+        setDeliveryWorkerAutomationEnabled = function(enabled)
+            deliveryWorkerAutomationPrompt.ActionText = enabled and "Pause Automation"
                 or "Resume Automation"
         end,
         addWarehouse = addWarehouse,

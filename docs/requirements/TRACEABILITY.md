@@ -25,6 +25,7 @@
 | STORE-INV-004 | Golden Apples produce SKU, bounded restock, tagged shipment, server-priced baskets, and v11 warehouse migration | `decisions/README.md`, `architecture/ARCHITECTURE.md`, `security/THREAT_MODEL.md` | `operations/PHASE17_GOLDEN_APPLES.md` | Implemented; Studio verification pending |
 | EMPLOYEE-OPS-003 | Owner/Manager pause and resume controls for cashier, stocker and cleaner automation with saved v12 settings | `decisions/README.md`, `architecture/ARCHITECTURE.md`, `security/THREAT_MODEL.md` | `operations/PHASE18_EMPLOYEE_AUTOMATION.md` | Implemented; Studio verification pending |
 | STORE-CUSTOM-002 | Temporary Owner/Manager storefront palette preview with cancel/reset and separate persistent purchase | `decisions/README.md`, `architecture/ARCHITECTURE.md`, `security/THREAT_MODEL.md` | `operations/PHASE19_STOREFRONT_PREVIEW.md` | Implemented; Studio verification pending |
+| EMPLOYEE-OPS-004 | Warehouse-gated delivery worker hire and optional automatic shipment receipt with persistent v13 flags | `decisions/README.md`, `architecture/ARCHITECTURE.md`, `security/THREAT_MODEL.md` | `operations/PHASE20_DELIVERY_WORKER.md` | Implemented; Studio verification pending |
 | OPS-01 | Reproducible local setup and quality checks | `operations/BEGINNER_SETUP.md`, `operations/QUALITY.md` | Fresh setup and CI run | In progress |
 
 No requirement is marked verified until the documented check is actually run and its evidence is recorded.

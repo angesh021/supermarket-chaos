@@ -4,7 +4,7 @@ local HttpService = game:GetService("HttpService")
 
 local ProfileService = {}
 
-local SCHEMA_VERSION = 12
+local SCHEMA_VERSION = 13
 local SESSION_LEASE_SECONDS = 180
 local MAX_RETRIES = 3
 local STORE_NAME = "SupermarketChaos_PlayerProfiles_v1"
@@ -49,11 +49,13 @@ local function defaultProfile()
             cashier = false,
             stocker = false,
             cleaner = false,
+            deliveryWorker = false,
         },
         employeeAutomation = {
             cashier = true,
             stocker = true,
             cleaner = true,
+            deliveryWorker = true,
         },
         warehouseInventory = {
             citrusPop = 12,
@@ -154,9 +156,10 @@ local function normalizeProfile(value)
                 and type(value.hiredEmployees.cashier) ~= "boolean"
             )
             or (value.hiredEmployees.stocker ~= nil and type(value.hiredEmployees.stocker) ~= "boolean")
+            or (value.hiredEmployees.cleaner ~= nil and type(value.hiredEmployees.cleaner) ~= "boolean")
             or (
-                value.hiredEmployees.cleaner ~= nil
-                and type(value.hiredEmployees.cleaner) ~= "boolean"
+                value.hiredEmployees.deliveryWorker ~= nil
+                and type(value.hiredEmployees.deliveryWorker) ~= "boolean"
             )
         then
             return nil, "Stored employee flag is malformed."
@@ -164,6 +167,10 @@ local function normalizeProfile(value)
         profile.hiredEmployees.cashier = value.hiredEmployees.cashier == true
         profile.hiredEmployees.stocker = value.hiredEmployees.stocker == true
         profile.hiredEmployees.cleaner = value.hiredEmployees.cleaner == true
+        profile.hiredEmployees.deliveryWorker = value.hiredEmployees.deliveryWorker == true
+    end
+    if profile.hiredEmployees.deliveryWorker and not profile.ownedUpgrades.warehouse then
+        return nil, "Stored delivery worker does not have warehouse ownership."
     end
     if value.employeeAutomation ~= nil and type(value.employeeAutomation) ~= "table" then
         return nil, "Stored employee automation settings are malformed."
@@ -175,9 +182,10 @@ local function normalizeProfile(value)
                 and type(value.employeeAutomation.cashier) ~= "boolean"
             )
             or (value.employeeAutomation.stocker ~= nil and type(value.employeeAutomation.stocker) ~= "boolean")
+            or (value.employeeAutomation.cleaner ~= nil and type(value.employeeAutomation.cleaner) ~= "boolean")
             or (
-                value.employeeAutomation.cleaner ~= nil
-                and type(value.employeeAutomation.cleaner) ~= "boolean"
+                value.employeeAutomation.deliveryWorker ~= nil
+                and type(value.employeeAutomation.deliveryWorker) ~= "boolean"
             )
         then
             return nil, "Stored employee automation setting is invalid."
@@ -185,6 +193,7 @@ local function normalizeProfile(value)
         profile.employeeAutomation.cashier = value.employeeAutomation.cashier ~= false
         profile.employeeAutomation.stocker = value.employeeAutomation.stocker ~= false
         profile.employeeAutomation.cleaner = value.employeeAutomation.cleaner ~= false
+        profile.employeeAutomation.deliveryWorker = value.employeeAutomation.deliveryWorker ~= false
     end
     if value.warehouseInventory ~= nil and type(value.warehouseInventory) ~= "table" then
         return nil, "Stored warehouse inventory is malformed."
@@ -343,11 +352,13 @@ local function copyProfile(profile)
             cashier = profile.hiredEmployees.cashier,
             stocker = profile.hiredEmployees.stocker,
             cleaner = profile.hiredEmployees.cleaner,
+            deliveryWorker = profile.hiredEmployees.deliveryWorker,
         },
         employeeAutomation = {
             cashier = profile.employeeAutomation.cashier,
             stocker = profile.employeeAutomation.stocker,
             cleaner = profile.employeeAutomation.cleaner,
+            deliveryWorker = profile.employeeAutomation.deliveryWorker,
         },
         warehouseInventory = {
             citrusPop = profile.warehouseInventory.citrusPop,
@@ -566,9 +577,11 @@ function ProfileService.saveProgress(player, state, eventName)
     profile.hiredEmployees.cashier = state.cashierHired
     profile.hiredEmployees.stocker = state.stockerHired
     profile.hiredEmployees.cleaner = state.cleanerHired
+    profile.hiredEmployees.deliveryWorker = state.deliveryWorkerHired
     profile.employeeAutomation.cashier = state.cashierAutomationEnabled
     profile.employeeAutomation.stocker = state.stockerAutomationEnabled
     profile.employeeAutomation.cleaner = state.cleanerAutomationEnabled
+    profile.employeeAutomation.deliveryWorker = state.deliveryWorkerAutomationEnabled
     profile.warehouseInventory.citrusPop = state.backstock
     profile.warehouseInventory.berryBites = state.berryBackstock
     profile.warehouseInventory.goldenApples = state.goldenAppleBackstock

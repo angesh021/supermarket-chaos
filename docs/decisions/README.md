@@ -101,6 +101,13 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Consequences:** Existing schema v10 ownership remains unchanged and no preview state is persisted. The preview is visible to the entire server because the store world is shared; isolated per-player previews and additional palettes remain future work.
 - **Verification:** See `docs/operations/PHASE19_STOREFRONT_PREVIEW.md`; Studio palette, permission and purchase checks remain pending.
 
+## ADR-0018 — Let a hired delivery worker receive arrived stock
+- **Status:** Accepted — 2026-10-12.
+- **Context:** Warehouse owners had to manually receive every shipment at the dock even after hiring other employees.
+- **Decision:** Add a persistent warehouse-only delivery worker who can automatically receive an arrived shipment through the existing server receipt transaction. The worker has the same owner-controlled automation setting as other employees; paused workers leave shipments available for manual receipt.
+- **Consequences:** Profile schema v13 adds the hire and automation flags. Existing profiles default to no worker with automation enabled. Shipment prices, IDs, quantities, backstock limits, and the one-pending-shipment rule do not change.
+- **Verification:** See `docs/operations/PHASE20_DELIVERY_WORKER.md`; Studio migration, timer and race checks remain pending.
+
 ## ADR-0009 — Keep product inventory and supplier orders SKU-specific
 - **Status:** Accepted — 2026-10-12.
 - **Context:** The retail loop needs visible department variety and product-specific stock behavior while keeping stock and money authoritative.

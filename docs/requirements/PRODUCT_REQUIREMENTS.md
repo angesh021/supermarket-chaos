@@ -52,6 +52,7 @@ Instrument funnel events for first interaction, first stock, first sale, first u
 - Owners and Managers can pause/resume each hired employee's automation at its staff board. The server persists these settings independently; schemas v1–v11 migrate to enabled to preserve existing behavior. Pausing does not prevent player-operated actions.
 - G4 requires Studio verification of both purchases, persistence, automatic actions and races with players/helpers at the same prompts.
 - Employee automation control acceptance and migration cases are listed in `operations/PHASE18_EMPLOYEE_AUTOMATION.md`.
+- With warehouse ownership and a completed shift, Owner/Manager may hire a delivery worker for `$140`. Its optional automation receives one arrived shipment through the ordinary server receipt path; pausing it preserves manual receipt. Profile schema v13 persists the hire/automation flags and safely defaults legacy profiles. See `operations/PHASE20_DELIVERY_WORKER.md`.
 
 ## Phase 5 analytics requirements (development increment)
 - Track the first-shift funnel through Store Ready, Cart Recovered, Product Stocked, First Sale, First Shift Closed and First Shelf Upgrade.

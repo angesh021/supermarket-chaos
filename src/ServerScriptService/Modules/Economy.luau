@@ -8,6 +8,7 @@ Economy.UPGRADE_COST = 45
 Economy.CASHIER_COST = 100
 Economy.STOCKER_COST = 80
 Economy.CLEANER_COST = 120
+Economy.DELIVERY_WORKER_COST = 140
 Economy.WAREHOUSE_COST = 200
 Economy.MARKET_STYLE_COST = 180
 Economy.DELIVERY_COST = 60
@@ -110,9 +111,12 @@ function Economy.newState(profile)
         cashierHired = (profile.hiredEmployees and profile.hiredEmployees.cashier) or false,
         stockerHired = (profile.hiredEmployees and profile.hiredEmployees.stocker) or false,
         cleanerHired = (profile.hiredEmployees and profile.hiredEmployees.cleaner) or false,
+        deliveryWorkerHired = (profile.hiredEmployees and profile.hiredEmployees.deliveryWorker)
+            or false,
         cashierAutomationEnabled = employeeAutomation.cashier ~= false,
         stockerAutomationEnabled = employeeAutomation.stocker ~= false,
         cleanerAutomationEnabled = employeeAutomation.cleaner ~= false,
+        deliveryWorkerAutomationEnabled = employeeAutomation.deliveryWorker ~= false,
         backstock = warehouseInventory.citrusPop or 12,
         berryBackstock = warehouseInventory.berryBites or (upgrades.warehouse and 12 or 0),
         goldenAppleBackstock = warehouseInventory.goldenApples or (upgrades.warehouse and 6 or 0),
@@ -581,6 +585,20 @@ function Economy.hireCleaner(state)
     return true, "Cleaner hired! They will handle checkout spills automatically."
 end
 
+function Economy.hireDeliveryWorker(state)
+    if state.stage ~= "Complete" or not state.warehousePurchased or state.deliveryWorkerHired then
+        return false, "The delivery worker is only available after a shift with a warehouse."
+    end
+    if state.cash < Economy.DELIVERY_WORKER_COST then
+        return false,
+            string.format("You need $%d to hire a delivery worker.", Economy.DELIVERY_WORKER_COST)
+    end
+    state.cash -= Economy.DELIVERY_WORKER_COST
+    state.deliveryWorkerHired = true
+    state.deliveryWorkerAutomationEnabled = true
+    return true, "Delivery worker hired! They will receive arrived shipments automatically."
+end
+
 function Economy.toggleEmployeeAutomation(state, employeeId)
     local employees = {
         cashier = {
@@ -597,6 +615,11 @@ function Economy.toggleEmployeeAutomation(state, employeeId)
             hiredField = "cleanerHired",
             enabledField = "cleanerAutomationEnabled",
             name = "Cleaner",
+        },
+        deliveryWorker = {
+            hiredField = "deliveryWorkerHired",
+            enabledField = "deliveryWorkerAutomationEnabled",
+            name = "Delivery worker",
         },
     }
     local employee = employees[employeeId]

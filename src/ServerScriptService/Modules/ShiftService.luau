@@ -35,9 +35,11 @@ local ROLE_ACTIONS = {
         HireCashier = true,
         HireStocker = true,
         HireCleaner = true,
+        HireDeliveryWorker = true,
         ToggleCashierAutomation = true,
         ToggleStockerAutomation = true,
         ToggleCleanerAutomation = true,
+        ToggleDeliveryWorkerAutomation = true,
         Warehouse = true,
         MarketStyle = true,
         PreviewMarketStyle = true,
@@ -406,6 +408,55 @@ function ShiftService.init(event, membershipRemotes)
         end)
     end
 
+    local deliveryWorkerScheduleVersion = 0
+    local function scheduleDeliveryWorkerPickup()
+        deliveryWorkerScheduleVersion += 1
+        local scheduleVersion = deliveryWorkerScheduleVersion
+        local shipmentReadyAt = state and state.shipmentReadyAt or 0
+        if
+            not state
+            or not state.deliveryWorkerHired
+            or not state.deliveryWorkerAutomationEnabled
+            or state.shipmentQuantity <= 0
+            or shipmentReadyAt <= 0
+            or os.time() < shipmentReadyAt
+        then
+            return
+        end
+
+        task.delay(3, function()
+            if
+                scheduleVersion ~= deliveryWorkerScheduleVersion
+                or not ownerReady
+                or not ownerPlayer
+                or not state
+                or not state.deliveryWorkerHired
+                or not state.deliveryWorkerAutomationEnabled
+                or state.shipmentQuantity <= 0
+                or state.shipmentReadyAt ~= shipmentReadyAt
+            then
+                return
+            end
+            local saveStatus = ProfileService.getSaveStatus(ownerPlayer)
+            if saveStatus == "lock lost" then
+                return
+            elseif saveStatus == "save pending" then
+                scheduleDeliveryWorkerPickup()
+                return
+            end
+            local ok, message = Economy.receiveDelivery(state, os.time())
+            if ok then
+                world.setDeliveryState(
+                    state.shipmentReadyAt,
+                    state.shipmentQuantity,
+                    state.shipmentProductId
+                )
+                commit("deliveryReceivedByWorker")
+                broadcast("The delivery worker received the shipment. " .. message)
+            end
+        end)
+    end
+
     local scheduledDeliveryAt
     local function scheduleDeliveryArrival()
         if not state or state.shipmentQuantity <= 0 or state.shipmentReadyAt <= 0 then
@@ -432,6 +483,7 @@ function ShiftService.init(event, membershipRemotes)
                         .. Economy.PRODUCTS[state.shipmentProductId].displayName
                         .. " delivery has arrived at the warehouse loading dock."
                 )
+                scheduleDeliveryWorkerPickup()
             end
         end)
     end
@@ -539,6 +591,7 @@ function ShiftService.init(event, membershipRemotes)
         scheduleCashierSale()
         scheduleCleaner()
         scheduleDeliveryArrival()
+        scheduleDeliveryWorkerPickup()
         schedulePowerOutageRecovery()
         scheduleCustomerRushExpiry()
     end
@@ -763,6 +816,15 @@ function ShiftService.init(event, membershipRemotes)
         broadcast(message)
     end)
 
+    bind("HireDeliveryWorker", world.deliveryWorkerHirePrompt, 12, function()
+        local ok, message = Economy.hireDeliveryWorker(state)
+        if ok then
+            world.setDeliveryWorkerHired(true)
+            commit("employeeHired")
+        end
+        broadcast(message)
+    end)
+
     bind("ToggleCashierAutomation", world.cashierAutomationPrompt, 12, function()
         local ok, message = Economy.toggleEmployeeAutomation(state, "cashier")
         if ok then
@@ -785,6 +847,15 @@ function ShiftService.init(event, membershipRemotes)
         local ok, message = Economy.toggleEmployeeAutomation(state, "cleaner")
         if ok then
             world.setCleanerAutomationEnabled(state.cleanerAutomationEnabled)
+            commit("employeeAutomationChanged")
+        end
+        broadcast(message)
+    end)
+
+    bind("ToggleDeliveryWorkerAutomation", world.deliveryWorkerAutomationPrompt, 12, function()
+        local ok, message = Economy.toggleEmployeeAutomation(state, "deliveryWorker")
+        if ok then
+            world.setDeliveryWorkerAutomationEnabled(state.deliveryWorkerAutomationEnabled)
             commit("employeeAutomationChanged")
         end
         broadcast(message)
@@ -944,9 +1015,11 @@ function ShiftService.init(event, membershipRemotes)
             world.setCashierHired(state.cashierHired)
             world.setStockerHired(state.stockerHired)
             world.setCleanerHired(state.cleanerHired)
+            world.setDeliveryWorkerHired(state.deliveryWorkerHired)
             world.setCashierAutomationEnabled(state.cashierAutomationEnabled)
             world.setStockerAutomationEnabled(state.stockerAutomationEnabled)
             world.setCleanerAutomationEnabled(state.cleanerAutomationEnabled)
+            world.setDeliveryWorkerAutomationEnabled(state.deliveryWorkerAutomationEnabled)
             world.setStockVisual(state.stock)
             world.setBerryStockVisual(state.berryStock)
             world.setGoldenAppleStockVisual(state.goldenAppleStock)
@@ -974,6 +1047,7 @@ function ShiftService.init(event, membershipRemotes)
             scheduleStocker()
             scheduleCleaner()
             scheduleDeliveryArrival()
+            scheduleDeliveryWorkerPickup()
             schedulePowerOutageRecovery()
             scheduleCustomerRushExpiry()
             broadcast(
