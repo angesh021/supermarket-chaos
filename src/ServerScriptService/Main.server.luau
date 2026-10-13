@@ -2,6 +2,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local modules = script.Parent:WaitForChild("Modules")
 local ShiftService = require(modules:WaitForChild("ShiftService"))
+local BranchRuntimeService = require(modules:WaitForChild("BranchRuntimeService"))
 
 local network = ReplicatedStorage:FindFirstChild("SupermarketChaosNetwork")
 if not network then
@@ -27,10 +28,16 @@ local function remote(name, className)
     return result
 end
 
-ShiftService.init(stateEvent, {
+local sharedRemotes = {
     joinRequest = remote("JoinStoreRequest", "RemoteEvent"),
     memberAction = remote("StoreMemberAction", "RemoteEvent"),
     memberState = remote("StoreMemberState", "RemoteEvent"),
     layoutRequest = remote("WarehouseLayoutRequest", "RemoteEvent"),
     retailLayoutRequest = remote("RetailLayoutRequest", "RemoteEvent"),
+}
+local branchRuntime = BranchRuntimeService.create(stateEvent, sharedRemotes)
+
+ShiftService.init(stateEvent, sharedRemotes, {
+    locationId = "neighborhood",
+    onUptownOpened = branchRuntime.openUptown,
 })

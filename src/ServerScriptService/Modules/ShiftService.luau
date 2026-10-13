@@ -28,6 +28,8 @@ local memberActionEvent
 local memberStateEvent
 local layoutRequestEvent
 local retailLayoutRequestEvent
+local locationId = "neighborhood"
+local runtimeOptions = {}
 
 local ROLE_ACTIONS = {
     Manager = {
@@ -187,6 +189,7 @@ local function snapshot(message, recipient)
         end
     end
     return {
+        locationId = locationId,
         stage = current.stage,
         objective = objective,
         cash = hasStoreAccess and current.cash or 0,
@@ -229,6 +232,7 @@ local function snapshot(message, recipient)
             frozenMeals = current.productPrices.frozenMeals,
         } or nil,
         customerAssistantHired = hasStoreAccess and current.customerAssistantHired or false,
+        uptownStorePurchased = current.uptownStorePurchased == true,
     }
 end
 
@@ -257,6 +261,7 @@ local function sendMemberState(player)
         end
     end
     memberStateEvent:FireClient(player, {
+        locationId = locationId,
         ownerUserId = ownerPlayer and ownerPlayer.UserId or nil,
         ownerName = ownerPlayer and ownerPlayer.DisplayName or "",
         ownRole = player == ownerPlayer and "Owner" or (storeMembers[player.UserId] or "Visitor"),
@@ -269,7 +274,9 @@ end
 
 local function broadcastMemberState()
     for _, player in ipairs(Players:GetPlayers()) do
-        sendMemberState(player)
+        if player:GetAttribute("ActiveStoreLocation") == locationId then
+            sendMemberState(player)
+        end
     end
 end
 
@@ -278,7 +285,9 @@ local function broadcast(message)
         return
     end
     for _, player in ipairs(Players:GetPlayers()) do
-        stateEvent:FireClient(player, snapshot(message, player))
+        if player:GetAttribute("ActiveStoreLocation") == locationId then
+            stateEvent:FireClient(player, snapshot(message, player))
+        end
     end
 end
 
@@ -353,14 +362,16 @@ local function hasOnlyKeys(value, allowedKeys)
     return count > 0
 end
 
-function ShiftService.init(event, membershipRemotes)
+function ShiftService.init(event, membershipRemotes, options)
+    runtimeOptions = options or {}
+    locationId = runtimeOptions.locationId or "neighborhood"
     stateEvent = event
     joinRequestEvent = membershipRemotes.joinRequest
     memberActionEvent = membershipRemotes.memberAction
     memberStateEvent = membershipRemotes.memberState
     layoutRequestEvent = membershipRemotes.layoutRequest
     retailLayoutRequestEvent = membershipRemotes.retailLayoutRequest
-    world = WorldBuilder.build()
+    world = WorldBuilder.build(locationId, runtimeOptions.origin)
     local marketStylePreviewing = false
     local marketStylePreviewIndex = 0
     local marketStylePreviewIds = { "coastal", "urban", "harvest" }
@@ -370,9 +381,11 @@ function ShiftService.init(event, membershipRemotes)
     local plazaStylePreviewIds = { "coastal", "urban", "harvest" }
     local plazaStyleSelectedId = "coastal"
     world.setStage("Loading")
-    ProfileService.startAutosave(function()
-        broadcast()
-    end)
+    if locationId == "neighborhood" then
+        ProfileService.startAutosave(function()
+            broadcast()
+        end)
+    end
 
     local root = world.cartModel.PrimaryPart
     local function startCart()
@@ -759,8 +772,10 @@ function ShiftService.init(event, membershipRemotes)
     end
 
     commit = function(eventName)
-        ProfileService.saveProgress(ownerPlayer, state, eventName)
-        TelemetryService.record(ownerPlayer, eventName)
+        ProfileService.saveProgress(ownerPlayer, state, eventName, locationId)
+        if locationId == "neighborhood" then
+            TelemetryService.record(ownerPlayer, eventName)
+        end
         if state.stage ~= "Complete" and marketStylePreviewing then
             marketStylePreviewing = false
             marketStylePreviewIndex = 0
@@ -774,6 +789,10 @@ function ShiftService.init(event, membershipRemotes)
             world.setPlazaStylePreview(nil)
         end
         world.setStage(state.stage)
+        world.setUptownStorePurchased(
+            state.uptownStorePurchased,
+            state.supplierPartnershipPurchased
+        )
         world.setRetailLayout(state.retailLayout)
         world.setCustomerProduct(
             Economy.PRODUCTS[Economy.getNextCheckoutProductId(state) or "citrusPop"].displayName
@@ -840,6 +859,10 @@ function ShiftService.init(event, membershipRemotes)
         world.setGardenStoreState(state.gardenStorePurchased, state.gardenStock, state.gardenSales)
         world.setFloristState(state.floristStorePurchased, state.floristStock, state.floristSales)
         world.setPlazaStyle(state.plazaStylePurchased, state.plazaStyleId)
+        world.setUptownStorePurchased(
+            state.uptownStorePurchased,
+            state.supplierPartnershipPurchased
+        )
         world.setDeliveryFleetPurchased(state.deliveryFleetPurchased)
         world.setDistributionCenterPurchased(state.distributionCenterPurchased)
         world.setSupplierPartnershipPurchased(state.supplierPartnershipPurchased)
@@ -1081,6 +1104,7 @@ function ShiftService.init(event, membershipRemotes)
         if state.warehousePurchased then
             layoutRequestEvent:FireClient(player, {
                 action = "Open",
+                locationId = locationId,
                 layout = state.warehouseLayout,
             })
         end
@@ -1089,6 +1113,7 @@ function ShiftService.init(event, membershipRemotes)
     bind("EditRetailLayout", world.retailLayoutPrompt, 12, function(player)
         retailLayoutRequestEvent:FireClient(player, {
             action = "Open",
+            locationId = locationId,
             layout = state.retailLayout,
             floorExpansionOwned = state.floorExpansionPurchased,
         })
@@ -1362,6 +1387,55 @@ function ShiftService.init(event, membershipRemotes)
         end
         saleTransactionInProgress = false
         broadcast(message)
+    end)
+
+    if world.uptownPurchasePrompt then
+        bind("BuildUptownStore", world.uptownPurchasePrompt, 14, function()
+            local ok, message = Economy.buyUptownStore(state)
+            if not ok then
+                broadcast(message)
+                return
+            end
+            if not ProfileService.createLocation(ownerPlayer, "uptown") then
+                state.cash += Economy.UPTOWN_STORE_COST
+                state.uptownStorePurchased = false
+                broadcast("Uptown Market could not be created. No money was charged.")
+                return
+            end
+            commit("uptownStorePurchased")
+            broadcast("Uptown Market opened. Use the gold travel pad to visit.")
+            if runtimeOptions.onUptownOpened then
+                runtimeOptions.onUptownOpened(ownerPlayer)
+            end
+        end)
+    end
+
+    world.locationTravelPrompt.Triggered:Connect(function(player)
+        if not ownerReady or player.Parent ~= Players then
+            return
+        end
+        if locationId == "neighborhood" and not state.uptownStorePurchased then
+            return
+        end
+        local now = os.clock()
+        if interactionTimes[player] and now - interactionTimes[player] < 0.45 then
+            return
+        end
+        if not atPrompt(player, world.locationTravelPrompt, 14) then
+            return
+        end
+        interactionTimes[player] = now
+        local character = player.Character
+        if not character then
+            return
+        end
+        player:SetAttribute(
+            "ActiveStoreLocation",
+            locationId == "uptown" and "neighborhood" or "uptown"
+        )
+        character:PivotTo(world.travelDestination)
+        broadcast()
+        broadcastMemberState()
     end)
 
     bind("RestockFlorist", world.floristRestockPrompt, 12, function()
@@ -1710,7 +1784,10 @@ function ShiftService.init(event, membershipRemotes)
         broadcast(message)
     end)
 
-    joinRequestEvent.OnServerEvent:Connect(function(player)
+    joinRequestEvent.OnServerEvent:Connect(function(player, requestedLocationId)
+        if requestedLocationId ~= locationId then
+            return
+        end
         if
             player == ownerPlayer
             or not ownerPlayer
@@ -1741,9 +1818,16 @@ function ShiftService.init(event, membershipRemotes)
         stateEvent:FireClient(player, snapshot("Help request sent to the store owner.", player))
     end)
 
-    layoutRequestEvent.OnServerEvent:Connect(function(player, request)
+    layoutRequestEvent.OnServerEvent:Connect(function(player, request, requestedLocationId)
+        if requestedLocationId ~= locationId then
+            return
+        end
         local function reject(message)
-            layoutRequestEvent:FireClient(player, { action = "Rejected", message = message })
+            layoutRequestEvent:FireClient(player, {
+                action = "Rejected",
+                locationId = locationId,
+                message = message,
+            })
         end
 
         local now = os.clock()
@@ -1845,18 +1929,26 @@ function ShiftService.init(event, membershipRemotes)
         end
 
         world.setStorageLayout(state.warehouseLayout)
-        ProfileService.saveProgress(ownerPlayer, state, "layoutChanged")
+        ProfileService.saveProgress(ownerPlayer, state, "layoutChanged", locationId)
         broadcast(message)
         layoutRequestEvent:FireClient(player, {
             action = "Updated",
+            locationId = locationId,
             layout = state.warehouseLayout,
             message = message,
         })
     end)
 
-    retailLayoutRequestEvent.OnServerEvent:Connect(function(player, request)
+    retailLayoutRequestEvent.OnServerEvent:Connect(function(player, request, requestedLocationId)
+        if requestedLocationId ~= locationId then
+            return
+        end
         local function reject(message)
-            retailLayoutRequestEvent:FireClient(player, { action = "Rejected", message = message })
+            retailLayoutRequestEvent:FireClient(player, {
+                action = "Rejected",
+                locationId = locationId,
+                message = message,
+            })
         end
 
         local now = os.clock()
@@ -1920,12 +2012,14 @@ function ShiftService.init(event, membershipRemotes)
                 rotation = request.rotation,
             }
             world.setRetailLayout(state.retailLayout)
-            local saved = ProfileService.saveProgress(ownerPlayer, state, "checkoutLayoutChanged")
+            local saved =
+                ProfileService.saveProgress(ownerPlayer, state, "checkoutLayoutChanged", locationId)
             local resultMessage = saved and "Checkout lane and customer queue moved and saved."
                 or "Checkout lane and customer queue moved for this session; the save was not confirmed."
             broadcast(resultMessage)
             retailLayoutRequestEvent:FireClient(player, {
                 action = "Updated",
+                locationId = locationId,
                 layout = state.retailLayout,
                 message = resultMessage,
             })
@@ -1958,7 +2052,8 @@ function ShiftService.init(event, membershipRemotes)
         shelf.z = request.z
         shelf.rotation = request.rotation
         world.setRetailLayout(state.retailLayout)
-        local saved = ProfileService.saveProgress(ownerPlayer, state, "retailLayoutChanged")
+        local saved =
+            ProfileService.saveProgress(ownerPlayer, state, "retailLayoutChanged", locationId)
         local productName = Economy.PRODUCTS[productId].displayName
         local resultMessage = saved and string.format("%s shelf moved and saved.", productName)
             or string.format(
@@ -1968,90 +2063,107 @@ function ShiftService.init(event, membershipRemotes)
         broadcast(resultMessage)
         retailLayoutRequestEvent:FireClient(player, {
             action = "Updated",
+            locationId = locationId,
             layout = state.retailLayout,
             message = resultMessage,
         })
     end)
 
-    memberActionEvent.OnServerEvent:Connect(function(player, action, targetUserId, role)
-        if player ~= ownerPlayer or not ownerReady or player.Parent ~= Players then
-            return
-        end
-        local now = os.clock()
-        if membershipTimes[player] and now - membershipTimes[player] < 0.25 then
-            return
-        end
-        membershipTimes[player] = now
-        if type(action) ~= "string" or type(targetUserId) ~= "number" then
-            return
-        end
-        if
-            targetUserId ~= targetUserId
-            or targetUserId < 1
-            or targetUserId > 9007199254740991
-            or targetUserId % 1 ~= 0
-        then
-            return
-        end
-        local target = Players:GetPlayerByUserId(targetUserId)
-        if not target or target == ownerPlayer then
-            return
-        end
-        if action == "approve" then
-            local requestedAt = joinRequests[targetUserId]
+    memberActionEvent.OnServerEvent:Connect(
+        function(player, action, targetUserId, role, requestedLocationId)
+            if requestedLocationId ~= locationId then
+                return
+            end
+            if player ~= ownerPlayer or not ownerReady or player.Parent ~= Players then
+                return
+            end
+            local now = os.clock()
+            if membershipTimes[player] and now - membershipTimes[player] < 0.25 then
+                return
+            end
+            membershipTimes[player] = now
+            if type(action) ~= "string" or type(targetUserId) ~= "number" then
+                return
+            end
             if
-                not requestedAt
-                or os.clock() - requestedAt > MAX_PENDING_REQUESTS
-                or type(role) ~= "string"
-                or not ASSIGNABLE_ROLES[role]
+                targetUserId ~= targetUserId
+                or targetUserId < 1
+                or targetUserId > 9007199254740991
+                or targetUserId % 1 ~= 0
             then
+                return
+            end
+            local target = Players:GetPlayerByUserId(targetUserId)
+            if not target or target == ownerPlayer then
+                return
+            end
+            if action == "approve" then
+                local requestedAt = joinRequests[targetUserId]
+                if
+                    not requestedAt
+                    or os.clock() - requestedAt > MAX_PENDING_REQUESTS
+                    or type(role) ~= "string"
+                    or not ASSIGNABLE_ROLES[role]
+                then
+                    joinRequests[targetUserId] = nil
+                    broadcastMemberState()
+                    return
+                end
+                local count = 1
+                for _ in pairs(storeMembers) do
+                    count += 1
+                end
+                if count >= MAX_STORE_PLAYERS then
+                    return
+                end
+                storeMembers[targetUserId] = role
                 joinRequests[targetUserId] = nil
-                broadcastMemberState()
-                return
-            end
-            local count = 1
-            for _ in pairs(storeMembers) do
-                count += 1
-            end
-            if count >= MAX_STORE_PLAYERS then
-                return
-            end
-            storeMembers[targetUserId] = role
-            joinRequests[targetUserId] = nil
-            stateEvent:FireClient(
-                target,
-                snapshot(
-                    "You joined " .. ownerPlayer.DisplayName .. "'s store as " .. role .. ".",
-                    target
+                stateEvent:FireClient(
+                    target,
+                    snapshot(
+                        "You joined " .. ownerPlayer.DisplayName .. "'s store as " .. role .. ".",
+                        target
+                    )
                 )
-            )
-        elseif action == "decline" then
-            if not joinRequests[targetUserId] then
+            elseif action == "decline" then
+                if not joinRequests[targetUserId] then
+                    return
+                end
+                joinRequests[targetUserId] = nil
+                stateEvent:FireClient(
+                    target,
+                    snapshot("The store owner declined your help request.", target)
+                )
+            elseif action == "remove" then
+                if not storeMembers[targetUserId] then
+                    return
+                end
+                storeMembers[targetUserId] = nil
+                stateEvent:FireClient(
+                    target,
+                    snapshot("Your store access was removed by the owner.", target)
+                )
+            else
                 return
             end
-            joinRequests[targetUserId] = nil
-            stateEvent:FireClient(
-                target,
-                snapshot("The store owner declined your help request.", target)
-            )
-        elseif action == "remove" then
-            if not storeMembers[targetUserId] then
-                return
-            end
-            storeMembers[targetUserId] = nil
-            stateEvent:FireClient(
-                target,
-                snapshot("Your store access was removed by the owner.", target)
-            )
-        else
-            return
+            broadcastMemberState()
+            broadcast()
         end
-        broadcastMemberState()
-        broadcast()
-    end)
+    )
 
     local function claimStore(player)
+        if player:GetAttribute("ActiveStoreLocation") == nil then
+            player:SetAttribute("ActiveStoreLocation", "neighborhood")
+        end
         if ownerPlayer == player then
+            return
+        end
+        if runtimeOptions.ownerUserId and player.UserId ~= runtimeOptions.ownerUserId then
+            stateEvent:FireClient(
+                player,
+                snapshot("This uptown store belongs to its neighborhood owner.", player)
+            )
+            sendMemberState(player)
             return
         end
         if ownerPlayer or ownershipClaimed then
@@ -2064,11 +2176,22 @@ function ShiftService.init(event, membershipRemotes)
         end
         ownerPlayer = player
         ownershipClaimed = true
+        if locationId == "neighborhood" and player:GetAttribute("ActiveStoreLocation") == nil then
+            player:SetAttribute("ActiveStoreLocation", "neighborhood")
+        end
         stateEvent:FireClient(player, snapshot("Loading your saved store…", player))
         task.spawn(function()
-            local profile, status = ProfileService.load(player)
+            local profile, status
+            if locationId == "uptown" then
+                profile = ProfileService.get(player)
+                status = profile and ProfileService.getSaveStatus(player) or "profile unavailable"
+            else
+                profile, status = ProfileService.load(player)
+            end
             if ownerPlayer ~= player or player.Parent ~= Players then
-                ProfileService.release(player)
+                if locationId == "neighborhood" then
+                    ProfileService.release(player)
+                end
                 return
             end
             if not profile then
@@ -2079,9 +2202,27 @@ function ShiftService.init(event, membershipRemotes)
                 )
                 return
             end
-            state =
-                Economy.newState(profile, player.UserId, ProfileService.getCompanyWallet(player))
-            TelemetryService.begin(player, profile, state)
+            local locationProfile = profile
+            if locationId == "uptown" then
+                locationProfile = ProfileService.getLocation(player, locationId)
+                if not locationProfile then
+                    ownerPlayer = nil
+                    ownerReady = false
+                    player:Kick(
+                        "Your Uptown Market save could not be opened safely. Please rejoin."
+                    )
+                    return
+                end
+                locationProfile.balance = ProfileService.getCompanyBalance(player)
+            end
+            state = Economy.newState(
+                locationProfile,
+                player.UserId,
+                ProfileService.getCompanyWallet(player)
+            )
+            if locationId == "neighborhood" then
+                TelemetryService.begin(player, profile, state)
+            end
             ownerReady = true
             if state.upgradePurchased then
                 world.addUpgrade()
@@ -2140,6 +2281,10 @@ function ShiftService.init(event, membershipRemotes)
             world.setDeliveryFleetPurchased(state.deliveryFleetPurchased)
             world.setDistributionCenterPurchased(state.distributionCenterPurchased)
             world.setSupplierPartnershipPurchased(state.supplierPartnershipPurchased)
+            world.setUptownStorePurchased(
+                state.uptownStorePurchased,
+                state.supplierPartnershipPurchased
+            )
             world.setCustomerAssistantHired(state.customerAssistantHired)
             world.setCashierAutomationEnabled(state.cashierAutomationEnabled)
             world.setStockerAutomationEnabled(state.stockerAutomationEnabled)
@@ -2218,6 +2363,13 @@ function ShiftService.init(event, membershipRemotes)
                     or "Store profile loaded."
             )
             broadcastMemberState()
+            if
+                locationId == "neighborhood"
+                and state.uptownStorePurchased
+                and runtimeOptions.onUptownOpened
+            then
+                runtimeOptions.onUptownOpened(player)
+            end
         end)
     end
 
@@ -2231,8 +2383,10 @@ function ShiftService.init(event, membershipRemotes)
         joinRequests[player.UserId] = nil
         broadcastMemberState()
         if player == ownerPlayer then
-            TelemetryService.finish(player)
-            ProfileService.release(player)
+            if locationId == "neighborhood" then
+                TelemetryService.finish(player)
+                ProfileService.release(player)
+            end
             ownerReady = false
             ownerPlayer = nil
             ownershipClaimed = true
@@ -2253,12 +2407,14 @@ function ShiftService.init(event, membershipRemotes)
         claimStore(player)
     end
 
-    game:BindToClose(function()
-        if ownerPlayer then
-            ProfileService.release(ownerPlayer)
-        end
-        ProfileService.releaseAll()
-    end)
+    if locationId == "neighborhood" then
+        game:BindToClose(function()
+            if ownerPlayer then
+                ProfileService.release(ownerPlayer)
+            end
+            ProfileService.releaseAll()
+        end)
+    end
 end
 
 return ShiftService

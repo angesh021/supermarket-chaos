@@ -11,7 +11,7 @@
 - Location IDs are a server-side allow-list: `neighborhood` and `uptown`. The client does not choose a profile key or submit a location record.
 - A caller cannot create an arbitrary location. `createLocation` only accepts `uptown`, only once, and seeds it from server defaults. Purchase cost/prerequisites are not implemented in this storage increment.
 - On load, the neighborhood must match the legacy profile projection. The additional snapshot is normalized with all normal profile validators and must match the normalized result exactly; malformed, divergent, unknown, or unsupported records fail profile loading instead of being silently merged.
-- Branch writes require an existing location and share the same `UpdateAsync` lease/save lock as neighborhood writes. Callers must not use a branch runtime until it supplies the synchronized company balance; that runtime is still pending.
+- Branch writes require an existing location and share the same `UpdateAsync` lease/save lock as neighborhood writes. Phase 62 supplies the runtime and synchronized company balance; its Studio checks remain pending.
 
 ## Manual migration checklist
 Use the private development universe `10770581249` and a known v38 profile.
@@ -25,4 +25,4 @@ Use the private development universe `10770581249` and a known v38 profile.
 
 ## Verification status
 - Static checks are recorded in `docs/PROJECT_STATUS.md`.
-- Roblox Studio/DataStore migration, malformed-record rejection and accessor isolation are pending. Do not test a branch runtime yet; it is not implemented.
+- Roblox Studio/DataStore migration, malformed-record rejection and accessor isolation are pending. Branch gameplay verification is covered by Phase 62.

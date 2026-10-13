@@ -1195,12 +1195,8 @@ function ProfileService.createLocation(player, locationId)
     end
     local initialProfile = defaultProfile()
     entry.profile.locations.uptown = locationSnapshot(initialProfile)
-    local saved = true
-    if entry.persistent then
-        saved = saveEntry(entry, false)
-    end
     endProfileMutation(entry)
-    return saved
+    return true
 end
 
 local function profileFromLocationSnapshot(snapshot, balance)

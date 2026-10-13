@@ -1,7 +1,7 @@
 # Phase 57 — Multi-store foundation
 
 ## Current status
-Architecture decisions, schema v37-to-v39 profile foundations, and unique world-container support are implemented. `WorldBuilder.build(locationId, origin)` validates the server-supplied ID, uses a location-specific world model and can position it independently. The profile preserves the v36 flat state as `locations.neighborhood` and now allows one optional, validated `locations.uptown` record under the same owner lease. The current `ShiftService` still starts only one state/world/owner for the server; no second branch is playable yet.
+Architecture decisions, schema v37-to-v39 profile foundations, unique world-container support, the shared company wallet, and the Phase 62 Uptown runtime implementation are in place. `WorldBuilder.build(locationId, origin)` builds the separate plot. `BranchRuntimeService` starts one Uptown runtime per owner; the owner profile remains loaded and released by the neighborhood runtime. Studio verification is pending; see [Phase 62](PHASE62_UPTOWN_BRANCH_RUNTIME.md).
 
 ## Target acceptance criteria
 - One player can own at least two independently managed store locations under the same account and company balance.
@@ -11,10 +11,10 @@ Architecture decisions, schema v37-to-v39 profile foundations, and unique world-
 - Existing profile state migrates once into the stable `neighborhood` location ID without changing the cash balance, stock, pending shipment, active shift, upgrades or progression counters.
 - Profile writes from two location runtimes remain serialized under one player lease. Rejoin restores both locations; a second server cannot take the same profile lease.
 
-## Remaining implementation increments
-1. Add the server-priced branch purchase and fixed uptown plot, using the Phase 61 synchronized company wallet.
-2. Extract one location runtime from the singleton `ShiftService`, and scope action authorization and client snapshots to that runtime.
-3. Add per-location membership grants and test same-owner writes, branch switching, rejoin and unauthorized cross-branch actions.
+## Implementation status
+- Implemented: server-priced `$15,000` branch purchase after supplier partnership and between shifts; atomic in-memory creation followed by a serialized profile save.
+- Implemented: separate Uptown world/runtime, shared company wallet, branch travel, location-tagged client snapshots, and separate session membership grants.
+- Pending manual gate: purchase, travel, independent progress/layouts, permissions, save/rejoin, and profile lease checks in the Phase 62 checklist.
 
 ## Security and persistence boundaries
 - The client may request an action within a visible store, but cannot create location IDs, choose another owner's profile, or supply the location's stock, cash or upgrade state.
@@ -24,9 +24,9 @@ Architecture decisions, schema v37-to-v39 profile foundations, and unique world-
 - Migration preserves a recovery path until v36-to-v39 data is validated in a private development experience. Production publishing and Robux commerce remain disabled.
 
 ## Manual verification gate
-No branch purchase checklist can be run yet. Once the implementation steps above are complete, verify in the private development universe:
+Verify in the private development universe:
 1. Migrate a v36 profile and compare before/after balance, all six SKU stocks, pending shipment, shift stage/sales, owned upgrades, employees and plaza business state.
-2. Open the second branch. Change its stock, cash through valid sales, and shift state; confirm the original branch remains unchanged.
+2. Open the second branch. Change its stock, shared cash through valid sales, and shift state; confirm the original branch's location-owned fields remain unchanged.
 3. Run two branch actions close together and verify both save without lost updates. Leave/rejoin and compare both locations.
 4. Grant a helper Manager access to one branch only. Verify they can manage it and cannot use another branch's prompts/remotes.
 5. Start a second server for the same player and confirm the existing per-profile lease rejects conflicting ownership or writes.

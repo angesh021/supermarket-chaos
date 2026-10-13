@@ -306,6 +306,10 @@ end
 
 local teamData
 local function renderTeam(data)
+    local activeLocation = player:GetAttribute("ActiveStoreLocation") or "neighborhood"
+    if data and data.locationId and data.locationId ~= activeLocation then
+        return
+    end
     teamData = data
     clearTeamRows()
     if not data then
@@ -339,9 +343,14 @@ local function renderTeam(data)
             for index, role in ipairs(roles) do
                 local roleButton = addTeamButton(row, role, roleButtonWidth, function()
                     if role == "Decline" then
-                        memberActionEvent:FireServer("decline", request.userId)
+                        memberActionEvent:FireServer("decline", request.userId, nil, activeLocation)
                     else
-                        memberActionEvent:FireServer("approve", request.userId, role)
+                        memberActionEvent:FireServer(
+                            "approve",
+                            request.userId,
+                            role,
+                            activeLocation
+                        )
                     end
                 end)
                 local column = (index - 1) % columns
@@ -371,7 +380,7 @@ local function renderTeam(data)
             name.TextXAlignment = Enum.TextXAlignment.Left
             name.Parent = row
             local removeButton = addTeamButton(row, "REMOVE", 74, function()
-                memberActionEvent:FireServer("remove", member.userId)
+                memberActionEvent:FireServer("remove", member.userId, nil, activeLocation)
             end)
             removeButton.Size = UDim2.fromOffset(74, 40)
             removeButton.Position = UDim2.new(1, -78, 0, 3)
@@ -390,7 +399,7 @@ local function renderTeam(data)
             data.requestPending and "REQUEST SENT" or "REQUEST TO HELP",
             170,
             function()
-                joinRequestEvent:FireServer()
+                joinRequestEvent:FireServer(activeLocation)
             end
         )
         requestButton.Size = UDim2.fromOffset(170, 44)
@@ -510,6 +519,12 @@ end
 
 local function update(state)
     if typeof(state) ~= "table" then
+        return
+    end
+    if
+        state.locationId
+        and state.locationId ~= (player:GetAttribute("ActiveStoreLocation") or "neighborhood")
+    then
         return
     end
     objective.Text = tostring(state.objective or "Keep the store running.")

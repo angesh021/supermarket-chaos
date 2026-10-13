@@ -298,7 +298,7 @@ local function onPointerDown(input, processed)
             x = x,
             z = z,
             rotation = rotation,
-        })
+        }, player:GetAttribute("ActiveStoreLocation") or "neighborhood")
         setMoveMode(false)
         status.Text = "Checking shelf bounds and aisle clearance…"
     else
@@ -372,6 +372,9 @@ layoutEvent.OnClientEvent:Connect(function(message)
     if type(message) ~= "table" then
         return
     end
+    if message.locationId ~= (player:GetAttribute("ActiveStoreLocation") or "neighborhood") then
+        return
+    end
     if message.action == "Open" then
         selectedProductId = nil
         selectedCheckout = false
@@ -388,7 +391,12 @@ layoutEvent.OnClientEvent:Connect(function(message)
 end)
 
 stateEvent.OnClientEvent:Connect(function(state)
-    if gui.Enabled and type(state) == "table" and state.stage ~= "Complete" then
+    if
+        gui.Enabled
+        and type(state) == "table"
+        and state.locationId == (player:GetAttribute("ActiveStoreLocation") or "neighborhood")
+        and state.stage ~= "Complete"
+    then
         setMoveMode(false)
         gui.Enabled = false
     end

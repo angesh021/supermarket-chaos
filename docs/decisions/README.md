@@ -326,13 +326,18 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 
 ## ADR-0057: Store bounded location snapshots under one profile lease
 - **Decision:** Allow two fixed server-approved location IDs, keep the chain balance at profile root, and serialize all location snapshots under the existing owner profile lease.
-- **Consequences:** Schema v39 validates and preserves a second location record. Branch purchase, a synchronized wallet, independent runtime and location-scoped roles remain required for playable multi-store support.
+- **Consequences:** Schema v39 validates and preserves a second location record. The shared wallet and Uptown runtime were added in Phases 61–62; Studio verification remains required.
 - **Verification:** See `docs/operations/PHASE60_LOCATION_PROFILE_STORAGE.md`.
 
 ## ADR-0058: Share one in-memory company wallet across location states
 - **Decision:** Keep cash at the company profile root and bind each location state to one server-owned wallet per player profile.
-- **Consequences:** New runtime states can share cash without location snapshots overwriting one another's balance. The existing runtime uses the wallet; second branch runtime and location-scoped action locks remain pending.
+- **Consequences:** New runtime states can share cash without location snapshots overwriting one another's balance. The neighborhood and Uptown runtimes use the wallet; Studio transaction and save checks remain pending.
 - **Verification:** See `docs/operations/PHASE61_COMPANY_WALLET.md`.
+
+## ADR-0059: Add a player-owned Uptown branch runtime
+- **Decision:** Permit one server-priced Uptown Market purchase after the supplier partnership; run it as a separate location while sharing company cash.
+- **Consequences:** Shift/world state and session role grants stay location-scoped. Both runtimes serialize writes through one player profile lease.
+- **Verification:** See `docs/operations/PHASE62_UPTOWN_BRANCH_RUNTIME.md`.
 
 ## ADR-0009 — Keep product inventory and supplier orders SKU-specific
 - **Status:** Accepted — 2026-10-12.

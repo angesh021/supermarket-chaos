@@ -1,4 +1,5 @@
 local WorldBuilder = {}
+WorldBuilder.UPTOWN_ORIGIN = CFrame.new(360, 0, 0)
 local TweenService = game:GetService("TweenService")
 local Economy = require(script.Parent.Economy)
 
@@ -1179,6 +1180,44 @@ function WorldBuilder.build(locationId, origin)
     checkoutModel.PrimaryPart = counter
     checkoutModel:PivotTo(CFrame.new(14, 1.7, 8))
     local currentStage = "Loading"
+    local uptownStorePurchased = locationId == "uptown"
+    local uptownPurchaseUnlocked = false
+    local uptownPad = part(
+        exterior,
+        "Uptown Market Travel Pad",
+        Vector3.new(5.5, 0.45, 5.5),
+        CFrame.new(58, 0.35, 52),
+        COLORS.gold,
+        Enum.Material.Neon
+    )
+    local uptownPurchasePrompt
+    if locationId == "neighborhood" then
+        uptownPurchasePrompt = prompt(
+            uptownPad,
+            "Open Uptown Market ($15,000)",
+            "Regional Expansion",
+            "BuildUptownStore",
+            11
+        )
+    end
+    local locationTravelPrompt = prompt(
+        uptownPad,
+        locationId == "uptown" and "Return to Neighborhood" or "Travel to Uptown Market",
+        "Store Travel",
+        "TravelStore",
+        11
+    )
+    local function updateLocationPrompts()
+        if uptownPurchasePrompt then
+            uptownPurchasePrompt.Enabled = currentStage == "Complete"
+                and uptownPurchaseUnlocked
+                and not uptownStorePurchased
+        end
+        locationTravelPrompt.Enabled = locationId == "uptown" or uptownStorePurchased
+        uptownPad.Color = uptownStorePurchased and COLORS.teal or COLORS.gold
+    end
+    local travelDestination = locationId == "uptown" and CFrame.new(58, 2.5, 44)
+        or (WorldBuilder.UPTOWN_ORIGIN * CFrame.new(58, 2.5, 44))
     local aisleExpansionPurchased = false
     local floorExpansionPurchased = false
     local selfCheckoutPurchased = false
@@ -4619,6 +4658,7 @@ function WorldBuilder.build(locationId, origin)
                 and os.time() >= deliveryReadyAt
         end
         updatePlazaPrompts()
+        updateLocationPrompts()
         setSpillVisible(stage == "Spill")
         setPowerOutage(stage == "PowerOutage")
     end
@@ -4626,6 +4666,15 @@ function WorldBuilder.build(locationId, origin)
     world:PivotTo(origin)
     return {
         root = world,
+        locationId = locationId,
+        locationTravelPrompt = locationTravelPrompt,
+        travelDestination = travelDestination,
+        uptownPurchasePrompt = uptownPurchasePrompt,
+        setUptownStorePurchased = function(purchased, unlocked)
+            uptownStorePurchased = purchased == true
+            uptownPurchaseUnlocked = unlocked == true
+            updateLocationPrompts()
+        end,
         cartPrompt = cartPrompt,
         cartModel = cart,
         cartTween = function()

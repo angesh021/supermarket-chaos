@@ -43,6 +43,7 @@ Economy.FLORIST_RESTOCK_COST = 320
 Economy.FLORIST_RESTOCK_QUANTITY = 4
 Economy.FLORIST_SHELF_CAPACITY = 12
 Economy.FLORIST_BOUQUET_PRICE = 240
+Economy.UPTOWN_STORE_COST = 15000
 Economy.PLAZA_STYLE_COST = 750
 Economy.DELIVERY_FLEET_COST = 3000
 Economy.DELIVERY_FLEET_ORDERS_PER_SHIFT = 3
@@ -294,6 +295,7 @@ function Economy.newState(profile, playerSeed, companyWallet)
         deliveryFleetPurchased = upgrades.deliveryFleet or false,
         distributionCenterPurchased = upgrades.distributionCenter or false,
         supplierPartnershipPurchased = upgrades.supplierPartnership or false,
+        uptownStorePurchased = profile.locations ~= nil and profile.locations.uptown ~= nil,
         deliveryWorkerOrdersThisShift = savedShift.deliveryWorkerOrdersThisShift or 0,
     }
     if companyWallet then
@@ -315,6 +317,23 @@ function Economy.newState(profile, playerSeed, companyWallet)
         })
     end
     return state
+end
+
+function Economy.buyUptownStore(state)
+    if
+        state.stage ~= "Complete"
+        or not state.supplierPartnershipPurchased
+        or state.uptownStorePurchased
+    then
+        return false, "The Uptown Market opens after the supplier partnership, between shifts."
+    end
+    if state.cash < Economy.UPTOWN_STORE_COST then
+        return false,
+            string.format("You need $%d to open Uptown Market.", Economy.UPTOWN_STORE_COST)
+    end
+    state.cash -= Economy.UPTOWN_STORE_COST
+    state.uptownStorePurchased = true
+    return true, "Uptown Market purchased! Use the gold travel pad to visit your new store."
 end
 
 function Economy.buyCafe(state)

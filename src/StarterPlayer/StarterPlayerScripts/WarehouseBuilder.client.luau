@@ -227,7 +227,10 @@ removeButton.Activated:Connect(function()
         status.Text = "Tap one of your shelves first."
         return
     end
-    layoutEvent:FireServer({ action = "RemoveShelf", id = selectedId })
+    layoutEvent:FireServer(
+        { action = "RemoveShelf", id = selectedId },
+        player:GetAttribute("ActiveStoreLocation") or "neighborhood"
+    )
     status.Text = "Removing shelf…"
 end)
 
@@ -259,7 +262,10 @@ local function onPointerDown(input, processed)
             return
         end
         if mode == "Place" then
-            layoutEvent:FireServer({ action = "PlaceShelf", x = x, z = z, rotation = rotation })
+            layoutEvent:FireServer(
+                { action = "PlaceShelf", x = x, z = z, rotation = rotation },
+                player:GetAttribute("ActiveStoreLocation") or "neighborhood"
+            )
             status.Text = "Checking shelf position…"
         else
             layoutEvent:FireServer({
@@ -268,7 +274,7 @@ local function onPointerDown(input, processed)
                 x = x,
                 z = z,
                 rotation = rotation,
-            })
+            }, player:GetAttribute("ActiveStoreLocation") or "neighborhood")
             clearMode()
         end
     else
@@ -302,6 +308,9 @@ layoutEvent.OnClientEvent:Connect(function(message)
     if type(message) ~= "table" then
         return
     end
+    if message.locationId ~= (player:GetAttribute("ActiveStoreLocation") or "neighborhood") then
+        return
+    end
     if message.action == "Open" then
         currentLayout = type(message.layout) == "table" and message.layout
             or { version = 1, items = {} }
@@ -332,7 +341,11 @@ layoutEvent.OnClientEvent:Connect(function(message)
 end)
 
 stateEvent.OnClientEvent:Connect(function(state)
-    if gui.Enabled and type(state) == "table" then
+    if
+        gui.Enabled
+        and type(state) == "table"
+        and state.locationId == (player:GetAttribute("ActiveStoreLocation") or "neighborhood")
+    then
         if state.stage ~= "Complete" or not state.warehousePurchased then
             clearMode()
             gui.Enabled = false
