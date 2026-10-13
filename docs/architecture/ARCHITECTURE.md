@@ -194,6 +194,11 @@ See `docs/decisions/README.md` for accepted ownership policy. Remaining decision
 - The electronics business follows the same owner profile and shared balance. It unlocks after the restaurant, costs `$2,400`, stocks two headphones for `$300` up to eight and sells each for `$220`.
 - Owner/Manager build, Stocker restock and Cashier sale use the common prompt security and shared transaction lock. Store sales do not change supermarket shift progression.
 - Profile schema v31 persists ownership, bounded stock and sales. Built-in parts render the plaza shop, product display, clerk and menu; no third-party assets are used.
+
+## Phase 50 Little Sprout Garden specialty retailer
+- The fixed garden storefront unlocks after Pixel & Plug, costs `$1,800`, stocks three potted herbs for `$120` up to 12 and sells each for `$75`.
+- Owner/Manager build, Stocker restock and Cashier sale use the existing common prompt authorization and transaction lock. Garden sales share the owner balance but do not increment supermarket shift sales.
+- Profile schema v32 persists store ownership, bounded stock and sales. The storefront, plant display and gardener use built-in Roblox parts and materials.
 # Cooperative ownership and cashier extension
 - One owner profile remains the persistence boundary. Per-server membership grants temporary action permissions but does not load a guest's profile into the owner's economy.
 - Server role map: Owner (all), Manager (all shift actions including staff hiring), Cashier (checkout), Stocker (stock), Maintenance (cart recovery).

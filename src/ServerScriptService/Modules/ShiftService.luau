@@ -63,6 +63,9 @@ local ROLE_ACTIONS = {
         BuildElectronicsStore = true,
         RestockElectronics = true,
         SellElectronics = true,
+        BuildGardenStore = true,
+        RestockGarden = true,
+        SellGarden = true,
         FulfillOnlineOrder = true,
         SelfCheckout = true,
         EditLayout = true,
@@ -94,6 +97,7 @@ local ROLE_ACTIONS = {
         ServeCafe = true,
         ServeRestaurant = true,
         SellElectronics = true,
+        SellGarden = true,
     },
     Stocker = {
         Stock = true,
@@ -106,6 +110,7 @@ local ROLE_ACTIONS = {
         RestockCafe = true,
         RestockRestaurant = true,
         RestockElectronics = true,
+        RestockGarden = true,
     },
     Maintenance = { Cart = true, Spill = true, RestorePower = true },
 }
@@ -799,6 +804,7 @@ function ShiftService.init(event, membershipRemotes)
             state.electronicsStock,
             state.electronicsSales
         )
+        world.setGardenStoreState(state.gardenStorePurchased, state.gardenStock, state.gardenSales)
         broadcast()
         scheduleOnlineOrderWorker()
         scheduleStocker()
@@ -1121,6 +1127,11 @@ function ShiftService.init(event, membershipRemotes)
                 state.electronicsStock,
                 state.electronicsSales
             )
+            world.setGardenStoreState(
+                state.gardenStorePurchased,
+                state.gardenStock,
+                state.gardenSales
+            )
             commit("restaurantBuilt")
         end
         saleTransactionInProgress = false
@@ -1197,6 +1208,53 @@ function ShiftService.init(event, membershipRemotes)
         local ok, message = Economy.sellElectronics(state)
         if ok then
             commit("electronicsItemSold")
+        end
+        saleTransactionInProgress = false
+        broadcast(message)
+    end)
+
+    bind("BuildGardenStore", world.gardenBuildPrompt, 12, function()
+        if saleTransactionInProgress then
+            broadcast("A store transaction is saving. Try building Little Sprout again shortly.")
+            return
+        end
+        saleTransactionInProgress = true
+        local ok, message = Economy.buyGardenStore(state)
+        if ok then
+            world.setGardenStoreState(
+                state.gardenStorePurchased,
+                state.gardenStock,
+                state.gardenSales
+            )
+            commit("gardenStoreBuilt")
+        end
+        saleTransactionInProgress = false
+        broadcast(message)
+    end)
+
+    bind("RestockGarden", world.gardenRestockPrompt, 12, function()
+        if saleTransactionInProgress then
+            broadcast("A store transaction is saving. Try restocking Little Sprout again shortly.")
+            return
+        end
+        saleTransactionInProgress = true
+        local ok, message = Economy.restockGarden(state)
+        if ok then
+            commit("gardenRestocked")
+        end
+        saleTransactionInProgress = false
+        broadcast(message)
+    end)
+
+    bind("SellGarden", world.gardenSalePrompt, 12, function()
+        if saleTransactionInProgress then
+            broadcast("A store transaction is saving. Try selling the plant again shortly.")
+            return
+        end
+        saleTransactionInProgress = true
+        local ok, message = Economy.sellGardenItem(state)
+        if ok then
+            commit("gardenItemSold")
         end
         saleTransactionInProgress = false
         broadcast(message)

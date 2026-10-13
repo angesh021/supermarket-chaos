@@ -279,6 +279,11 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Consequences:** Profile schema v31 stores store ownership, bounded stock and sales. Owner/Manager build, Stocker restock and Cashier sell; these sales do not alter supermarket customer progression.
 - **Verification:** See `docs/operations/PHASE49_ELECTRONICS_STORE.md`.
 
+## ADR-0048: Add Little Sprout Garden specialty retail
+- **Decision:** Add a fixed garden retailer after Pixel & Plug, with server-priced potted-herb stock and sales using the owner's shared balance.
+- **Consequences:** Profile schema v32 stores garden ownership, bounded stock and sales. Owner/Manager build, Stocker restock and Cashier sell; sales do not affect supermarket customer progression.
+- **Verification:** See `docs/operations/PHASE50_SPECIALTY_RETAIL.md`.
+
 ## ADR-0009 — Keep product inventory and supplier orders SKU-specific
 - **Status:** Accepted — 2026-10-12.
 - **Context:** The retail loop needs visible department variety and product-specific stock behavior while keeping stock and money authoritative.

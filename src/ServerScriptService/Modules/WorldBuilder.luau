@@ -2294,6 +2294,14 @@ function WorldBuilder.build()
     local electronicsMenuLabel
     local electronicsRestockPrompt
     local electronicsSalePrompt
+    local gardenStorePurchased = false
+    local gardenStock = 0
+    local gardenSales = 0
+    local gardenStoreModel
+    local gardenItemVisuals = {}
+    local gardenMenuLabel
+    local gardenRestockPrompt
+    local gardenSalePrompt
     part(
         exterior,
         "Cafe Plaza Walkway",
@@ -2313,8 +2321,8 @@ function WorldBuilder.build()
     part(
         exterior,
         "Restaurant Plaza Walkway",
-        Vector3.new(8, 0.18, 102),
-        CFrame.new(-80, 0.1, -30),
+        Vector3.new(8, 0.18, 142),
+        CFrame.new(-80, 0.1, -50),
         COLORS.gray,
         Enum.Material.Concrete
     )
@@ -2331,6 +2339,14 @@ function WorldBuilder.build()
         "Electronics Plaza Walkway Connector",
         Vector3.new(30, 0.18, 10),
         CFrame.new(-65, 0.1, -65.8),
+        COLORS.gray,
+        Enum.Material.Concrete
+    )
+    part(
+        exterior,
+        "Garden Plaza Walkway Connector",
+        Vector3.new(30, 0.18, 10),
+        CFrame.new(-65, 0.1, -105.8),
         COLORS.gray,
         Enum.Material.Concrete
     )
@@ -2478,6 +2494,52 @@ function WorldBuilder.build()
     if electronicsMenuSurface then
         electronicsMenuSurface.Enabled = false
         electronicsMenuLabel = electronicsMenuSurface:FindFirstChildOfClass("TextLabel")
+    end
+    local gardenBuildPad = part(
+        exterior,
+        "Little Sprout Garden Purchase Pad",
+        Vector3.new(4.5, 0.5, 4.5),
+        CFrame.new(-52.5, 0.45, -110),
+        COLORS.gold,
+        Enum.Material.Neon
+    )
+    local gardenBuildPrompt = prompt(
+        gardenBuildPad,
+        "Build Little Sprout ($1,800)",
+        "Plaza Business",
+        "BuildGardenStore",
+        10
+    )
+    gardenBuildPrompt.Enabled = false
+    local gardenCounter = part(
+        exterior,
+        "Little Sprout Garden Counter",
+        Vector3.new(9, 1.5, 1.8),
+        CFrame.new(-65, 1.25, -118),
+        COLORS.wood,
+        Enum.Material.WoodPlanks,
+        1
+    )
+    gardenRestockPrompt =
+        prompt(gardenCounter, "Restock Herbs ($120)", "Little Sprout", "RestockGarden", 10)
+    gardenSalePrompt =
+        prompt(gardenCounter, "Sell Potted Herb ($75)", "Little Sprout", "SellGarden", 10)
+    gardenRestockPrompt.Enabled = false
+    gardenSalePrompt.Enabled = false
+    local gardenMenuBoard = label(
+        exterior,
+        "Little Sprout Garden Sign",
+        "LITTLE SPROUT GARDEN\nPOTTED HERBS $75\nSTOCK 0  •  SALES 0",
+        Vector3.new(9, 3, 0.35),
+        CFrame.new(-65, 5.3, -112.7),
+        COLORS.green,
+        COLORS.warmWhite
+    )
+    gardenMenuBoard.Transparency = 1
+    local gardenMenuSurface = gardenMenuBoard:FindFirstChildOfClass("SurfaceGui")
+    if gardenMenuSurface then
+        gardenMenuSurface.Enabled = false
+        gardenMenuLabel = gardenMenuSurface:FindFirstChildOfClass("TextLabel")
     end
     local warehousePad = part(
         exterior,
@@ -3036,6 +3098,96 @@ function WorldBuilder.build()
         electronicsBuildPrompt.Enabled = false
     end
 
+    local function addGardenStore()
+        if gardenStoreModel then
+            return
+        end
+        gardenStorePurchased = true
+        gardenStoreModel = Instance.new("Model")
+        gardenStoreModel.Name = "Little Sprout Garden Plaza Business"
+        gardenStoreModel.Parent = exterior
+        local center = Vector3.new(-65, 0, -122)
+        part(
+            gardenStoreModel,
+            "Garden Store Floor",
+            Vector3.new(24, 0.35, 20),
+            CFrame.new(center + Vector3.new(0, 0.05, 0)),
+            COLORS.cream,
+            Enum.Material.CeramicTiles
+        )
+        part(
+            gardenStoreModel,
+            "Garden Store Back Wall",
+            Vector3.new(24, 9, 0.55),
+            CFrame.new(center + Vector3.new(0, 4.5, -9.7)),
+            COLORS.green
+        )
+        for _, side in ipairs({ -11.7, 11.7 }) do
+            part(
+                gardenStoreModel,
+                "Garden Store Side Wall",
+                Vector3.new(0.6, 9, 20),
+                CFrame.new(center + Vector3.new(side, 4.5, 0)),
+                COLORS.cream
+            )
+        end
+        part(
+            gardenStoreModel,
+            "Garden Store Roof",
+            Vector3.new(25, 0.8, 21),
+            CFrame.new(center + Vector3.new(0, 9.4, 0)),
+            COLORS.green,
+            Enum.Material.Grass
+        )
+        part(
+            gardenStoreModel,
+            "Garden Store Awning",
+            Vector3.new(18, 0.35, 2.3),
+            CFrame.new(center + Vector3.new(0, 7.4, 10.8)),
+            COLORS.coral,
+            Enum.Material.Fabric
+        )
+        gardenMenuBoard.Parent = gardenStoreModel
+        gardenMenuBoard.CFrame = CFrame.new(center + Vector3.new(0, 5.7, 10.05))
+        gardenMenuBoard.Transparency = 0
+        if gardenMenuSurface then
+            gardenMenuSurface.Enabled = true
+        end
+        gardenCounter.Parent = gardenStoreModel
+        gardenCounter.CFrame = CFrame.new(center + Vector3.new(0, 1.45, 5.4))
+        gardenCounter.Transparency = 0
+        gardenCounter.CanCollide = true
+        for index = 1, 4 do
+            local plant = part(
+                gardenStoreModel,
+                "Potted Herb Display",
+                Vector3.new(1.2, 1.7, 1.2),
+                CFrame.new(center + Vector3.new(-3.8 + index * 2.3, 1.2, -1.8)),
+                COLORS.green,
+                Enum.Material.Grass
+            )
+            plant.CanCollide = false
+            plant.Transparency = 1
+            table.insert(gardenItemVisuals, plant)
+        end
+        local gardener = createLowPolyPerson(
+            gardenStoreModel,
+            "Little Sprout Gardener",
+            center + Vector3.new(3.5, 0.45, 2),
+            COLORS.green,
+            COLORS.wood,
+            COLORS.deepTeal
+        )
+        for _, item in ipairs(gardener:GetDescendants()) do
+            if item:IsA("BasePart") then
+                item.CanCollide = false
+            end
+        end
+        gardenBuildPad.Transparency = 1
+        gardenBuildPad.CanCollide = false
+        gardenBuildPrompt.Enabled = false
+    end
+
     local function addWarehouse()
         if warehouseModel then
             return
@@ -3449,6 +3601,16 @@ function WorldBuilder.build()
             and electronicsStock + 2 <= 8
         electronicsSalePrompt.Enabled = electronicsStorePurchased
             and electronicsStock > 0
+            and currentStage ~= "Loading"
+            and currentStage ~= "OwnerOffline"
+        gardenBuildPrompt.Enabled = currentStage == "Complete"
+            and electronicsStorePurchased
+            and not gardenStorePurchased
+        gardenRestockPrompt.Enabled = gardenStorePurchased
+            and currentStage == "Complete"
+            and gardenStock + 3 <= 12
+        gardenSalePrompt.Enabled = gardenStorePurchased
+            and gardenStock > 0
             and currentStage ~= "Loading"
             and currentStage ~= "OwnerOffline"
     end
@@ -3948,6 +4110,29 @@ function WorldBuilder.build()
                     Economy.ELECTRONICS_ITEM_PRICE,
                     electronicsStock,
                     electronicsSales
+                )
+            end
+            updatePlazaPrompts()
+        end,
+        gardenBuildPrompt = gardenBuildPrompt,
+        gardenRestockPrompt = gardenRestockPrompt,
+        gardenSalePrompt = gardenSalePrompt,
+        setGardenStoreState = function(purchased, stock, sales)
+            gardenStorePurchased = purchased == true
+            gardenStock = math.max(0, math.min(math.floor(stock or 0), 12))
+            gardenSales = math.max(0, math.floor(sales or 0))
+            if gardenStorePurchased then
+                addGardenStore()
+            end
+            for index, plant in ipairs(gardenItemVisuals) do
+                plant.Transparency = gardenStock >= index * 3 - 2 and 0 or 1
+            end
+            if gardenMenuLabel then
+                gardenMenuLabel.Text = string.format(
+                    "LITTLE SPROUT GARDEN\nPOTTED HERBS $%d\nSTOCK %d  •  SALES %d",
+                    Economy.GARDEN_ITEM_PRICE,
+                    gardenStock,
+                    gardenSales
                 )
             end
             updatePlazaPrompts()

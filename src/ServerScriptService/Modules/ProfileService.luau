@@ -6,7 +6,7 @@ local ProfileService = {}
 local LayoutService = require(script.Parent.LayoutService)
 local RetailLayoutService = require(script.Parent.RetailLayoutService)
 
-local SCHEMA_VERSION = 31
+local SCHEMA_VERSION = 32
 local SESSION_LEASE_SECONDS = 180
 local MAX_RETRIES = 3
 local STORE_NAME = "SupermarketChaos_PlayerProfiles_v1"
@@ -51,6 +51,8 @@ local function defaultProfile()
             restaurantSales = 0,
             electronicsStock = 0,
             electronicsSales = 0,
+            gardenStock = 0,
+            gardenSales = 0,
         },
         ownedUpgrades = {
             shelfBay = false,
@@ -64,6 +66,7 @@ local function defaultProfile()
             cafe = false,
             restaurant = false,
             electronicsStore = false,
+            gardenStore = false,
             marketStyleId = "",
         },
         hiredEmployees = {
@@ -225,6 +228,7 @@ local function normalizeProfile(value)
             or (value.ownedUpgrades.electronicsStore ~= nil and type(
                 value.ownedUpgrades.electronicsStore
             ) ~= "boolean")
+            or (value.ownedUpgrades.gardenStore ~= nil and type(value.ownedUpgrades.gardenStore) ~= "boolean")
             or (value.ownedUpgrades.marketStyleId ~= nil and value.ownedUpgrades.marketStyleId ~= "" and value.ownedUpgrades.marketStyleId ~= "coastal" and value.ownedUpgrades.marketStyleId ~= "urban" and value.ownedUpgrades.marketStyleId ~= "harvest")
             or (
                 value.ownedUpgrades.marketStyle ~= nil
@@ -244,6 +248,7 @@ local function normalizeProfile(value)
         profile.ownedUpgrades.cafe = value.ownedUpgrades.cafe == true
         profile.ownedUpgrades.restaurant = value.ownedUpgrades.restaurant == true
         profile.ownedUpgrades.electronicsStore = value.ownedUpgrades.electronicsStore == true
+        profile.ownedUpgrades.gardenStore = value.ownedUpgrades.gardenStore == true
         local savedStyleId = value.ownedUpgrades.marketStyleId
         if savedStyleId == "coastal" or savedStyleId == "urban" or savedStyleId == "harvest" then
             profile.ownedUpgrades.marketStyleId = savedStyleId
@@ -268,6 +273,10 @@ local function normalizeProfile(value)
     end
     if profile.ownedUpgrades.electronicsStore and not profile.ownedUpgrades.restaurant then
         return nil, "Stored electronics store ownership exists without the restaurant prerequisite."
+    end
+    if profile.ownedUpgrades.gardenStore and not profile.ownedUpgrades.electronicsStore then
+        return nil,
+            "Stored garden store ownership exists without the electronics store prerequisite."
     end
     if
         profile.ownedUpgrades.bakery
@@ -501,6 +510,8 @@ local function normalizeProfile(value)
             or not validCounter(value.shift.restaurantSales)
             or not validCounter(value.shift.electronicsStock)
             or not validCounter(value.shift.electronicsSales)
+            or not validCounter(value.shift.gardenStock)
+            or not validCounter(value.shift.gardenSales)
         then
             return nil, "Stored shift counters are invalid."
         end
@@ -531,6 +542,9 @@ local function normalizeProfile(value)
         if nonNegativeInteger(value.shift.electronicsStock, 0) > 8 then
             return nil, "Stored electronics stock is outside the supported limit."
         end
+        if nonNegativeInteger(value.shift.gardenStock, 0) > 12 then
+            return nil, "Stored garden stock is outside the supported limit."
+        end
         if
             (
                 nonNegativeInteger(value.shift.electronicsStock, 0) > 0
@@ -538,6 +552,14 @@ local function normalizeProfile(value)
             ) and profile.ownedUpgrades.electronicsStore ~= true
         then
             return nil, "Stored electronics state exists without electronics store ownership."
+        end
+        if
+            (
+                nonNegativeInteger(value.shift.gardenStock, 0) > 0
+                or nonNegativeInteger(value.shift.gardenSales, 0) > 0
+            ) and profile.ownedUpgrades.gardenStore ~= true
+        then
+            return nil, "Stored garden state exists without garden store ownership."
         end
         if
             (
@@ -626,6 +648,8 @@ local function normalizeProfile(value)
         profile.shift.restaurantSales = nonNegativeInteger(value.shift.restaurantSales, 0)
         profile.shift.electronicsStock = nonNegativeInteger(value.shift.electronicsStock, 0)
         profile.shift.electronicsSales = nonNegativeInteger(value.shift.electronicsSales, 0)
+        profile.shift.gardenStock = nonNegativeInteger(value.shift.gardenStock, 0)
+        profile.shift.gardenSales = nonNegativeInteger(value.shift.gardenSales, 0)
     end
     return profile
 end
@@ -654,6 +678,8 @@ local function copyProfile(profile)
             restaurantSales = profile.shift.restaurantSales,
             electronicsStock = profile.shift.electronicsStock,
             electronicsSales = profile.shift.electronicsSales,
+            gardenStock = profile.shift.gardenStock,
+            gardenSales = profile.shift.gardenSales,
         },
         ownedUpgrades = {
             shelfBay = profile.ownedUpgrades.shelfBay,
@@ -667,6 +693,7 @@ local function copyProfile(profile)
             cafe = profile.ownedUpgrades.cafe,
             restaurant = profile.ownedUpgrades.restaurant,
             electronicsStore = profile.ownedUpgrades.electronicsStore,
+            gardenStore = profile.ownedUpgrades.gardenStore,
             marketStyleId = profile.ownedUpgrades.marketStyleId,
         },
         hiredEmployees = {
@@ -944,6 +971,8 @@ function ProfileService.saveProgress(player, state, eventName)
     profile.shift.restaurantSales = state.restaurantSales
     profile.shift.electronicsStock = state.electronicsStock
     profile.shift.electronicsSales = state.electronicsSales
+    profile.shift.gardenStock = state.gardenStock
+    profile.shift.gardenSales = state.gardenSales
     profile.ownedUpgrades.shelfBay = state.upgradePurchased
     profile.ownedUpgrades.warehouse = state.warehousePurchased
     profile.ownedUpgrades.marketStyle = state.marketStylePurchased
@@ -955,6 +984,7 @@ function ProfileService.saveProgress(player, state, eventName)
     profile.ownedUpgrades.cafe = state.cafePurchased
     profile.ownedUpgrades.restaurant = state.restaurantPurchased
     profile.ownedUpgrades.electronicsStore = state.electronicsStorePurchased
+    profile.ownedUpgrades.gardenStore = state.gardenStorePurchased
     profile.ownedUpgrades.marketStyleId = state.marketStyleId
     profile.warehouseLayout = state.warehouseLayout
     profile.retailLayout = RetailLayoutService.normalize(

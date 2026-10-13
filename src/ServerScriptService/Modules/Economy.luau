@@ -33,6 +33,11 @@ Economy.ELECTRONICS_RESTOCK_COST = 300
 Economy.ELECTRONICS_RESTOCK_QUANTITY = 2
 Economy.ELECTRONICS_SHELF_CAPACITY = 8
 Economy.ELECTRONICS_ITEM_PRICE = 220
+Economy.GARDEN_STORE_COST = 1800
+Economy.GARDEN_RESTOCK_COST = 120
+Economy.GARDEN_RESTOCK_QUANTITY = 3
+Economy.GARDEN_SHELF_CAPACITY = 12
+Economy.GARDEN_ITEM_PRICE = 75
 Economy.ONLINE_ORDER_PRODUCTS = {
     { "citrusPop", "berryBites", "goldenApples" },
     { "sunriseCereal", "citrusPop", "goldenApples" },
@@ -266,6 +271,9 @@ function Economy.newState(profile, playerSeed)
         electronicsStorePurchased = upgrades.electronicsStore or false,
         electronicsStock = savedShift.electronicsStock or 0,
         electronicsSales = savedShift.electronicsSales or 0,
+        gardenStorePurchased = upgrades.gardenStore or false,
+        gardenStock = savedShift.gardenStock or 0,
+        gardenSales = savedShift.gardenSales or 0,
     }
 end
 
@@ -422,6 +430,59 @@ function Economy.sellElectronics(state)
     state.cash += Economy.ELECTRONICS_ITEM_PRICE
     state.electronicsSales += 1
     return true, string.format("Headphones sold! +$%d.", Economy.ELECTRONICS_ITEM_PRICE)
+end
+
+function Economy.buyGardenStore(state)
+    if
+        state.stage ~= "Complete"
+        or not state.electronicsStorePurchased
+        or state.gardenStorePurchased
+    then
+        return false, "Little Sprout Garden opens after Pixel & Plug, between shifts."
+    end
+    if state.cash < Economy.GARDEN_STORE_COST then
+        return false,
+            string.format("You need $%d to open Little Sprout Garden.", Economy.GARDEN_STORE_COST)
+    end
+    state.cash -= Economy.GARDEN_STORE_COST
+    state.gardenStorePurchased = true
+    state.gardenStock = 0
+    return true, "Little Sprout Garden is open! Stock the plant stand to start selling."
+end
+
+function Economy.restockGarden(state)
+    if not state.gardenStorePurchased or state.stage ~= "Complete" then
+        return false, "Restock the garden stand between supermarket shifts."
+    end
+    if state.gardenStock + Economy.GARDEN_RESTOCK_QUANTITY > Economy.GARDEN_SHELF_CAPACITY then
+        return false, "The garden stand is full."
+    end
+    if state.cash < Economy.GARDEN_RESTOCK_COST then
+        return false,
+            string.format("You need $%d for three potted herbs.", Economy.GARDEN_RESTOCK_COST)
+    end
+    state.cash -= Economy.GARDEN_RESTOCK_COST
+    state.gardenStock += Economy.GARDEN_RESTOCK_QUANTITY
+    return true, string.format("Stocked %d potted herbs.", Economy.GARDEN_RESTOCK_QUANTITY)
+end
+
+function Economy.sellGardenItem(state)
+    if not state.gardenStorePurchased then
+        return false, "Open Little Sprout Garden before selling plants."
+    end
+    if state.stage == "Loading" or state.stage == "OwnerOffline" then
+        return false, "Wait until the store owner profile is ready."
+    end
+    if state.gardenStock < 1 then
+        return false, "The garden stand is empty. Restock it between shifts."
+    end
+    if state.gardenSales >= 1000000000 then
+        return false, "The garden sales counter has reached its supported limit."
+    end
+    state.gardenStock -= 1
+    state.cash += Economy.GARDEN_ITEM_PRICE
+    state.gardenSales += 1
+    return true, string.format("Potted herb sold! +$%d.", Economy.GARDEN_ITEM_PRICE)
 end
 
 function Economy.getNextOnlineOrder(state)
