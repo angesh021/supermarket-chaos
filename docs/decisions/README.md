@@ -354,6 +354,11 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Consequences:** Exterior and interior colors remain one server-owned, persisted selection without new profile fields or client-supplied colors.
 - **Verification:** See `docs/operations/PHASE66_INTERIOR_STYLE_PALETTES.md`.
 
+## ADR-0063: Construct persistent grocery aisles
+- **Decision:** Allow up to four server-priced, movable aisle fixtures after the first shelf bay.
+- **Consequences:** Retail layout v5 stores bounded aisle GUIDs and transforms per location; all future layout moves must preserve aisle clearance.
+- **Verification:** See `docs/operations/PHASE67_CONSTRUCTED_GROCERY_AISLES.md`.
+
 ## ADR-0009 — Keep product inventory and supplier orders SKU-specific
 - **Status:** Accepted — 2026-10-12.
 - **Context:** The retail loop needs visible department variety and product-specific stock behavior while keeping stock and money authoritative.

@@ -977,6 +977,13 @@ local function copyProfile(profile)
             rotation = placement.rotation,
         }
     end
+    for aisleId, placement in pairs(profile.retailLayout.aisles or {}) do
+        copy.retailLayout.aisles[aisleId] = {
+            x = placement.x,
+            z = placement.z,
+            rotation = placement.rotation,
+        }
+    end
     copy.locations = cloneData(profile.locations)
     return copy
 end

@@ -27,13 +27,13 @@ gui.Parent = player:WaitForChild("PlayerGui")
 local panel = Instance.new("Frame")
 panel.AnchorPoint = Vector2.new(0.5, 0.5)
 panel.Position = UDim2.fromScale(0.5, 0.5)
-panel.Size = UDim2.new(0.9, 0, 0, 500)
+panel.Size = UDim2.new(0.9, 0, 0, 540)
 panel.BackgroundColor3 = Color3.fromRGB(249, 239, 216)
 panel.BorderSizePixel = 0
 panel.Parent = gui
 local sizeConstraint = Instance.new("UISizeConstraint")
-sizeConstraint.MinSize = Vector2.new(250, 500)
-sizeConstraint.MaxSize = Vector2.new(330, 500)
+sizeConstraint.MinSize = Vector2.new(250, 540)
+sizeConstraint.MaxSize = Vector2.new(330, 540)
 sizeConstraint.Parent = panel
 local corner = Instance.new("UICorner")
 corner.CornerRadius = UDim.new(0, 12)
@@ -68,7 +68,7 @@ local instructions = makeLabel(
 instructions.TextWrapped = true
 local status = makeLabel(
     "Choose a department shelf.",
-    UDim2.fromOffset(14, 456),
+    UDim2.fromOffset(14, 500),
     UDim2.new(1, -28, 0, 28),
     12,
     true
@@ -129,18 +129,23 @@ for index, fixture in ipairs({
     button.Visible = false
     fixtureButtons[fixture.id] = button
 end
+local buildAisleButton =
+    makeButton("Build grocery aisle ($250)", UDim2.new(0.06, 0, 0, 416), UDim2.new(0.88, 0, 0, 34))
 local moveButton =
-    makeButton("Move selected fixture", UDim2.new(0.06, 0, 0, 416), UDim2.new(0.47, 0, 0, 34))
+    makeButton("Move selected fixture", UDim2.new(0.06, 0, 0, 460), UDim2.new(0.47, 0, 0, 34))
 local rotateButton =
-    makeButton("Rotate 90°", UDim2.new(0.55, 0, 0, 416), UDim2.new(0.39, 0, 0, 34))
+    makeButton("Rotate 90°", UDim2.new(0.55, 0, 0, 460), UDim2.new(0.39, 0, 0, 34))
 local closeButton = makeButton("Close", UDim2.new(0.78, 0, 0, 10), UDim2.new(0.16, 0, 0, 28))
 
 local selectedProductId
 local selectedFixtureId
+local selectedConstructedAisleId
 local selectedCheckout = false
 local floorExpansionOwned = false
+local shelfBayOwned = false
 local rotation = 0
 local moveMode = false
+local buildingAisle = false
 local pointerPosition
 local ghost
 
@@ -150,7 +155,11 @@ local function fixtureSize(productId, rotationValue)
         width, depth, height = 8, 8.6, 7
     elseif productId == "frozenMeals" then
         width, depth, height = 8.4, 7.6, 7
-    elseif productId == "shelfBay" or productId == "householdAisle" then
+    elseif
+        productId == "shelfBay"
+        or productId == "householdAisle"
+        or productId == "constructedAisle"
+    then
         width, depth, height = 8, 2.4, 7
     else
         width = productId == "goldenApples" and 4 or 6
@@ -172,14 +181,24 @@ end
 local function setMoveMode(enabled)
     moveMode = enabled
     if enabled then
-        if not selectedProductId and not selectedFixtureId and not selectedCheckout then
+        if
+            not selectedProductId
+            and not selectedFixtureId
+            and not selectedConstructedAisleId
+            and not selectedCheckout
+            and not buildingAisle
+        then
             moveMode = false
             status.Text = "Choose a department shelf or checkout lane first."
             return
         end
-        status.Text = selectedCheckout
-                and "Tap an open front-floor tile to move checkout and its queue."
-            or "Tap an open floor tile to move this fixture."
+        if selectedCheckout then
+            status.Text = "Tap an open front-floor tile to move checkout and its queue."
+        elseif buildingAisle then
+            status.Text = "Tap an open floor tile to build a grocery aisle for $250."
+        else
+            status.Text = "Tap an open floor tile to move this fixture."
+        end
     else
         destroyGhost()
         status.Text = "Choose a department shelf."
@@ -199,7 +218,12 @@ local function ensureGhost()
     ghost.Material = Enum.Material.ForceField
     ghost.Transparency = 0.48
     ghost.Size = selectedCheckout and Vector3.new(8, 7, 11.5)
-        or fixtureSize(selectedFixtureId or selectedProductId, rotation)
+        or fixtureSize(
+            selectedConstructedAisleId and "constructedAisle"
+                or selectedFixtureId
+                or selectedProductId,
+            rotation
+        )
     ghost.Parent = workspace
 end
 
@@ -226,6 +250,18 @@ local function findRetailFixtureId(instance)
         local fixtureId = current:GetAttribute("RetailFixtureId")
         if type(fixtureId) == "string" then
             return fixtureId
+        end
+        current = current.Parent
+    end
+    return nil
+end
+
+local function findConstructedAisleId(instance)
+    local current = instance
+    while current and current ~= workspace do
+        local aisleId = current:GetAttribute("ConstructedRetailAisleId")
+        if type(aisleId) == "string" then
+            return aisleId
         end
         current = current.Parent
     end
@@ -286,6 +322,11 @@ local function raycastPointer(excludeShelves)
                 end
             end
         end
+        local constructedAisles = interior
+            and interior:FindFirstChild("Player Constructed Retail Aisles")
+        if constructedAisles then
+            table.insert(exclude, constructedAisles)
+        end
     end
     params.FilterDescendantsInstances = exclude
     local ray = camera:ScreenPointToRay(pointerPosition.X, pointerPosition.Y)
@@ -296,6 +337,8 @@ for productId, button in pairs(productButtons) do
     button.Activated:Connect(function()
         selectedCheckout = false
         selectedFixtureId = nil
+        selectedConstructedAisleId = nil
+        buildingAisle = false
         selectedProductId = productId
         rotation = 0
         rotateButton.Text = "Rotate 90°"
@@ -309,6 +352,8 @@ for fixtureId, button in pairs(fixtureButtons) do
     button.Activated:Connect(function()
         selectedCheckout = false
         selectedProductId = nil
+        selectedConstructedAisleId = nil
+        buildingAisle = false
         selectedFixtureId = fixtureId
         rotation = 0
         rotateButton.Text = "Rotate 90°"
@@ -318,9 +363,28 @@ for fixtureId, button in pairs(fixtureButtons) do
     end)
 end
 
+buildAisleButton.Activated:Connect(function()
+    if not shelfBayOwned then
+        status.Text = "Build the first shelf bay before adding grocery aisles."
+        return
+    end
+    selectedCheckout = false
+    selectedProductId = nil
+    selectedFixtureId = nil
+    selectedConstructedAisleId = nil
+    buildingAisle = true
+    rotation = 0
+    rotateButton.Text = "Rotate 90°"
+    ensureGhost()
+    ghost.Size = fixtureSize("constructedAisle", rotation)
+    setMoveMode(true)
+end)
+
 checkoutButton.Activated:Connect(function()
     selectedProductId = nil
     selectedFixtureId = nil
+    selectedConstructedAisleId = nil
+    buildingAisle = false
     selectedCheckout = true
     rotation = 0
     rotateButton.Text = "Rotate 90°"
@@ -338,6 +402,9 @@ rotateButton.Activated:Connect(function()
     rotateButton.Text = rotation == 0 and "Rotate 90°" or "Rotate 0°"
     if ghost and (selectedProductId or selectedFixtureId) then
         ghost.Size = fixtureSize(selectedFixtureId or selectedProductId, rotation)
+    end
+    if ghost and (selectedConstructedAisleId or buildingAisle) then
+        ghost.Size = fixtureSize("constructedAisle", rotation)
     end
     if ghost and selectedCheckout then
         ghost.Size = rotation == 0 and Vector3.new(8, 7, 11.5) or Vector3.new(11.5, 7, 8)
@@ -370,13 +437,18 @@ local function onPointerDown(input, processed)
         local expansionDepartment = selectedProductId == "cinnamonTwists"
             or selectedProductId == "frozenMeals"
         local movableFixture = selectedFixtureId ~= nil
-        local minX = selectedCheckout and -14
+        local constructedAisle = selectedConstructedAisleId ~= nil or buildingAisle
+        local minX = (selectedCheckout or constructedAisle) and -14
             or (expansionDepartment and -16 or (movableFixture and -18 or -12))
-        local maxX = selectedCheckout and 14
+        local maxX = (selectedCheckout or constructedAisle) and 14
             or (expansionDepartment and 16 or (movableFixture and 18 or 12))
         local minZ, maxZ
         if selectedCheckout then
             minZ, maxZ = 6, 12
+        elseif constructedAisle and floorExpansionOwned and hit.Position.Z < -17 then
+            minZ, maxZ = -34, -20
+        elseif constructedAisle then
+            minZ, maxZ = -16, 14
         elseif movableFixture then
             minZ, maxZ = -16, -2
         elseif floorExpansionOwned and hit.Position.Z < -17 then
@@ -390,22 +462,41 @@ local function onPointerDown(input, processed)
             status.Text = "That point is outside the marked retail layout zone."
             return
         end
+        local action = if selectedCheckout
+            then "MoveCheckout"
+            elseif buildingAisle then "BuildAisle"
+            elseif selectedConstructedAisleId then "MoveAisle"
+            elseif movableFixture then "MoveFixture"
+            else "MoveShelf"
         layoutEvent:FireServer({
-            action = selectedCheckout and "MoveCheckout"
-                or (movableFixture and "MoveFixture" or "MoveShelf"),
+            action = action,
             productId = selectedProductId,
             fixtureId = selectedFixtureId,
+            id = selectedConstructedAisleId,
             x = x,
             z = z,
             rotation = rotation,
         }, player:GetAttribute("ActiveStoreLocation") or "neighborhood")
+        buildingAisle = false
         setMoveMode(false)
         status.Text = "Checking fixture bounds and aisle clearance…"
     else
         local productId = findRetailProductId(hit.Instance)
-        if isCheckoutFixture(hit.Instance) then
+        local constructedAisleId = findConstructedAisleId(hit.Instance)
+        if constructedAisleId then
             selectedProductId = nil
             selectedFixtureId = nil
+            selectedConstructedAisleId = constructedAisleId
+            selectedCheckout = false
+            buildingAisle = false
+            ensureGhost()
+            ghost.Size = fixtureSize("constructedAisle", rotation)
+            status.Text = "Selected grocery aisle. Choose Move selected fixture."
+        elseif isCheckoutFixture(hit.Instance) then
+            selectedProductId = nil
+            selectedFixtureId = nil
+            selectedConstructedAisleId = nil
+            buildingAisle = false
             selectedCheckout = true
             ensureGhost()
             ghost.Size = rotation == 0 and Vector3.new(8, 7, 11.5) or Vector3.new(11.5, 7, 8)
@@ -415,6 +506,8 @@ local function onPointerDown(input, processed)
             if fixtureButtons[fixtureId] and fixtureButtons[fixtureId].Visible then
                 selectedProductId = nil
                 selectedFixtureId = fixtureId
+                selectedConstructedAisleId = nil
+                buildingAisle = false
                 selectedCheckout = false
                 ensureGhost()
                 ghost.Size = fixtureSize(fixtureId, rotation)
@@ -425,6 +518,8 @@ local function onPointerDown(input, processed)
         elseif productId and productButtons[productId] then
             selectedProductId = productId
             selectedFixtureId = nil
+            selectedConstructedAisleId = nil
+            buildingAisle = false
             selectedCheckout = false
             ensureGhost()
             local width = productId == "goldenApples" and 4 or 6
@@ -453,28 +548,43 @@ RunService.RenderStepped:Connect(function()
         return
     end
     local movableFixture = selectedFixtureId ~= nil
-    local minX = selectedCheckout and -14 or (movableFixture and -18 or -12)
-    local maxX = selectedCheckout and 14 or (movableFixture and 18 or 12)
+    local constructedAisle = selectedConstructedAisleId ~= nil or buildingAisle
+    local minX = (selectedCheckout or constructedAisle) and -14 or (movableFixture and -18 or -12)
+    local maxX = (selectedCheckout or constructedAisle) and 14 or (movableFixture and 18 or 12)
     local width = selectedProductId == "goldenApples" and 4 or 6
     if selectedProductId == "cinnamonTwists" or selectedProductId == "frozenMeals" then
         minX, maxX = -16, 16
     end
     local zMinimum, zMaximum = movableFixture and -16 or -9, -1
+    if constructedAisle then
+        zMinimum, zMaximum = -16, 14
+        if floorExpansionOwned and hit.Position.Z < -17 then
+            zMinimum, zMaximum = -34, -20
+        end
+    end
     local x, validX = snap(hit.Position.X, minX, maxX)
     local z, validZ = snap(hit.Position.Z, zMinimum, zMaximum)
     if selectedCheckout then
         x, validX = snap(hit.Position.X, -14, 14)
         z, validZ = snap(hit.Position.Z, 6, 12)
-    elseif not movableFixture and floorExpansionOwned and hit.Position.Z < -17 then
+    elseif constructedAisle and floorExpansionOwned and hit.Position.Z < -17 then
+        z, validZ = snap(hit.Position.Z, -34, -20)
+    elseif
+        not movableFixture
+        and not constructedAisle
+        and floorExpansionOwned
+        and hit.Position.Z < -17
+    then
         z, validZ = snap(hit.Position.Z, -33, -21)
     end
-    if selectedFixtureId then
+    if selectedFixtureId or constructedAisle then
         width = 8
     end
+    local depth = constructedAisle and 2.4 or 2.2
     local halfX = selectedCheckout and (rotation == 0 and 4.5 or 5.75)
-        or (rotation == 0 and width / 2 or 1.1)
+        or (rotation == 0 and width / 2 or depth / 2)
     local halfZ = selectedCheckout and (rotation == 0 and 5.75 or 4.5)
-        or (rotation == 0 and 1.1 or width / 2)
+        or (rotation == 0 and depth / 2 or width / 2)
     local minimumFloorZ = z < -17 and -39.5 or -18.5
     local inside = validX
         and validZ
@@ -484,6 +594,10 @@ RunService.RenderStepped:Connect(function()
         and z + halfZ <= 16.5
     if selectedCheckout then
         inside = inside and x >= -14 and x <= 14 and z >= 6 and z <= 12
+    elseif constructedAisle and z < -17 then
+        inside = inside and floorExpansionOwned and z >= -34 and z <= -20
+    elseif constructedAisle then
+        inside = inside and z >= -16 and z <= 14
     elseif z < -17 then
         inside = inside and floorExpansionOwned and z >= -33 and z <= -21
     end
@@ -502,8 +616,12 @@ layoutEvent.OnClientEvent:Connect(function(message)
     if message.action == "Open" then
         selectedProductId = nil
         selectedFixtureId = nil
+        selectedConstructedAisleId = nil
         selectedCheckout = false
+        buildingAisle = false
         floorExpansionOwned = message.floorExpansionOwned == true
+        shelfBayOwned = message.shelfBayPurchased == true
+        buildAisleButton.Visible = shelfBayOwned
         expansionButtons.cinnamonTwists.Visible = message.bakeryPurchased == true
         expansionButtons.frozenMeals.Visible = message.freezerPurchased == true
         fixtureButtons.shelfBay.Visible = message.shelfBayPurchased == true

@@ -917,6 +917,9 @@ function WorldBuilder.build(locationId, origin)
     local retailDepartmentFolder = Instance.new("Folder")
     retailDepartmentFolder.Name = "Retail Department Shelves"
     retailDepartmentFolder.Parent = interior
+    local retailConstructionFolder = Instance.new("Folder")
+    retailConstructionFolder.Name = "Player Constructed Retail Aisles"
+    retailConstructionFolder.Parent = interior
     local retailDepartmentShelves = {}
     local retailShelfPositions = {}
     local retailShelfPivotHeights = {}
@@ -5038,6 +5041,21 @@ function WorldBuilder.build(locationId, origin)
                         )
                     end
                 end
+            end
+            retailConstructionFolder:ClearAllChildren()
+            for aisleId, placement in pairs(layout.aisles or {}) do
+                local aisle = createShelf(
+                    retailConstructionFolder,
+                    "Constructed Grocery Aisle",
+                    placement.x,
+                    placement.z,
+                    8,
+                    "GROCERY",
+                    placement.rotation
+                )
+                aisle:SetAttribute("ConstructedRetailAisleId", aisleId)
+                aisle:SetAttribute("PlayerPurchased", true)
+                tagRetailShelfPalette(aisle)
             end
             updateCustomerBasketPositions()
             applyMarketStyle(marketStylePurchased and marketStyleId or marketStylePreviewId)

@@ -17,6 +17,7 @@ Economy.AISLE_EXPANSION_COST = 220
 Economy.FLOOR_EXPANSION_COST = 500
 Economy.BAKERY_DEPARTMENT_COST = 350
 Economy.FREEZER_DEPARTMENT_COST = 400
+Economy.RETAIL_AISLE_COST = 250
 Economy.SELF_CHECKOUT_COST = 300
 Economy.CAFE_COST = 650
 Economy.CAFE_RESTOCK_COST = 45
@@ -1955,6 +1956,77 @@ function Economy.buyFreezerDepartment(state)
     state.freezerPurchased = true
     state.frozenMealBackstock = math.max(state.frozenMealBackstock or 0, 6)
     return true, "Freezer section built! Freezer Meals are ready for stocking."
+end
+
+function Economy.buildRetailAisle(state, aisleId, x, z, rotation)
+    if state.stage ~= "Complete" or not state.upgradePurchased then
+        return false, "Build the first shelf bay before adding more grocery aisles."
+    end
+    if not RetailLayoutService.isConstructedAisleId(aisleId) then
+        return false, "That grocery aisle selection is invalid."
+    end
+    local count = 0
+    for _ in pairs(state.retailLayout.aisles) do
+        count += 1
+    end
+    if count >= RetailLayoutService.MAX_CONSTRUCTED_AISLES then
+        return false, "The store has reached its constructed aisle limit."
+    end
+    if state.cash < Economy.RETAIL_AISLE_COST then
+        return false,
+            string.format("You need $%d to build a grocery aisle.", Economy.RETAIL_AISLE_COST)
+    end
+    local valid, reason = RetailLayoutService.canPlaceConstructedAisle(
+        state.retailLayout,
+        aisleId,
+        x,
+        z,
+        rotation,
+        state.floorExpansionPurchased,
+        state.bakeryPurchased,
+        state.freezerPurchased,
+        state.upgradePurchased,
+        state.aisleExpansionPurchased
+    )
+    if not valid then
+        return false, reason
+    end
+    state.cash -= Economy.RETAIL_AISLE_COST
+    state.retailLayout.aisles[aisleId] = { x = x, z = z, rotation = rotation }
+    return true, string.format("Grocery aisle built for $%d.", Economy.RETAIL_AISLE_COST)
+end
+
+function Economy.moveRetailAisle(state, aisleId, x, z, rotation)
+    if state.stage ~= "Complete" or not state.upgradePurchased then
+        return false, "Edit grocery aisles between shifts after building the first shelf bay."
+    end
+    if not RetailLayoutService.isConstructedAisleId(aisleId) then
+        return false, "Select a saved grocery aisle first."
+    end
+    local aisle = state.retailLayout.aisles[aisleId]
+    if not aisle then
+        return false, "Select a saved grocery aisle first."
+    end
+    local valid, reason = RetailLayoutService.canPlaceConstructedAisle(
+        state.retailLayout,
+        aisleId,
+        x,
+        z,
+        rotation,
+        state.floorExpansionPurchased,
+        state.bakeryPurchased,
+        state.freezerPurchased,
+        state.upgradePurchased,
+        state.aisleExpansionPurchased,
+        aisleId
+    )
+    if not valid then
+        return false, reason
+    end
+    aisle.x = x
+    aisle.z = z
+    aisle.rotation = rotation
+    return true, "Grocery aisle moved."
 end
 
 function Economy.buySelfCheckout(state)

@@ -69,6 +69,7 @@
 | [Purchased store fixture layout](operations/PHASE64_MOVABLE_CORE_FIXTURES.md) | Move and rotate owned shelf bay/household aisle fixtures with server-side bounds and persistence |
 | [Movable shelf stock visuals](operations/PHASE65_MOVABLE_SHELF_STOCK_VISUALS.md) | Keep each core product's visible stock attached to its movable shelf model |
 | [Interior store palettes](operations/PHASE66_INTERIOR_STYLE_PALETTES.md) | Apply the installed server-allow-listed store style to the interior |
+| [Constructed grocery aisles](operations/PHASE67_CONSTRUCTED_GROCERY_AISLES.md) | Build and persist up to four movable grocery aisles |
 | [Commercial district review](operations/PHASE58_COMMERCIAL_DISTRICT.md) | Connected avenue, neighborhood storefronts and Studio visual checks |
 
 Keep this index and linked documents current as implementation changes. See [AGENTS.md](../AGENTS.md) for repository rules.

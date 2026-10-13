@@ -1,7 +1,8 @@
 -- Pure validation for movable customer-facing department shelves.
 local RetailLayoutService = {}
 
-RetailLayoutService.VERSION = 4
+RetailLayoutService.VERSION = 5
+RetailLayoutService.MAX_CONSTRUCTED_AISLES = 4
 RetailLayoutService.CORE_PRODUCT_IDS = {
     "citrusPop",
     "berryBites",
@@ -73,6 +74,16 @@ function RetailLayoutService.isFixtureId(value)
         end
     end
     return false
+end
+
+function RetailLayoutService.isConstructedAisleId(value)
+    return type(value) == "string"
+        and #value == 36
+        and string.match(
+                value,
+                "^%x%x%x%x%x%x%x%x%-%x%x%x%x%-%x%x%x%x%-%x%x%x%x%-%x%x%x%x%x%x%x%x%x%x%x%x$"
+            )
+            ~= nil
 end
 
 local function validGrid(value, minimum, maximum)
@@ -275,6 +286,7 @@ function RetailLayoutService.default()
                 rotation = DEFAULT_FIXTURES.householdAisle.rotation,
             },
         },
+        aisles = {},
     }
 end
 
@@ -291,7 +303,7 @@ function RetailLayoutService.normalize(
     end
     if
         type(value) ~= "table"
-        or (value.version ~= 1 and value.version ~= 2 and value.version ~= 3 and value.version ~= RetailLayoutService.VERSION)
+        or (value.version ~= 1 and value.version ~= 2 and value.version ~= 3 and value.version ~= 4 and value.version ~= RetailLayoutService.VERSION)
         or type(value.shelves) ~= "table"
     then
         return nil, "Stored retail layout is malformed."
@@ -378,6 +390,37 @@ function RetailLayoutService.normalize(
             rotation = source.rotation,
         }
     end
+    if value.aisles ~= nil and type(value.aisles) ~= "table" then
+        return nil, "Stored constructed aisles are malformed."
+    end
+    local storedAisles = type(value.aisles) == "table" and value.aisles or {}
+    local aisleCount = 0
+    for aisleId, placement in pairs(storedAisles) do
+        aisleCount += 1
+        if not RetailLayoutService.isConstructedAisleId(aisleId) or type(placement) ~= "table" then
+            return nil, "Stored layout contains an invalid constructed aisle."
+        end
+        if
+            not finiteNumber(placement.x)
+            or not finiteNumber(placement.z)
+            or (placement.rotation ~= 0 and placement.rotation ~= 90)
+        then
+            return nil, "Stored constructed aisle position is malformed."
+        end
+        for key in pairs(placement) do
+            if key ~= "x" and key ~= "z" and key ~= "rotation" then
+                return nil, "Stored constructed aisle contains an unsupported field."
+            end
+        end
+        normalized.aisles[aisleId] = {
+            x = placement.x,
+            z = placement.z,
+            rotation = placement.rotation,
+        }
+    end
+    if aisleCount > RetailLayoutService.MAX_CONSTRUCTED_AISLES then
+        return nil, "Stored retail layout contains too many constructed aisles."
+    end
     for _, productId in ipairs(RetailLayoutService.CORE_PRODUCT_IDS) do
         local source = value.shelves[productId]
         if type(source) ~= "table" then
@@ -450,7 +493,8 @@ function RetailLayoutService.normalize(
             normalized.departments,
             normalized.fixtures,
             shelfBayPurchased,
-            householdAislePurchased
+            householdAislePurchased,
+            normalized.aisles
         )
         if not shelfValid then
             return nil, shelfReason
@@ -543,6 +587,24 @@ function RetailLayoutService.normalize(
             end
         end
     end
+    for aisleId, placement in pairs(normalized.aisles) do
+        local valid, reason = RetailLayoutService.canPlaceConstructedAisle(
+            normalized,
+            aisleId,
+            placement.x,
+            placement.z,
+            placement.rotation,
+            expansionPurchased,
+            bakeryPurchased,
+            freezerPurchased,
+            shelfBayPurchased,
+            householdAislePurchased,
+            aisleId
+        )
+        if not valid then
+            return nil, reason
+        end
+    end
     return normalized
 end
 
@@ -553,6 +615,22 @@ local function departmentFootprint(productId, rotation)
         width, depth = depth, width
     end
     return width / 2, depth / 2
+end
+
+local function overlapsConstructedAisle(layout, x, z, halfX, halfZ, excludedAisleId)
+    for aisleId, placement in pairs(layout.aisles or {}) do
+        if aisleId ~= excludedAisleId then
+            local aisleHalfX, aisleHalfZ =
+                placement.rotation == 0 and 4 or 1.2, placement.rotation == 0 and 1.2 or 4
+            if
+                math.abs(x - placement.x) < halfX + aisleHalfX + 0.25
+                and math.abs(z - placement.z) < halfZ + aisleHalfZ + 0.25
+            then
+                return true
+            end
+        end
+    end
+    return false
 end
 
 function RetailLayoutService.canPlaceDepartment(
@@ -598,6 +676,9 @@ function RetailLayoutService.canPlaceDepartment(
     local halfX, halfZ = departmentFootprint(productId, rotation)
     if x - halfX < -20.5 or x + halfX > 20.5 or z - halfZ < -39.5 or z + halfZ > -18.5 then
         return false, "Keep the department fixture inside the expanded floor."
+    end
+    if overlapsConstructedAisle(layout, x, z, halfX, halfZ) then
+        return false, "Keep the department fixture clear of constructed grocery aisles."
     end
     local fixtureLayout = layout.departments
     local checkoutMinX, checkoutMaxX, checkoutMinZ, checkoutMaxZ =
@@ -688,6 +769,9 @@ function RetailLayoutService.canPlaceFixture(
     if x - halfX < -20.5 or x + halfX > 20.5 or z - halfZ < -18.5 or z + halfZ > 16.5 then
         return false, "Keep the fixture inside the main store floor."
     end
+    if overlapsConstructedAisle(layout, x, z, halfX, halfZ) then
+        return false, "Keep purchased fixtures clear of constructed grocery aisles."
+    end
     local minX, maxX, minZ, maxZ =
         checkoutEnvelope(layout.checkout.x, layout.checkout.z, layout.checkout.rotation)
     if
@@ -738,6 +822,121 @@ function RetailLayoutService.canPlaceFixture(
     return true
 end
 
+function RetailLayoutService.canPlaceConstructedAisle(
+    layout,
+    aisleId,
+    x,
+    z,
+    rotation,
+    expansionPurchased,
+    bakeryPurchased,
+    freezerPurchased,
+    shelfBayPurchased,
+    householdAislePurchased,
+    excludedAisleId
+)
+    if not RetailLayoutService.isConstructedAisleId(aisleId) then
+        return false, "That constructed aisle ID is invalid."
+    end
+    if
+        not finiteNumber(x)
+        or not finiteNumber(z)
+        or x % 2 ~= 0
+        or z % 2 ~= 0
+        or x < -14
+        or x > 14
+        or (rotation ~= 0 and rotation ~= 90)
+    then
+        return false, "Choose a snapped position and 0 or 90 degree rotation inside the store."
+    end
+    local rearWing = z <= -20
+    if rearWing then
+        if not expansionPurchased or z < -34 then
+            return false, "Build the rear wing before placing an aisle in that zone."
+        end
+    elseif z < -16 or z > 14 then
+        return false, "Choose a snapped position inside the marked retail floor."
+    end
+    local halfX, halfZ = rotation == 0 and 4 or 1.2, rotation == 0 and 1.2 or 4
+    local minimumFloorZ = rearWing and -39.5 or -18.5
+    local maximumFloorZ = rearWing and -18.5 or 16.5
+    if
+        x - halfX < -20.5
+        or x + halfX > 20.5
+        or z - halfZ < minimumFloorZ
+        or z + halfZ > maximumFloorZ
+    then
+        return false, "Keep the constructed aisle inside the store floor."
+    end
+
+    local function overlapsAt(otherX, otherZ, otherHalfX, otherHalfZ, gap)
+        local clearance = gap or 0.25
+        return math.abs(x - otherX) < halfX + otherHalfX + clearance
+            and math.abs(z - otherZ) < halfZ + otherHalfZ + clearance
+    end
+
+    local checkoutMinX, checkoutMaxX, checkoutMinZ, checkoutMaxZ =
+        checkoutEnvelope(layout.checkout.x, layout.checkout.z, layout.checkout.rotation)
+    if
+        x - halfX < checkoutMaxX + 0.25
+        and x + halfX > checkoutMinX - 0.25
+        and z - halfZ < checkoutMaxZ + 0.25
+        and z + halfZ > checkoutMinZ - 0.25
+    then
+        return false, "Keep the constructed aisle clear of checkout and its queue."
+    end
+    for _, productId in ipairs(RetailLayoutService.CORE_PRODUCT_IDS) do
+        local shelf = layout.shelves[productId]
+        local shelfHalfX, shelfHalfZ = halfFootprint(productId, shelf.rotation)
+        if overlapsAt(shelf.x, shelf.z, shelfHalfX, shelfHalfZ) then
+            return false, "Keep the constructed aisle clear of product shelves."
+        end
+    end
+    for productId, placement in pairs(layout.departments or {}) do
+        local owned = productId == "cinnamonTwists" and bakeryPurchased == true
+            or productId == "frozenMeals" and freezerPurchased == true
+        if owned then
+            local departmentHalfX, departmentHalfZ =
+                departmentFootprint(productId, placement.rotation)
+            if overlapsAt(placement.x, placement.z, departmentHalfX, departmentHalfZ) then
+                return false, "Keep the constructed aisle clear of bakery and freezer departments."
+            end
+        end
+    end
+    for fixtureId, placement in pairs(layout.fixtures or {}) do
+        local owned = fixtureId == "shelfBay" and shelfBayPurchased == true
+            or fixtureId == "householdAisle" and householdAislePurchased == true
+        if owned then
+            local fixtureHalfX, fixtureHalfZ = retailFixtureHalfFootprint(placement.rotation)
+            if overlapsAt(placement.x, placement.z, fixtureHalfX, fixtureHalfZ) then
+                return false, "Keep the constructed aisle clear of purchased shelf fixtures."
+            end
+        end
+    end
+    for otherId, placement in pairs(layout.aisles or {}) do
+        if otherId ~= excludedAisleId then
+            local otherHalfX, otherHalfZ =
+                placement.rotation == 0 and 4 or 1.2, placement.rotation == 0 and 1.2 or 4
+            if overlapsAt(placement.x, placement.z, otherHalfX, otherHalfZ) then
+                return false, "Keep constructed aisles from overlapping one another."
+            end
+        end
+    end
+    if not rearWing then
+        -- Keep the produce island, display chiller and layout/upgrade boards accessible.
+        if overlapsAt(-13, 8, 3.5, 1.5, 0.25) then
+            return false, "Keep the aisle clear of the fresh-produce island."
+        end
+        if overlapsAt(9, -14.5, 3.8, 2, 0.25) then
+            return false, "Keep the aisle clear of the refrigerated display."
+        end
+        if overlapsAt(-17.5, 12.5, 3, 3, 0.25) or overlapsAt(17.5, 12.5, 3, 3, 0.25) then
+            return false, "Keep the aisle clear of the store upgrade boards."
+        end
+    end
+    return true
+end
+
 function RetailLayoutService.canPlace(
     shelves,
     productId,
@@ -751,7 +950,8 @@ function RetailLayoutService.canPlace(
     departments,
     fixtures,
     shelfBayPurchased,
-    householdAislePurchased
+    householdAislePurchased,
+    aisles
 )
     local valid, reason =
         canPlace(shelves, productId, x, z, rotation, productId, expansionPurchased)
@@ -786,6 +986,10 @@ function RetailLayoutService.canPlace(
             end
         end
     end
+    local shelfHalfX, shelfHalfZ = halfFootprint(productId, rotation)
+    if overlapsConstructedAisle({ aisles = aisles or {} }, x, z, shelfHalfX, shelfHalfZ) then
+        return false, "Keep product shelves clear of constructed grocery aisles."
+    end
     if type(checkout) == "table" then
         local minX, maxX, minZ, maxZ = checkoutEnvelope(checkout.x, checkout.z, checkout.rotation)
         local halfX, halfZ = halfFootprint(productId, rotation)
@@ -808,9 +1012,10 @@ function RetailLayoutService.canPlaceCheckout(
     rotation,
     fixtures,
     shelfBayPurchased,
-    householdAislePurchased
+    householdAislePurchased,
+    aisles
 )
-    return canPlaceCheckout(
+    local valid, reason = canPlaceCheckout(
         shelves,
         x,
         z,
@@ -819,6 +1024,23 @@ function RetailLayoutService.canPlaceCheckout(
         shelfBayPurchased,
         householdAislePurchased
     )
+    if not valid then
+        return false, reason
+    end
+    local minX, maxX, minZ, maxZ = checkoutEnvelope(x, z, rotation)
+    for _, placement in pairs(aisles or {}) do
+        local halfX, halfZ =
+            placement.rotation == 0 and 4 or 1.2, placement.rotation == 0 and 1.2 or 4
+        if
+            minX < placement.x + halfX + 0.25
+            and maxX > placement.x - halfX - 0.25
+            and minZ < placement.z + halfZ + 0.25
+            and maxZ > placement.z - halfZ - 0.25
+        then
+            return false, "Keep checkout and its queue clear of constructed grocery aisles."
+        end
+    end
+    return true
 end
 
 return RetailLayoutService

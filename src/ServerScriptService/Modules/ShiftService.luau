@@ -1974,7 +1974,7 @@ function ShiftService.init(event, membershipRemotes, options)
                 z = true,
                 rotation = true,
             }
-        elseif request.action == "MoveCheckout" then
+        elseif request.action == "MoveCheckout" or request.action == "BuildAisle" then
             allowedKeys = { action = true, x = true, z = true, rotation = true }
         elseif request.action == "MoveFixture" then
             allowedKeys = {
@@ -1984,6 +1984,8 @@ function ShiftService.init(event, membershipRemotes, options)
                 z = true,
                 rotation = true,
             }
+        elseif request.action == "MoveAisle" then
+            allowedKeys = { action = true, id = true, x = true, z = true, rotation = true }
         end
         if not allowedKeys or not hasOnlyKeys(request, allowedKeys) then
             return reject("That retail layout request is invalid.")
@@ -2016,7 +2018,8 @@ function ShiftService.init(event, membershipRemotes, options)
                 request.rotation,
                 state.retailLayout.fixtures,
                 state.upgradePurchased,
-                state.aisleExpansionPurchased
+                state.aisleExpansionPurchased,
+                state.retailLayout.aisles
             )
             if not valid then
                 return reject(reason)
@@ -2083,6 +2086,52 @@ function ShiftService.init(event, membershipRemotes, options)
             return
         end
 
+        if request.action == "BuildAisle" then
+            local aisleId = HttpService:GenerateGUID(false)
+            local ok, resultMessage =
+                Economy.buildRetailAisle(state, aisleId, request.x, request.z, request.rotation)
+            if not ok then
+                return reject(resultMessage)
+            end
+            world.setRetailLayout(state.retailLayout)
+            local saved =
+                ProfileService.saveProgress(ownerPlayer, state, "retailAisleBuilt", locationId)
+            if not saved then
+                resultMessage = resultMessage
+                    .. " It is available this session; save confirmation failed."
+            end
+            broadcast(resultMessage)
+            retailLayoutRequestEvent:FireClient(player, {
+                action = "Updated",
+                locationId = locationId,
+                layout = state.retailLayout,
+                message = resultMessage,
+            })
+            return
+        elseif request.action == "MoveAisle" then
+            local ok, resultMessage =
+                Economy.moveRetailAisle(state, request.id, request.x, request.z, request.rotation)
+            if not ok then
+                return reject(resultMessage)
+            end
+            world.setRetailLayout(state.retailLayout)
+            local saved =
+                ProfileService.saveProgress(ownerPlayer, state, "retailAisleMoved", locationId)
+            if not saved then
+                resultMessage = resultMessage .. " Save confirmation failed."
+            else
+                resultMessage ..= " Saved."
+            end
+            broadcast(resultMessage)
+            retailLayoutRequestEvent:FireClient(player, {
+                action = "Updated",
+                locationId = locationId,
+                layout = state.retailLayout,
+                message = resultMessage,
+            })
+            return
+        end
+
         local productId = request.productId
         if type(productId) ~= "string" or not RetailLayoutService.isProductId(productId) then
             return reject("Choose one of the installed product department shelves.")
@@ -2130,7 +2179,8 @@ function ShiftService.init(event, membershipRemotes, options)
                 state.retailLayout.departments,
                 state.retailLayout.fixtures,
                 state.upgradePurchased,
-                state.aisleExpansionPurchased
+                state.aisleExpansionPurchased,
+                state.retailLayout.aisles
             )
             if not valid then
                 return reject(reason)
