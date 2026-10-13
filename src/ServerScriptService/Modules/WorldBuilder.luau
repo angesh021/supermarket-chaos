@@ -923,6 +923,7 @@ function WorldBuilder.build(locationId, origin)
     local retailDepartmentShelves = {}
     local retailShelfPositions = {}
     local retailShelfPivotHeights = {}
+    local constructedAisleBrowsePositions = {}
     local retailBuildFixtures = {}
     local retailFixturePivotHeights = {}
     local function tagRetailShelfPalette(model)
@@ -1442,6 +1443,13 @@ function WorldBuilder.build(locationId, origin)
     local customerBasketItems = {}
     local customerProductPositions = {}
     local function customerBrowsePosition(productId)
+        for _, aisle in ipairs(constructedAisleBrowsePositions[productId] or {}) do
+            if aisle.stock > 0 then
+                local forwardOffset = CFrame.Angles(0, math.rad(aisle.rotation or 0), 0)
+                    :VectorToWorldSpace(Vector3.new(0, 0, 3))
+                return Vector3.new(aisle.x, 0.45, aisle.z) + forwardOffset
+            end
+        end
         local shelfPosition = retailShelfPositions[productId]
         if not shelfPosition then
             return Vector3.new(-10, 0.45, 2)
@@ -5152,6 +5160,7 @@ function WorldBuilder.build(locationId, origin)
             retailConstructionFolder:ClearAllChildren()
             local constructedAisles = {}
             local aisleIdsByProduct = {}
+            constructedAisleBrowsePositions = {}
             local colorByProduct = {
                 citrusPop = COLORS.coral,
                 berryBites = COLORS.orange,
@@ -5204,9 +5213,17 @@ function WorldBuilder.build(locationId, origin)
                 local primaryCount = perFace + (remainder > 0 and 1 or 0)
                 stockVisualSetters[productId](primaryCount)
                 local packageColor = colorByProduct[productId]
+                constructedAisleBrowsePositions[productId] = {}
                 for index, aisleId in ipairs(aisleIds) do
                     local aisleCount = perFace + (index < remainder and 1 or 0)
-                    local aisleModel = constructedAisles[aisleId].model
+                    local aisleRecord = constructedAisles[aisleId]
+                    local aisleModel = aisleRecord.model
+                    table.insert(constructedAisleBrowsePositions[productId], {
+                        x = aisleRecord.placement.x,
+                        z = aisleRecord.placement.z,
+                        rotation = aisleRecord.placement.rotation,
+                        stock = aisleCount,
+                    })
                     for itemIndex = 1, aisleCount do
                         local column = (itemIndex - 1) % 8
                         local row = math.floor((itemIndex - 1) / 8)

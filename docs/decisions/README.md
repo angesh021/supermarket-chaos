@@ -374,6 +374,11 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Consequences:** Retail layout v6 adds an allow-listed product ID per aisle; older untyped aisles migrate to Citrus Pop. No new SKU or profile schema version is added.
 - **Verification:** See `docs/operations/PHASE70_MERCHANDISED_GROCERY_AISLES.md`.
 
+## ADR-0067: Route customers to stocked aisle facings
+- **Decision:** Derive browse destinations from the server's existing inventory allocation and prefer a matching constructed aisle when it has stock.
+- **Consequences:** No saved route state or new client input; unstocked aisles fall back to the existing primary shelf and movement recovery.
+- **Verification:** See `docs/operations/PHASE71_MERCHANDISED_AISLE_ROUTING.md`.
+
 ## ADR-0009 — Keep product inventory and supplier orders SKU-specific
 - **Status:** Accepted — 2026-10-12.
 - **Context:** The retail loop needs visible department variety and product-specific stock behavior while keeping stock and money authoritative.
