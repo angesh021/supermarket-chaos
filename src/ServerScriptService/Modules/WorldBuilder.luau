@@ -505,28 +505,58 @@ function WorldBuilder.build()
             Enum.Material.SmoothPlastic
         )
     end
-    -- Fixed-open automatic sliding glass panels frame a clear walk-in entrance.
-    for _, x in ipairs({ -5.05, 5.05 }) do
+    -- Automatic sliding glass doors open for players and scripted customer traffic.
+    local entranceDoors = {}
+    local entranceDoorVersion = 0
+    local entranceDoorTween = TweenInfo.new(0.42, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    local function setEntranceDoors(open)
+        entranceDoorVersion += 1
+        local version = entranceDoorVersion
+        for _, door in ipairs(entranceDoors) do
+            local openX = door.side * 5.15
+            local closedX = door.side * 2.85
+            local offset = Vector3.new(open and (openX - closedX) or 0, 0, 0)
+            for _, movingPart in ipairs(door.movingParts) do
+                TweenService:Create(movingPart.part, entranceDoorTween, {
+                    CFrame = movingPart.closedCFrame + offset,
+                }):Play()
+            end
+        end
+        if open then
+            task.delay(2.25, function()
+                if entranceDoorVersion == version and world.Parent then
+                    setEntranceDoors(false)
+                end
+            end)
+        end
+    end
+    for _, side in ipairs({ -1, 1 }) do
+        local closedX = side * 2.85
         local doorPanel = part(
             exterior,
             "Automatic Entrance Glass Door",
             Vector3.new(5.7, 7.7, 0.16),
-            CFrame.new(x, 4.4, 16.78),
+            CFrame.new(closedX, 4.4, 16.78),
             COLORS.blue,
             Enum.Material.Glass,
             0.58
         )
         doorPanel.CanCollide = false
-    end
-    for _, x in ipairs({ -2.35, 2.35 }) do
-        part(
+        local handle = part(
             exterior,
             "Automatic Door Pull",
             Vector3.new(0.12, 1.3, 0.1),
-            CFrame.new(x, 4.35, 16.62),
+            doorPanel.CFrame * CFrame.new(-side * 2.4, -0.05, -0.12),
             COLORS.gold,
             Enum.Material.Metal
         )
+        table.insert(entranceDoors, {
+            side = side,
+            movingParts = {
+                { part = doorPanel, closedCFrame = doorPanel.CFrame },
+                { part = handle, closedCFrame = handle.CFrame },
+            },
+        })
     end
     part(
         exterior,
@@ -536,6 +566,23 @@ function WorldBuilder.build()
         COLORS.gray,
         Enum.Material.Metal
     )
+    local doorSensor = part(
+        exterior,
+        "Automatic Door Motion Sensor",
+        Vector3.new(11, 7, 8),
+        CFrame.new(0, 4.1, 16.78),
+        COLORS.blue,
+        Enum.Material.SmoothPlastic,
+        1
+    )
+    doorSensor.CanCollide = false
+    doorSensor.CanQuery = false
+    doorSensor.Touched:Connect(function(hit)
+        local character = hit:FindFirstAncestorOfClass("Model")
+        if character and character:FindFirstChildOfClass("Humanoid") then
+            setEntranceDoors(true)
+        end
+    end)
     for _, windowX in ipairs({ -14.5, 14.5 }) do
         for _, mullionX in ipairs({ windowX - 4.25, windowX, windowX + 4.25 }) do
             part(
@@ -1057,6 +1104,9 @@ function WorldBuilder.build()
         }
         entry.label.Text = "ENTERING"
         for _, waypoint in ipairs(waypoints) do
+            if waypoint[1].Z <= 16.78 then
+                setEntranceDoors(true)
+            end
             if not moveCustomer(entry, waypoint[1], waypoint[2], flowVersion) then
                 return
             end
@@ -1135,6 +1185,9 @@ function WorldBuilder.build()
             Vector3.new(0, 0.45, 22),
         }
         for _, waypoint in ipairs(waypoints) do
+            if waypoint.Z >= 16.78 then
+                setEntranceDoors(true)
+            end
             if not moveCustomer(entry, waypoint, 0.45, flowVersion) then
                 return
             end

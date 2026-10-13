@@ -234,6 +234,11 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Consequences:** Schema v25 persists freezer ownership and stock state; legacy profiles migrate without the freezer. The freezer footprint is reserved from retail shelf placement.
 - **Verification:** See `docs/operations/PHASE40_FREEZER_DEPARTMENT.md`.
 
+## ADR-0039: Animate automatic entrance doors
+- **Decision:** Slide the existing storefront glass panels open for player sensor touches and scripted customer entry/exit.
+- **Consequences:** Panels remain non-collidable; a generation-guarded timer controls closing without persistence or gameplay state.
+- **Verification:** See `docs/operations/PHASE41_AUTOMATIC_ENTRANCE_DOORS.md`.
+
 ## ADR-0009 — Keep product inventory and supplier orders SKU-specific
 - **Status:** Accepted — 2026-10-12.
 - **Context:** The retail loop needs visible department variety and product-specific stock behavior while keeping stock and money authoritative.

@@ -52,6 +52,7 @@ G0 was approved on 2026-10-12. The user authorized continued phase implementatio
 - [x] Phase 38: let high satisfaction attract deterministic Neighborhood regulars and apply a bounded server-measured checkout patience effect; see `operations/PHASE38_LOYALTY_AND_PATIENCE.md`.
 - [x] Phase 39: expand the fixed storefront refresh to three previewable, persistent, server-allow-listed palettes; see `operations/PHASE39_STOREFRONT_PALETTE_CHOICES.md`.
 - [x] Phase 40: add a persistent fixed freezer department and Freezer Meals SKU through stocking, delivery, pricing, baskets and customer routing; see `operations/PHASE40_FREEZER_DEPARTMENT.md`.
+- [x] Phase 41: animate the storefront's automatic glass entrance doors for player and scripted customer traffic; see `operations/PHASE41_AUTOMATIC_ENTRANCE_DOORS.md`.
 - [ ] Studio verification of satisfaction thresholds, patience timing, event pauses, cashier parity and rejoin; see `operations/PHASE38_LOYALTY_AND_PATIENCE.md`.
 - [x] Phase 33: score customer satisfaction from preference fulfillment/price tiers and expose the bounded rating in the HUD; see `operations/PHASE33_CUSTOMER_SATISFACTION.md`.
 - [ ] Studio verification of cleaner hire/migration, save/rejoin, automatic cleanup and player/employee races.
