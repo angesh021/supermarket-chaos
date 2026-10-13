@@ -225,6 +225,11 @@ See `docs/decisions/README.md` for accepted ownership policy. Remaining decision
 - Profile schema v35 persists ownership. Inventory normalization allows up to 1,000 units per SKU only when this saved upgrade exists; legacy profiles default to the existing 500-unit cap.
 - Delivery ordering and receiving share the same server-derived capacity method, so a shipment cannot exceed the cap at either step. Existing shipment timing, cost, quantity, SKU and transaction lock remain unchanged.
 - `WorldBuilder` constructs the facility from original anchored parts. Runtime visuals are not persisted; they are rebuilt from profile ownership on load.
+
+## Phase 56 supplier partnership
+- Owner/Manager can buy a one-time `$2,500` supplier contract after owning the regional distribution center. The existing inbound product catalog remains the source for all SKUs and quantities.
+- `Economy.getDeliveryCost` applies a fixed 20% discount using integer server prices. Order authorization and the transaction lock remain unchanged; neither price nor contract ownership comes from client arguments.
+- Profile schema v36 persists the partnership flag and requires the distribution center. Legacy profiles migrate to no contract. Warehouse order prompts show the same discounted costs that the server charges.
 # Cooperative ownership and cashier extension
 - One owner profile remains the persistence boundary. Per-server membership grants temporary action permissions but does not load a guest's profile into the owner's economy.
 - Server role map: Owner (all), Manager (all shift actions including staff hiring), Cashier (checkout), Stocker (stock), Maintenance (cart recovery).

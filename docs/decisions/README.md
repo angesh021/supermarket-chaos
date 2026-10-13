@@ -309,6 +309,11 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Consequences:** Profile schema v35 persists ownership and conditionally permits the higher inventory limit. Existing shipment quantity and timing remain the same; order/receive paths use the same server-owned cap.
 - **Verification:** See `docs/operations/PHASE55_DISTRIBUTION_CENTER.md`.
 
+## ADR-0054: Add a regional supplier partnership
+- **Decision:** After distribution-center ownership, allow a one-time `$2,500` partnership purchase that reduces every inbound product delivery's server price by 20%.
+- **Consequences:** Profile schema v36 persists the agreement and prerequisite; shipment quantities, capacity, delivery time and shelf pricing do not change. Warehouse prompts display the same rounded price as the server charge.
+- **Verification:** See `docs/operations/PHASE56_SUPPLIER_PARTNERSHIP.md`.
+
 ## ADR-0009 — Keep product inventory and supplier orders SKU-specific
 - **Status:** Accepted — 2026-10-12.
 - **Context:** The retail loop needs visible department variety and product-specific stock behavior while keeping stock and money authoritative.

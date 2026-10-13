@@ -62,5 +62,6 @@
 | [Plaza customer sales verification](operations/PHASE53_PLAZA_CUSTOMER_SALES.md) | Visitors buy stocked items through server-owned business sales |
 | [Delivery fleet verification](operations/PHASE54_DELIVERY_FLEET.md) | Persistent two-truck fleet and bounded online-order automation |
 | [Distribution center verification](operations/PHASE55_DISTRIBUTION_CENTER.md) | Persistent regional facility and doubled per-SKU backstock capacity |
+| [Supplier partnership verification](operations/PHASE56_SUPPLIER_PARTNERSHIP.md) | Persistent supplier agreement and discounted inbound deliveries |
 
 Keep this index and linked documents current as implementation changes. See [AGENTS.md](../AGENTS.md) for repository rules.

@@ -70,6 +70,7 @@ local ROLE_ACTIONS = {
         PreviewPlazaStyle = true,
         DeliveryFleet = true,
         DistributionCenter = true,
+        SupplierPartnership = true,
         FulfillOnlineOrder = true,
         SelfCheckout = true,
         EditLayout = true,
@@ -835,6 +836,7 @@ function ShiftService.init(event, membershipRemotes)
         world.setPlazaStyle(state.plazaStylePurchased, state.plazaStyleId)
         world.setDeliveryFleetPurchased(state.deliveryFleetPurchased)
         world.setDistributionCenterPurchased(state.distributionCenterPurchased)
+        world.setSupplierPartnershipPurchased(state.supplierPartnershipPurchased)
         broadcast()
         scheduleOnlineOrderWorker()
         scheduleStocker()
@@ -1586,6 +1588,21 @@ function ShiftService.init(event, membershipRemotes)
         broadcast(message)
     end)
 
+    bind("SupplierPartnership", world.supplierPartnershipPrompt, 12, function()
+        if saleTransactionInProgress then
+            broadcast("A store transaction is saving. Try the supplier partnership again shortly.")
+            return
+        end
+        saleTransactionInProgress = true
+        local ok, message = Economy.buySupplierPartnership(state)
+        if ok then
+            world.setSupplierPartnershipPurchased(state.supplierPartnershipPurchased)
+            commit("supplierPartnershipPurchased")
+        end
+        saleTransactionInProgress = false
+        broadcast(message)
+    end)
+
     bind("HireCustomerAssistant", world.customerAssistantHirePrompt, 12, function()
         local ok, message = Economy.hireCustomerAssistant(state)
         if ok then
@@ -2054,6 +2071,7 @@ function ShiftService.init(event, membershipRemotes)
             world.setDeliveryWorkerHired(state.deliveryWorkerHired)
             world.setDeliveryFleetPurchased(state.deliveryFleetPurchased)
             world.setDistributionCenterPurchased(state.distributionCenterPurchased)
+            world.setSupplierPartnershipPurchased(state.supplierPartnershipPurchased)
             world.setCustomerAssistantHired(state.customerAssistantHired)
             world.setCashierAutomationEnabled(state.cashierAutomationEnabled)
             world.setStockerAutomationEnabled(state.stockerAutomationEnabled)

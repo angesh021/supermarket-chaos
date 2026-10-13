@@ -43,6 +43,8 @@ Economy.DELIVERY_FLEET_COST = 3000
 Economy.DELIVERY_FLEET_ORDERS_PER_SHIFT = 3
 Economy.DISTRIBUTION_CENTER_COST = 6000
 Economy.DISTRIBUTION_CENTER_BACKSTOCK_CAPACITY = 1000
+Economy.SUPPLIER_PARTNERSHIP_COST = 2500
+Economy.SUPPLIER_PARTNERSHIP_DISCOUNT = 0.2
 Economy.ONLINE_ORDER_PRODUCTS = {
     { "citrusPop", "berryBites", "goldenApples" },
     { "sunriseCereal", "citrusPop", "goldenApples" },
@@ -283,6 +285,7 @@ function Economy.newState(profile, playerSeed)
         plazaStyleId = upgrades.plazaStyleId or "",
         deliveryFleetPurchased = upgrades.deliveryFleet or false,
         distributionCenterPurchased = upgrades.distributionCenter or false,
+        supplierPartnershipPurchased = upgrades.supplierPartnership or false,
         deliveryWorkerOrdersThisShift = savedShift.deliveryWorkerOrdersThisShift or 0,
     }
 end
@@ -552,6 +555,32 @@ function Economy.buyDistributionCenter(state)
     state.cash -= Economy.DISTRIBUTION_CENTER_COST
     state.distributionCenterPurchased = true
     return true, "Regional distribution center opened! Warehouse capacity doubled."
+end
+
+function Economy.getDeliveryCost(state, product)
+    local discount = state.supplierPartnershipPurchased and Economy.SUPPLIER_PARTNERSHIP_DISCOUNT
+        or 0
+    return math.max(1, math.floor(product.deliveryCost * (1 - discount)))
+end
+
+function Economy.buySupplierPartnership(state)
+    if
+        state.stage ~= "Complete"
+        or not state.distributionCenterPurchased
+        or state.supplierPartnershipPurchased
+    then
+        return false, "The regional supplier partnership requires a distribution center."
+    end
+    if state.cash < Economy.SUPPLIER_PARTNERSHIP_COST then
+        return false,
+            string.format(
+                "You need $%d to join the regional supplier partnership.",
+                Economy.SUPPLIER_PARTNERSHIP_COST
+            )
+    end
+    state.cash -= Economy.SUPPLIER_PARTNERSHIP_COST
+    state.supplierPartnershipPurchased = true
+    return true, "Regional supplier partnership signed! Inbound deliveries now cost 20% less."
 end
 
 function Economy.getNextOnlineOrder(state)
@@ -899,14 +928,14 @@ function Economy.orderDelivery(state, now, productId)
     if currentBackstock + product.deliveryQuantity > Economy.getBackstockCapacity(state) then
         return false, "There is not enough backroom space for another delivery."
     end
-    if state.cash < product.deliveryCost then
-        return false,
-            string.format("You need $%d to order %s.", product.deliveryCost, product.displayName)
+    local deliveryCost = Economy.getDeliveryCost(state, product)
+    if state.cash < deliveryCost then
+        return false, string.format("You need $%d to order %s.", deliveryCost, product.displayName)
     end
     if type(now) ~= "number" or now ~= now or now % 1 ~= 0 or now < 1 then
         return false, "The delivery time could not be confirmed. Try again."
     end
-    state.cash -= product.deliveryCost
+    state.cash -= deliveryCost
     state.shipmentQuantity = product.deliveryQuantity
     state.shipmentReadyAt = now + 15
     state.shipmentProductId = productId
@@ -914,7 +943,7 @@ function Economy.orderDelivery(state, now, productId)
         string.format(
             "%s delivery ordered for $%d. It will arrive shortly.",
             product.displayName,
-            product.deliveryCost
+            deliveryCost
         )
 end
 

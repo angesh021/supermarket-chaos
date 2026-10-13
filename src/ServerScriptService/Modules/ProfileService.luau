@@ -6,7 +6,7 @@ local ProfileService = {}
 local LayoutService = require(script.Parent.LayoutService)
 local RetailLayoutService = require(script.Parent.RetailLayoutService)
 
-local SCHEMA_VERSION = 35
+local SCHEMA_VERSION = 36
 local SESSION_LEASE_SECONDS = 180
 local MAX_RETRIES = 3
 local STORE_NAME = "SupermarketChaos_PlayerProfiles_v1"
@@ -71,6 +71,7 @@ local function defaultProfile()
             plazaStyleId = "",
             deliveryFleet = false,
             distributionCenter = false,
+            supplierPartnership = false,
             marketStyleId = "",
         },
         hiredEmployees = {
@@ -237,6 +238,9 @@ local function normalizeProfile(value)
             or (value.ownedUpgrades.distributionCenter ~= nil and type(
                 value.ownedUpgrades.distributionCenter
             ) ~= "boolean")
+            or (value.ownedUpgrades.supplierPartnership ~= nil and type(
+                value.ownedUpgrades.supplierPartnership
+            ) ~= "boolean")
             or (value.ownedUpgrades.plazaStyleId ~= nil and value.ownedUpgrades.plazaStyleId ~= "" and value.ownedUpgrades.plazaStyleId ~= "coastal" and value.ownedUpgrades.plazaStyleId ~= "urban" and value.ownedUpgrades.plazaStyleId ~= "harvest")
             or (value.ownedUpgrades.marketStyleId ~= nil and value.ownedUpgrades.marketStyleId ~= "" and value.ownedUpgrades.marketStyleId ~= "coastal" and value.ownedUpgrades.marketStyleId ~= "urban" and value.ownedUpgrades.marketStyleId ~= "harvest")
             or (
@@ -260,6 +264,7 @@ local function normalizeProfile(value)
         profile.ownedUpgrades.gardenStore = value.ownedUpgrades.gardenStore == true
         profile.ownedUpgrades.deliveryFleet = value.ownedUpgrades.deliveryFleet == true
         profile.ownedUpgrades.distributionCenter = value.ownedUpgrades.distributionCenter == true
+        profile.ownedUpgrades.supplierPartnership = value.ownedUpgrades.supplierPartnership == true
         local savedPlazaStyleId = value.ownedUpgrades.plazaStyleId
         if
             savedPlazaStyleId == "coastal"
@@ -372,6 +377,12 @@ local function normalizeProfile(value)
     end
     if profile.ownedUpgrades.distributionCenter and not profile.ownedUpgrades.deliveryFleet then
         return nil, "Stored distribution center exists without the delivery fleet prerequisite."
+    end
+    if
+        profile.ownedUpgrades.supplierPartnership and not profile.ownedUpgrades.distributionCenter
+    then
+        return nil,
+            "Stored supplier partnership exists without the distribution center prerequisite."
     end
     if value.employeeAutomation ~= nil and type(value.employeeAutomation) ~= "table" then
         return nil, "Stored employee automation settings are malformed."
@@ -740,6 +751,7 @@ local function copyProfile(profile)
             gardenStore = profile.ownedUpgrades.gardenStore,
             deliveryFleet = profile.ownedUpgrades.deliveryFleet,
             distributionCenter = profile.ownedUpgrades.distributionCenter,
+            supplierPartnership = profile.ownedUpgrades.supplierPartnership,
             plazaStyleId = profile.ownedUpgrades.plazaStyleId,
             marketStyleId = profile.ownedUpgrades.marketStyleId,
         },
@@ -1035,6 +1047,7 @@ function ProfileService.saveProgress(player, state, eventName)
     profile.ownedUpgrades.gardenStore = state.gardenStorePurchased
     profile.ownedUpgrades.deliveryFleet = state.deliveryFleetPurchased
     profile.ownedUpgrades.distributionCenter = state.distributionCenterPurchased
+    profile.ownedUpgrades.supplierPartnership = state.supplierPartnershipPurchased
     profile.ownedUpgrades.plazaStyleId = state.plazaStyleId
     profile.ownedUpgrades.marketStyleId = state.marketStyleId
     profile.warehouseLayout = state.warehouseLayout

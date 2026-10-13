@@ -2645,6 +2645,25 @@ function WorldBuilder.build()
         10
     )
     distributionCenterPrompt.Enabled = false
+    local supplierPartnershipPad = part(
+        exterior,
+        "Regional Supplier Partnership Pad",
+        Vector3.new(3.5, 0.5, 3.5),
+        CFrame.new(70.5, 0.45, -12),
+        COLORS.gold,
+        Enum.Material.Neon
+    )
+    supplierPartnershipPad.Transparency = 1
+    supplierPartnershipPad.CanCollide = false
+    local supplierPartnershipPrompt = prompt(
+        supplierPartnershipPad,
+        "Sign Supplier Partnership ($2,500)",
+        "Regional Distribution",
+        "SupplierPartnership",
+        10
+    )
+    supplierPartnershipPrompt.Enabled = false
+    local supplierPartnershipPurchased = false
     local distributionCenterModel
     local distributionCenterPurchased = false
     local warehouseModel
@@ -4235,6 +4254,14 @@ function WorldBuilder.build()
         )
                 and 0
             or 1
+        supplierPartnershipPrompt.Enabled = stage == "Complete"
+            and distributionCenterPurchased
+            and not supplierPartnershipPurchased
+        supplierPartnershipPad.Transparency = (
+            distributionCenterPurchased and not supplierPartnershipPurchased
+        )
+                and 0
+            or 1
         deliveryFleetPad.Transparency = (
             deliveryFleetPurchased
             or not warehousePurchased
@@ -4856,6 +4883,33 @@ function WorldBuilder.build()
                 or "Resume Automation"
         end,
         deliveryFleetPrompt = deliveryFleetPrompt,
+        supplierPartnershipPrompt = supplierPartnershipPrompt,
+        setSupplierPartnershipPurchased = function(purchased)
+            supplierPartnershipPurchased = purchased == true
+            local deliveryPrompts = {
+                { orderDeliveryPrompt, "Citrus Pop", "citrusPop" },
+                { berryDeliveryOrderPrompt, "Berry Bites", "berryBites" },
+                { appleDeliveryOrderPrompt, "Apples", "goldenApples" },
+                { cerealDeliveryOrderPrompt, "Cereal", "sunriseCereal" },
+                { cinnamonTwistDeliveryOrderPrompt, "Cinnamon Twists", "cinnamonTwists" },
+                { frozenMealDeliveryOrderPrompt, "Freezer Meals", "frozenMeals" },
+            }
+            for _, entry in ipairs(deliveryPrompts) do
+                if entry[1] then
+                    local baseCost = Economy.PRODUCTS[entry[3]].deliveryCost
+                    local cost = purchased and math.floor(baseCost * 0.8) or baseCost
+                    entry[1].ActionText = string.format("Order %s ($%d)", entry[2], cost)
+                end
+            end
+            supplierPartnershipPrompt.Enabled = currentStage == "Complete"
+                and distributionCenterPurchased
+                and not supplierPartnershipPurchased
+            supplierPartnershipPad.Transparency = (
+                distributionCenterPurchased and not supplierPartnershipPurchased
+            )
+                    and 0
+                or 1
+        end,
         distributionCenterPrompt = distributionCenterPrompt,
         setDistributionCenterPurchased = function(purchased)
             distributionCenterPurchased = purchased == true
@@ -4867,6 +4921,14 @@ function WorldBuilder.build()
                 and not distributionCenterPurchased
             distributionCenterPad.Transparency = (
                 deliveryFleetPurchased and not distributionCenterPurchased
+            )
+                    and 0
+                or 1
+            supplierPartnershipPrompt.Enabled = currentStage == "Complete"
+                and distributionCenterPurchased
+                and not supplierPartnershipPurchased
+            supplierPartnershipPad.Transparency = (
+                distributionCenterPurchased and not supplierPartnershipPurchased
             )
                     and 0
                 or 1
