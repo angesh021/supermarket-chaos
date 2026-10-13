@@ -21,6 +21,7 @@ G0 was approved on 2026-10-12. The user authorized continued phase implementatio
 - [x] User confirmed the requested Studio progression and persistence tests passed.
 - [ ] Extend the upgrade catalog and customization beyond the fixed storefront style.
 - [x] Phase 15: add a persistent, server-purchased Coastal Market storefront palette and v10 migration; see `operations/PHASE15_STOREFRONT_STYLE.md`.
+- [x] Phase 19: add a temporary preview/cancel action before the existing palette purchase; see `operations/PHASE19_STOREFRONT_PREVIEW.md`.
 
 ## Phase 3 — Cooperative multiplayer
 - [x] Join request and owner approval/decline/removal workflow.
@@ -79,4 +80,5 @@ G0 was approved on 2026-10-12. The user authorized continued phase implementatio
 - [ ] Phase 7 follow-up: warehouse inventory layout, additional departments and Studio verification of purchase/delivery/save/rejoin; see `operations/PHASE11_PRODUCTS.md`.
 - [ ] Studio verification of Golden Apples shipment, produce stock, migration, basket math, helper permissions, and save/rejoin; see `operations/PHASE17_GOLDEN_APPLES.md`.
 - [ ] Studio verification of employee automation toggles, delayed timer cancellation, roles, v1–v11 migration and save/rejoin; see `operations/PHASE18_EMPLOYEE_AUTOMATION.md`.
+- [ ] Studio verification of the palette preview/reset, purchase, role permissions and save/rejoin; see `operations/PHASE19_STOREFRONT_PREVIEW.md`.
 - [ ] Later phases: broader economy, seasonal/live operations, production commerce and release work remain gated by the specification, Studio validation and explicit release approval.

@@ -94,6 +94,13 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Consequences:** Profile schema v12 defaults v1–v11 profiles to enabled, preserving prior behavior. Pausing does not unhire staff or disable player-operated actions. The controls do not add wages or expand employee behavior.
 - **Verification:** See `docs/operations/PHASE18_EMPLOYEE_AUTOMATION.md`; Studio permissions, pause timing, races and migration checks remain pending.
 
+## ADR-0017 — Keep storefront previews temporary until purchase
+- **Status:** Accepted — 2026-10-12.
+- **Context:** The fixed Coastal Market upgrade had no way to inspect its visual result before paying.
+- **Decision:** Add an Owner/Manager-only preview action on a separate pad. The server applies the fixed palette transiently and restores the saved/default palette when canceled or when the completed-shift state ends. Purchase remains a separate server-priced action.
+- **Consequences:** Existing schema v10 ownership remains unchanged and no preview state is persisted. The preview is visible to the entire server because the store world is shared; isolated per-player previews and additional palettes remain future work.
+- **Verification:** See `docs/operations/PHASE19_STOREFRONT_PREVIEW.md`; Studio palette, permission and purchase checks remain pending.
+
 ## ADR-0009 — Keep product inventory and supplier orders SKU-specific
 - **Status:** Accepted — 2026-10-12.
 - **Context:** The retail loop needs visible department variety and product-specific stock behavior while keeping stock and money authoritative.

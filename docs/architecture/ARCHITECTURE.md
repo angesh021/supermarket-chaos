@@ -94,6 +94,10 @@ Currency and stock changes occur only after server-side validation. Transactions
 - Each delayed automation uses a generation token and rechecks hire state, the saved automation flag, current stage, owner readiness and profile lease. Toggling off invalidates pending work; each eventual action still goes through the existing economy transition.
 - Board prompt text and employee visibility are presentation only. See `operations/PHASE18_EMPLOYEE_AUTOMATION.md`; Studio behavior and migration checks remain pending.
 
+## Phase 2 storefront preview
+- Coastal Market preview is transient server state. Owner/Manager can apply or cancel the fixed palette at a separate prompt; leaving the completed-shift state resets an unpurchased preview.
+- Purchase remains the existing server economy transaction and profile v10 ownership flag. No preview preference or schema migration is saved. The shared physical store means all current server players see the preview. See `operations/PHASE19_STOREFRONT_PREVIEW.md`; Studio verification remains pending.
+
 ## Open technical decisions
 See `docs/decisions/README.md` for accepted ownership policy. Remaining decisions include multi-store/guest permissions, production Studio place configuration, analytics implementation/privacy review, and any changes to persistence recovery. Verify platform APIs against official documentation when implementation starts.
 # Cooperative ownership and cashier extension

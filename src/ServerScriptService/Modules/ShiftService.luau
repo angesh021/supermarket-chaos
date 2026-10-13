@@ -40,6 +40,7 @@ local ROLE_ACTIONS = {
         ToggleCleanerAutomation = true,
         Warehouse = true,
         MarketStyle = true,
+        PreviewMarketStyle = true,
         OrderDelivery = true,
         OrderBerryDelivery = true,
         OrderAppleDelivery = true,
@@ -247,6 +248,7 @@ function ShiftService.init(event, membershipRemotes)
     memberActionEvent = membershipRemotes.memberAction
     memberStateEvent = membershipRemotes.memberState
     world = WorldBuilder.build()
+    local marketStylePreviewing = false
     world.setStage("Loading")
     ProfileService.startAutosave(function()
         broadcast()
@@ -511,6 +513,10 @@ function ShiftService.init(event, membershipRemotes)
     commit = function(eventName)
         ProfileService.saveProgress(ownerPlayer, state, eventName)
         TelemetryService.record(ownerPlayer, eventName)
+        if state.stage ~= "Complete" and marketStylePreviewing then
+            marketStylePreviewing = false
+            world.setMarketStylePreview(false)
+        end
         world.setStage(state.stage)
         world.setCustomerProduct(
             Economy.PRODUCTS[Economy.getNextCheckoutProductId(state) or "citrusPop"].displayName
@@ -646,10 +652,22 @@ function ShiftService.init(event, membershipRemotes)
     bind("MarketStyle", world.marketStylePrompt, 13, function()
         local ok, message = Economy.buyMarketStyle(state)
         if ok then
+            marketStylePreviewing = false
+            world.setMarketStylePreview(false)
             world.setMarketStyle(state.marketStylePurchased)
             commit("marketStyle")
         end
         broadcast(message)
+    end)
+
+    bind("PreviewMarketStyle", world.marketStylePreviewPrompt, 13, function()
+        marketStylePreviewing = not marketStylePreviewing
+        world.setMarketStylePreview(marketStylePreviewing)
+        broadcast(
+            marketStylePreviewing
+                    and "Coastal Market preview applied. Purchase it at the refresh pad to keep it."
+                or "Coastal Market preview canceled. Your saved storefront style is restored."
+        )
     end)
 
     bind("OrderDelivery", world.orderDeliveryPrompt(), 12, function()
@@ -916,6 +934,7 @@ function ShiftService.init(event, membershipRemotes)
                 world.addUpgrade()
             end
             world.setMarketStyle(state.marketStylePurchased)
+            marketStylePreviewing = false
             world.setWarehousePurchased(state.warehousePurchased)
             world.setDeliveryState(
                 state.shipmentReadyAt,

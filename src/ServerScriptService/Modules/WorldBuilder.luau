@@ -1435,6 +1435,22 @@ function WorldBuilder.build()
     local stylePrompt =
         prompt(stylePad, "Install Coastal Style ($180)", "Storefront Refresh", "MarketStyle", 10)
     stylePrompt.Enabled = false
+    local stylePreviewPad = part(
+        interior,
+        "Storefront Preview Pad",
+        Vector3.new(4.5, 0.35, 4.5),
+        CFrame.new(-11.5, 0.52, 12.5),
+        COLORS.gold,
+        Enum.Material.Neon
+    )
+    local stylePreviewPrompt = prompt(
+        stylePreviewPad,
+        "Preview Coastal Style",
+        "Storefront Preview",
+        "PreviewMarketStyle",
+        10
+    )
+    stylePreviewPrompt.Enabled = false
     local styleSign = label(
         interior,
         "Storefront Style Sign",
@@ -1444,22 +1460,34 @@ function WorldBuilder.build()
         COLORS.green
     )
     local marketStylePurchased = false
-    local function setMarketStyle(purchased)
-        marketStylePurchased = purchased == true
-        stylePad.Color = marketStylePurchased and COLORS.deepTeal or COLORS.green
-        styleSign.Color = marketStylePurchased and COLORS.teal or COLORS.green
-        storefrontFascia.Color = marketStylePurchased and COLORS.green or COLORS.teal
-        storefrontSign.Color = marketStylePurchased and COLORS.green or COLORS.teal
-        entryCanopy.Color = marketStylePurchased and COLORS.gold or COLORS.coral
-        canopyValance.Color = marketStylePurchased and COLORS.teal or COLORS.deepTeal
-        frontHeader.Color = marketStylePurchased and COLORS.green or COLORS.teal
+    local marketStylePreviewing = false
+    local function applyMarketStyle(isActive)
+        stylePad.Color = isActive and COLORS.deepTeal or COLORS.green
+        styleSign.Color = isActive and COLORS.teal or COLORS.green
+        storefrontFascia.Color = isActive and COLORS.green or COLORS.teal
+        storefrontSign.Color = isActive and COLORS.green or COLORS.teal
+        entryCanopy.Color = isActive and COLORS.gold or COLORS.coral
+        canopyValance.Color = isActive and COLORS.teal or COLORS.deepTeal
+        frontHeader.Color = isActive and COLORS.green or COLORS.teal
         local surface = styleSign:FindFirstChildOfClass("SurfaceGui")
         local signText = surface and surface:FindFirstChildOfClass("TextLabel")
         if signText then
             signText.Text = marketStylePurchased and "COASTAL MARKET\nINSTALLED"
-                or "COASTAL MARKET\n$180"
+                or (marketStylePreviewing and "COASTAL MARKET\nPREVIEW" or "COASTAL MARKET\n$180")
         end
         stylePrompt.Enabled = not marketStylePurchased and currentStage == "Complete"
+        stylePreviewPrompt.Enabled = not marketStylePurchased and currentStage == "Complete"
+        stylePreviewPrompt.ActionText = marketStylePreviewing and "Cancel Preview"
+            or "Preview Coastal Style"
+    end
+    local function setMarketStyle(purchased)
+        marketStylePurchased = purchased == true
+        marketStylePreviewing = false
+        applyMarketStyle(marketStylePurchased)
+    end
+    local function setMarketStylePreview(previewing)
+        marketStylePreviewing = previewing == true and not marketStylePurchased
+        applyMarketStyle(marketStylePurchased or marketStylePreviewing)
     end
 
     -- A single anchored cart root is tweened only while the opening event is active.
@@ -1901,6 +1929,11 @@ function WorldBuilder.build()
         powerPrompt.Enabled = stage == "PowerOutage"
         upgradePrompt.Enabled = stage == "Upgrade"
         stylePrompt.Enabled = stage == "Complete" and not marketStylePurchased
+        if stage ~= "Complete" and marketStylePreviewing then
+            setMarketStylePreview(false)
+        else
+            stylePreviewPrompt.Enabled = stage == "Complete" and not marketStylePurchased
+        end
         restartPrompt.Enabled = stage == "Complete"
         upgradeMarker.Enabled = stage == "Upgrade"
         cashierHirePrompt.Enabled = stage == "Complete" and not cashierHired
@@ -2018,7 +2051,9 @@ function WorldBuilder.build()
         cleanerAutomationPrompt = cleanerAutomationPrompt,
         warehousePrompt = warehousePrompt,
         marketStylePrompt = stylePrompt,
+        marketStylePreviewPrompt = stylePreviewPrompt,
         setMarketStyle = setMarketStyle,
+        setMarketStylePreview = setMarketStylePreview,
         orderDeliveryPrompt = function()
             return orderDeliveryPrompt
         end,

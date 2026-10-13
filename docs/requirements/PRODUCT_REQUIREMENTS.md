@@ -89,6 +89,7 @@ Instrument funnel events for first interaction, first stock, first sale, first u
 - Add Golden Apples to the produce department with independent shelf/backroom counters, server-defined sale/order prices, bounded restock and a product-tagged shipment.
 - Existing warehouse owners safely receive a bounded six-apple migration grant; non-warehouse profiles receive none. Keep the single-pending-shipment, owner/Manager purchasing and Owner/Manager/Stocker restock boundaries.
 - Display produce stock and include the product in deterministic server-side customer baskets with safe stock fallback. Manual cases are in `operations/PHASE17_GOLDEN_APPLES.md`.
+- The existing Coastal Market storefront palette has a separate Owner/Manager preview action. Preview does not charge or persist; cancel and shift restart restore the saved/default palette. Purchase remains server-priced and persists through the existing v10 upgrade flag. See `operations/PHASE19_STOREFRONT_PREVIEW.md`.
 
 ### Phase 4 Power Outage increment
 - After the second completed sale, trigger a bounded checkout outage with a visible breaker objective and a 30-second server recovery deadline.
