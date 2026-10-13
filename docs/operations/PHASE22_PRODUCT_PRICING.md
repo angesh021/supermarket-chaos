@@ -27,5 +27,5 @@ Owners and Managers can cycle each shelf's retail price through three fixed valu
 
 ## Known limits
 
-- Price changes do not currently affect customer demand, satisfaction, or walk-away behavior; customers purchase the server-derived available basket at the posted price.
+- Phase 23 adds a deterministic quantity response. Customer satisfaction, product substitution and walk-away behavior remain out of scope.
 - Studio role, shelf-tag readability, checkout totals, migration and save/rejoin checks have not been run locally.

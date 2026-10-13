@@ -390,8 +390,8 @@ function Economy.getNextCheckoutBasket(state)
         { "citrusPop" },
         { "berryBites" },
         { "citrusPop", "sunriseCereal" },
+        { "goldenApples" },
         { "berryBites", "berryBites" },
-        { "goldenApples", "sunriseCereal" },
     }
     local intent = intents[((customerNumber - 1) % #intents) + 1]
     local available = {
@@ -420,6 +420,31 @@ function Economy.getNextCheckoutBasket(state)
             or (state.cerealStock > 0 and "sunriseCereal" or nil)
         if fallbackId then
             counts[fallbackId] = 1
+        end
+    end
+
+    local productTypeCount = 0
+    local singleProductId
+    for productId in pairs(counts) do
+        productTypeCount += 1
+        singleProductId = productId
+    end
+    if productTypeCount == 1 then
+        local product = Economy.PRODUCTS[singleProductId]
+        local currentPrice = Economy.getProductPrice(state, singleProductId)
+        if
+            currentPrice < product.salePrice
+            and counts[singleProductId] == 1
+            and available[singleProductId] > 0
+        then
+            counts[singleProductId] += 1
+            available[singleProductId] -= 1
+        end
+    end
+    for productId, quantity in pairs(counts) do
+        local product = Economy.PRODUCTS[productId]
+        if Economy.getProductPrice(state, productId) > product.salePrice and quantity > 1 then
+            counts[productId] -= 1
         end
     end
 

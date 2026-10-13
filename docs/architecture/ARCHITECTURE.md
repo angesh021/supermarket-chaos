@@ -113,6 +113,11 @@ Currency and stock changes occur only after server-side validation. Transactions
 - Profile schema v15 allow-lists four product IDs and their exact integer price options; schemas v1–v14 default to catalog prices. Checkout recomputes each unit price before applying an atomic basket sale.
 - See `operations/PHASE22_PRODUCT_PRICING.md`; demand response and Studio checks remain pending.
 
+## Phase 4 price-sensitive customer baskets
+- Basket intent is reconstructed from server shift sales. A discounted single-product basket adds one unit only when shelf stock permits; a premium multi-unit request removes one. Mixed and base-price baskets keep their intent quantities.
+- Basket labels and totals are projections; checkout recomputes the same bounded quantities and price and commits one atomic sale. No new persistence fields or random demand state are introduced.
+- See `operations/PHASE23_PRICE_SENSITIVE_BASKETS.md`; customer behavior and recovery checks remain pending in Studio.
+
 ## Open technical decisions
 See `docs/decisions/README.md` for accepted ownership policy. Remaining decisions include multi-store/guest permissions, production Studio place configuration, analytics implementation/privacy review, and any changes to persistence recovery. Verify platform APIs against official documentation when implementation starts.
 # Cooperative ownership and cashier extension

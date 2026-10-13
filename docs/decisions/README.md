@@ -122,6 +122,13 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Consequences:** Profile schema v15 stores four prices; schemas v1–v14 use catalog prices. Customers do not yet respond to price through demand or satisfaction.
 - **Verification:** See `docs/operations/PHASE22_PRODUCT_PRICING.md`; Studio role, transaction, tag and migration checks remain pending.
 
+## ADR-0021 — Keep price response bounded and reconstructable
+- **Status:** Accepted — 2026-10-12.
+- **Context:** Price controls need a measurable effect on store demand without introducing random outcomes or redundant saved state.
+- **Decision:** A below-catalog single-SKU basket buys one additional unit when stock permits; an above-catalog multi-unit request buys one fewer. Mixed baskets and catalog-priced quantities remain unchanged.
+- **Consequences:** Basket quantity is derived from the existing sales count, current saved price and shelf inventory; no new schema fields or random customer state are needed. Satisfaction and product substitution remain future work.
+- **Verification:** See `docs/operations/PHASE23_PRICE_SENSITIVE_BASKETS.md`; Studio quantity, stock, race and rejoin checks remain pending.
+
 ## ADR-0009 — Keep product inventory and supplier orders SKU-specific
 - **Status:** Accepted — 2026-10-12.
 - **Context:** The retail loop needs visible department variety and product-specific stock behavior while keeping stock and money authoritative.
