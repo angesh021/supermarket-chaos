@@ -726,57 +726,58 @@ function WorldBuilder.build()
         end
     end
 
-    -- A staffed register has a distinct conveyor, scanner, POS screen, and impulse-buy rack.
-    local counter = part(
-        interior,
+    -- Keep every checkout prop together so the lane can be repositioned as one fixture.
+    local checkoutModel = Instance.new("Model")
+    checkoutModel.Name = "Checkout Lane"
+    checkoutModel.Parent = interior
+    local function checkoutPart(...)
+        local checkoutItem = part(interior, ...)
+        checkoutItem.Parent = checkoutModel
+        return checkoutItem
+    end
+    local counter = checkoutPart(
         "Checkout Counter",
         Vector3.new(8, 2.5, 3.5),
         CFrame.new(14, 1.7, 8),
         COLORS.deepTeal,
         Enum.Material.Metal
     )
-    part(
-        interior,
+    checkoutPart(
         "Checkout Counter Front Panel",
         Vector3.new(7.5, 1.55, 0.18),
         CFrame.new(14, 1.65, 9.78),
         COLORS.wood,
         Enum.Material.WoodPlanks
     )
-    part(
-        interior,
+    checkoutPart(
         "Checkout Conveyor Belt",
         Vector3.new(4.1, 0.18, 2.5),
         CFrame.new(13.2, 3.05, 8.05),
         COLORS.ink,
         Enum.Material.SmoothPlastic
     )
-    part(
-        interior,
+    checkoutPart(
         "Checkout Bagging Counter",
         Vector3.new(3.5, 0.22, 2.7),
         CFrame.new(16.7, 3.05, 8.05),
         COLORS.warmWhite,
         Enum.Material.Marble
     )
-    part(
-        interior,
+    checkoutPart(
         "Checkout Scanner",
         Vector3.new(0.9, 0.12, 0.8),
         CFrame.new(15.25, 3.2, 7.45),
         COLORS.coral,
         Enum.Material.Neon
     )
-    part(
-        interior,
+    checkoutPart(
         "Checkout Screen",
         Vector3.new(1.15, 0.85, 0.18),
         CFrame.new(12.2, 3.8, 6.65),
         COLORS.ink,
         Enum.Material.SmoothPlastic
     )
-    local checkoutDisplay = part(
-        interior,
+    local checkoutDisplay = checkoutPart(
         "Checkout Screen Display",
         Vector3.new(0.92, 0.56, 0.035),
         CFrame.new(12.2, 3.82, 6.755),
@@ -797,7 +798,7 @@ function WorldBuilder.build()
     checkoutText.Font = Enum.Font.GothamBold
     checkoutText.TextScaled = true
     checkoutText.Parent = checkoutGui
-    label(
+    local checkoutSign = label(
         interior,
         "Checkout Overhead Sign",
         "CHECKOUT  •  LANE 01",
@@ -806,8 +807,8 @@ function WorldBuilder.build()
         COLORS.deepTeal,
         COLORS.warmWhite
     )
-    local impulseRack = part(
-        interior,
+    checkoutSign.Parent = checkoutModel
+    local impulseRack = checkoutPart(
         "Checkout Candy Rack",
         Vector3.new(1.2, 2.1, 1.25),
         CFrame.new(19.2, 1.55, 4.5),
@@ -817,8 +818,7 @@ function WorldBuilder.build()
     impulseRack.CanCollide = false
     for row = 1, 3 do
         for column = 1, 2 do
-            part(
-                interior,
+            checkoutPart(
                 "Checkout Treat Pack",
                 Vector3.new(0.42, 0.42, 0.4),
                 CFrame.new(18.9 + column * 0.36, 1.0 + row * 0.42, 3.9),
@@ -827,6 +827,8 @@ function WorldBuilder.build()
             )
         end
     end
+    checkoutModel.PrimaryPart = counter
+    checkoutModel:PivotTo(CFrame.new(14, 1.7, 8))
     local currentStage = "Loading"
     local aisleExpansionPurchased = false
     local customerModels = {}
@@ -837,13 +839,37 @@ function WorldBuilder.build()
         { COLORS.orange, COLORS.deepTeal, COLORS.cream },
         { COLORS.paleGreen, COLORS.wood, COLORS.coral },
     }
-    local customerPositions = {
-        Vector3.new(17.5, 0.45, 4),
-        Vector3.new(17.5, 0.45, 8),
-        Vector3.new(17.5, 0.45, 12),
-        Vector3.new(17.5, 0.45, 15),
-        Vector3.new(14, 0.45, 15),
+    local customerPositions = {}
+    local queueOffsets = {
+        Vector3.new(3.5, -1.25, -4),
+        Vector3.new(3.5, -1.25, 0),
+        Vector3.new(3.5, -1.25, 4),
+        Vector3.new(3.5, -1.25, 7),
+        Vector3.new(0, -1.25, 7),
     }
+    local cashierModel
+    local function checkoutLocalPosition(offset)
+        return checkoutModel:GetPivot():PointToWorldSpace(offset)
+    end
+    local function refreshCheckoutPositions(x, z, rotation, moveModels)
+        checkoutModel:PivotTo(CFrame.new(x, 1.7, z) * CFrame.Angles(0, math.rad(rotation), 0))
+        for index, offset in ipairs(queueOffsets) do
+            customerPositions[index] = checkoutLocalPosition(offset)
+        end
+        if moveModels then
+            for index, entry in ipairs(customerModels) do
+                local position = customerPositions[index]
+                entry.homePosition = position
+                entry.homePivot = entry.model:GetPivot()
+                    + (position - entry.model:GetPivot().Position)
+                entry.model:PivotTo(entry.homePivot)
+            end
+            if cashierModel then
+                cashierModel:PivotTo(checkoutModel:GetPivot() * CFrame.new(-3.5, -1.25, 0))
+            end
+        end
+    end
+    refreshCheckoutPositions(14, 8, 0, false)
     for index, position in ipairs(customerPositions) do
         local colors = customerColors[index]
         local customer = createLowPolyPerson(
@@ -1011,7 +1037,14 @@ function WorldBuilder.build()
             .. " • "
             .. string.upper(customerBasketName)
         task.wait(0.55)
-        if not moveCustomer(entry, Vector3.new(5, 0.45, 4), 0.75, flowVersion) then
+        if
+            not moveCustomer(
+                entry,
+                checkoutLocalPosition(Vector3.new(-5, -1.25, -4)),
+                0.75,
+                flowVersion
+            )
+        then
             return
         end
         if not moveCustomer(entry, queuePosition, 0.65, flowVersion) then
@@ -1034,8 +1067,8 @@ function WorldBuilder.build()
         task.wait(0.35)
         entry.label.Text = "MOVING TO CHECKOUT"
         local waypoints = {
-            Vector3.new(5, 0.45, 8),
-            Vector3.new(5, 0.45, 4),
+            checkoutLocalPosition(Vector3.new(-5, -1.25, 0)),
+            checkoutLocalPosition(Vector3.new(-5, -1.25, -4)),
             queuePosition,
         }
         for _, waypoint in ipairs(waypoints) do
@@ -1053,7 +1086,7 @@ function WorldBuilder.build()
     local function runCustomerExit(entry, flowVersion)
         entry.label.Text = "THANK YOU!"
         local waypoints = {
-            Vector3.new(5, 0.45, 4),
+            checkoutLocalPosition(Vector3.new(-5, -1.25, -4)),
             Vector3.new(0, 0.45, 13),
             Vector3.new(0, 0.45, 22),
         }
@@ -1358,7 +1391,7 @@ function WorldBuilder.build()
     local cashierAutomationPrompt =
         prompt(hiringBoard, "Pause Automation", "Cashier", "ToggleCashierAutomation", 10)
     cashierAutomationPrompt.Enabled = false
-    local cashierModel = createLowPolyPerson(
+    cashierModel = createLowPolyPerson(
         interior,
         "Store Cashier",
         Vector3.new(10.5, 0.45, 8),
@@ -2477,6 +2510,10 @@ function WorldBuilder.build()
         setRetailLayout = function(layout)
             if type(layout) ~= "table" or type(layout.shelves) ~= "table" then
                 return
+            end
+            local checkout = layout.checkout
+            if type(checkout) == "table" then
+                refreshCheckoutPositions(checkout.x, checkout.z, checkout.rotation, true)
             end
             for productId, shelfPosition in pairs(layout.shelves) do
                 local model = retailDepartmentShelves[productId]

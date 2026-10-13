@@ -199,6 +199,11 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Consequences:** Profile schema v20 adds one validated score. It does not alter cash, stock, sales, rush eligibility or rewards. Loyalty, demand, substitution, patience and reputation effects remain future work.
 - **Verification:** See `docs/operations/PHASE33_CUSTOMER_SATISFACTION.md`; Studio transaction, migration, rejoin and privacy checks remain pending.
 
+## ADR-0032: Move checkout as one saved fixture
+- **Decision:** Persist a bounded checkout lane transform with retail shelf layout; move its props, cashier, customer queue and derived approach routes together. Server validates bounds and fixture collisions.
+- **Consequences:** Profile schema v21 migrates existing shelf layouts without moving their departments. Rotated display readability and customer navigation need Studio verification.
+- **Verification:** See `docs/operations/PHASE34_CHECKOUT_LAYOUT.md`.
+
 ## ADR-0009 — Keep product inventory and supplier orders SKU-specific
 - **Status:** Accepted — 2026-10-12.
 - **Context:** The retail loop needs visible department variety and product-specific stock behavior while keeping stock and money authoritative.

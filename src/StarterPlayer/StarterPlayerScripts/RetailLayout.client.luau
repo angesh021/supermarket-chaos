@@ -57,7 +57,7 @@ end
 
 makeLabel("STORE LAYOUT", UDim2.fromOffset(14, 10), UDim2.new(1, -28, 0, 28), 18, true)
 local instructions = makeLabel(
-    "Choose a department, then move it to an open floor tile. Shelves snap to a 2-stud grid.",
+    "Move a department shelf or checkout lane. The customer queue moves with checkout.",
     UDim2.fromOffset(14, 40),
     UDim2.new(1, -28, 0, 42),
     12,
@@ -92,21 +92,24 @@ local function makeButton(text, position, size)
 end
 
 local productButtons = {}
+local checkoutButton =
+    makeButton("Checkout lane + queue", UDim2.new(0.06, 0, 0, 86), UDim2.new(0.88, 0, 0, 32))
 for index, product in ipairs(products) do
     local button = makeButton(
         product.name,
-        UDim2.new(0.06, 0, 0, 91 + (index - 1) * 43),
-        UDim2.new(0.88, 0, 0, 36)
+        UDim2.new(0.06, 0, 0, 125 + (index - 1) * 36),
+        UDim2.new(0.88, 0, 0, 32)
     )
     productButtons[product.id] = button
 end
 local moveButton =
-    makeButton("Move selected shelf", UDim2.new(0.06, 0, 0, 270), UDim2.new(0.47, 0, 0, 34))
+    makeButton("Move selected fixture", UDim2.new(0.06, 0, 0, 270), UDim2.new(0.47, 0, 0, 34))
 local rotateButton =
     makeButton("Rotate 90°", UDim2.new(0.55, 0, 0, 270), UDim2.new(0.39, 0, 0, 34))
 local closeButton = makeButton("Close", UDim2.new(0.78, 0, 0, 10), UDim2.new(0.16, 0, 0, 28))
 
 local selectedProductId
+local selectedCheckout = false
 local rotation = 0
 local moveMode = false
 local pointerPosition
@@ -122,12 +125,14 @@ end
 local function setMoveMode(enabled)
     moveMode = enabled
     if enabled then
-        if not selectedProductId then
+        if not selectedProductId and not selectedCheckout then
             moveMode = false
-            status.Text = "Choose a department shelf first."
+            status.Text = "Choose a department shelf or checkout lane first."
             return
         end
-        status.Text = "Tap an open floor tile to move this shelf."
+        status.Text = selectedCheckout
+                and "Tap an open front-floor tile to move checkout and its queue."
+            or "Tap an open floor tile to move this shelf."
     else
         destroyGhost()
         status.Text = "Choose a department shelf."
@@ -146,7 +151,8 @@ local function ensureGhost()
     ghost.CanQuery = false
     ghost.Material = Enum.Material.ForceField
     ghost.Transparency = 0.48
-    ghost.Size = Vector3.new(selectedProductId == "goldenApples" and 4 or 6, 7, 2.2)
+    ghost.Size = selectedCheckout and Vector3.new(8, 7, 11.5)
+        or Vector3.new(selectedProductId == "goldenApples" and 4 or 6, 7, 2.2)
     ghost.Parent = workspace
 end
 
@@ -165,6 +171,17 @@ local function findRetailProductId(instance)
         current = current.Parent
     end
     return nil
+end
+
+local function isCheckoutFixture(instance)
+    local current = instance
+    while current and current ~= workspace do
+        if current.Name == "Checkout Lane" then
+            return true
+        end
+        current = current.Parent
+    end
+    return false
 end
 
 local function raycastPointer(excludeShelves)
@@ -188,6 +205,10 @@ local function raycastPointer(excludeShelves)
         if departmentShelves then
             table.insert(exclude, departmentShelves)
         end
+        local checkoutLane = interior and interior:FindFirstChild("Checkout Lane")
+        if checkoutLane then
+            table.insert(exclude, checkoutLane)
+        end
     end
     params.FilterDescendantsInstances = exclude
     local ray = camera:ScreenPointToRay(pointerPosition.X, pointerPosition.Y)
@@ -196,6 +217,7 @@ end
 
 for productId, button in pairs(productButtons) do
     button.Activated:Connect(function()
+        selectedCheckout = false
         selectedProductId = productId
         rotation = 0
         rotateButton.Text = "Rotate 90°"
@@ -204,6 +226,16 @@ for productId, button in pairs(productButtons) do
         status.Text = "Selected " .. button.Text .. ". Choose Move selected shelf."
     end)
 end
+
+checkoutButton.Activated:Connect(function()
+    selectedProductId = nil
+    selectedCheckout = true
+    rotation = 0
+    rotateButton.Text = "Rotate 90°"
+    ensureGhost()
+    ghost.Size = Vector3.new(8, 7, 11.5)
+    status.Text = "Selected checkout and queue. Choose Move selected shelf."
+end)
 
 moveButton.Activated:Connect(function()
     setMoveMode(true)
@@ -215,6 +247,9 @@ rotateButton.Activated:Connect(function()
     if ghost and selectedProductId then
         local width = selectedProductId == "goldenApples" and 4 or 6
         ghost.Size = rotation == 0 and Vector3.new(width, 7, 2.2) or Vector3.new(2.2, 7, width)
+    end
+    if ghost and selectedCheckout then
+        ghost.Size = rotation == 0 and Vector3.new(8, 7, 11.5) or Vector3.new(11.5, 7, 8)
     end
 end)
 
@@ -241,14 +276,16 @@ local function onPointerDown(input, processed)
         return
     end
     if moveMode then
-        local x, validX = snap(hit.Position.X, -12, 12)
-        local z, validZ = snap(hit.Position.Z, -9, -1)
+        local minX, maxX = selectedCheckout and -14 or -12, selectedCheckout and 14 or 12
+        local minZ, maxZ = selectedCheckout and 6 or -9, selectedCheckout and 12 or -1
+        local x, validX = snap(hit.Position.X, minX, maxX)
+        local z, validZ = snap(hit.Position.Z, minZ, maxZ)
         if not validX or not validZ then
             status.Text = "That point is outside the marked retail layout zone."
             return
         end
         layoutEvent:FireServer({
-            action = "MoveShelf",
+            action = selectedCheckout and "MoveCheckout" or "MoveShelf",
             productId = selectedProductId,
             x = x,
             z = z,
@@ -258,13 +295,23 @@ local function onPointerDown(input, processed)
         status.Text = "Checking shelf bounds and aisle clearance…"
     else
         local productId = findRetailProductId(hit.Instance)
-        if productId and productButtons[productId] then
+        if isCheckoutFixture(hit.Instance) then
+            selectedProductId = nil
+            selectedCheckout = true
+            ensureGhost()
+            ghost.Size = rotation == 0 and Vector3.new(8, 7, 11.5) or Vector3.new(11.5, 7, 8)
+            status.Text = "Selected checkout and queue. Choose Move selected shelf."
+        elseif productId and productButtons[productId] then
             selectedProductId = productId
+            selectedCheckout = false
+            ensureGhost()
+            local width = productId == "goldenApples" and 4 or 6
+            ghost.Size = rotation == 0 and Vector3.new(width, 7, 2.2) or Vector3.new(2.2, 7, width)
             status.Text = "Selected "
                 .. productButtons[productId].Text
                 .. ". Choose Move selected shelf."
         else
-            status.Text = "Tap a product department shelf to select it."
+            status.Text = "Tap the checkout lane or a product department shelf to select it."
         end
     end
 end
@@ -285,15 +332,24 @@ RunService.RenderStepped:Connect(function()
     end
     local x, validX = snap(hit.Position.X, -12, 12)
     local z, validZ = snap(hit.Position.Z, -9, -1)
+    if selectedCheckout then
+        x, validX = snap(hit.Position.X, -14, 14)
+        z, validZ = snap(hit.Position.Z, 6, 12)
+    end
     local width = selectedProductId == "goldenApples" and 4 or 6
-    local halfX = rotation == 0 and width / 2 or 1.1
-    local halfZ = rotation == 0 and 1.1 or width / 2
+    local halfX = selectedCheckout and (rotation == 0 and 4.5 or 5.75)
+        or (rotation == 0 and width / 2 or 1.1)
+    local halfZ = selectedCheckout and (rotation == 0 and 5.75 or 4.5)
+        or (rotation == 0 and 1.1 or width / 2)
     local inside = validX
         and validZ
         and x - halfX >= -20.5
         and x + halfX <= 20.5
         and z - halfZ >= -18.5
         and z + halfZ <= 16.5
+    if selectedCheckout then
+        inside = inside and x >= -14 and x <= 14 and z >= 6 and z <= 12
+    end
     ghost.CFrame = CFrame.new(x, 3.5, z) * CFrame.Angles(0, math.rad(rotation), 0)
     ghost.Transparency = 0.48
     ghost.Color = inside and Color3.fromRGB(115, 200, 130) or Color3.fromRGB(230, 100, 90)
@@ -305,10 +361,11 @@ layoutEvent.OnClientEvent:Connect(function(message)
     end
     if message.action == "Open" then
         selectedProductId = nil
+        selectedCheckout = false
         rotation = 0
         setMoveMode(false)
         gui.Enabled = true
-        status.Text = "Select a department shelf or tap it in the store."
+        status.Text = "Select checkout and its queue, or a department shelf."
     elseif message.action == "Updated" then
         status.Text = tostring(message.message or "Retail layout saved.")
     elseif message.action == "Rejected" then

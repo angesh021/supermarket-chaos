@@ -1161,7 +1161,10 @@ function ShiftService.init(event, membershipRemotes)
             retailLayoutRequestEvent:FireClient(player, { action = "Rejected", message = message })
         end
 
-        if type(request) ~= "table" or request.action ~= "MoveShelf" then
+        if
+            type(request) ~= "table"
+            or (request.action ~= "MoveShelf" and request.action ~= "MoveCheckout")
+        then
             return reject("That retail layout request is invalid.")
         end
         local now = os.clock()
@@ -1182,12 +1185,40 @@ function ShiftService.init(event, membershipRemotes)
             or not atPrompt(player, world.retailLayoutPrompt, 18)
         then
             return reject(
-                "Only the Owner or Manager can edit the retail floor during a completed shift."
+                "Only the Owner or Manager can edit the store layout during a completed shift."
             )
         end
         local saveStatus = ProfileService.getSaveStatus(ownerPlayer)
         if saveStatus == "lock lost" or saveStatus == "save pending" then
-            return reject("Retail layout editing is paused until the store save is ready.")
+            return reject("Store layout editing is paused until the store save is ready.")
+        end
+
+        if request.action == "MoveCheckout" then
+            local valid, reason = RetailLayoutService.canPlaceCheckout(
+                state.retailLayout.shelves,
+                request.x,
+                request.z,
+                request.rotation
+            )
+            if not valid then
+                return reject(reason)
+            end
+            state.retailLayout.checkout = {
+                x = request.x,
+                z = request.z,
+                rotation = request.rotation,
+            }
+            world.setRetailLayout(state.retailLayout)
+            local saved = ProfileService.saveProgress(ownerPlayer, state, "checkoutLayoutChanged")
+            local resultMessage = saved and "Checkout lane and customer queue moved and saved."
+                or "Checkout lane and customer queue moved for this session; the save was not confirmed."
+            broadcast(resultMessage)
+            retailLayoutRequestEvent:FireClient(player, {
+                action = "Updated",
+                layout = state.retailLayout,
+                message = resultMessage,
+            })
+            return
         end
 
         local productId = request.productId
@@ -1203,7 +1234,8 @@ function ShiftService.init(event, membershipRemotes)
             productId,
             request.x,
             request.z,
-            request.rotation
+            request.rotation,
+            state.retailLayout.checkout
         )
         if not valid then
             return reject(reason)

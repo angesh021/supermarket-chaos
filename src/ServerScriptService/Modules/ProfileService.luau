@@ -6,7 +6,7 @@ local ProfileService = {}
 local LayoutService = require(script.Parent.LayoutService)
 local RetailLayoutService = require(script.Parent.RetailLayoutService)
 
-local SCHEMA_VERSION = 20
+local SCHEMA_VERSION = 21
 local SESSION_LEASE_SECONDS = 180
 local MAX_RETRIES = 3
 local STORE_NAME = "SupermarketChaos_PlayerProfiles_v1"
@@ -498,6 +498,11 @@ local function copyProfile(profile)
             rotation = shelf.rotation,
         }
     end
+    copy.retailLayout.checkout = {
+        x = profile.retailLayout.checkout.x,
+        z = profile.retailLayout.checkout.z,
+        rotation = profile.retailLayout.checkout.rotation,
+    }
     return copy
 end
 
