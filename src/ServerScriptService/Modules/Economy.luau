@@ -41,6 +41,8 @@ Economy.GARDEN_ITEM_PRICE = 75
 Economy.PLAZA_STYLE_COST = 750
 Economy.DELIVERY_FLEET_COST = 3000
 Economy.DELIVERY_FLEET_ORDERS_PER_SHIFT = 3
+Economy.DISTRIBUTION_CENTER_COST = 6000
+Economy.DISTRIBUTION_CENTER_BACKSTOCK_CAPACITY = 1000
 Economy.ONLINE_ORDER_PRODUCTS = {
     { "citrusPop", "berryBites", "goldenApples" },
     { "sunriseCereal", "citrusPop", "goldenApples" },
@@ -280,6 +282,7 @@ function Economy.newState(profile, playerSeed)
         plazaStylePurchased = upgrades.plazaStyleId ~= nil and upgrades.plazaStyleId ~= "",
         plazaStyleId = upgrades.plazaStyleId or "",
         deliveryFleetPurchased = upgrades.deliveryFleet or false,
+        distributionCenterPurchased = upgrades.distributionCenter or false,
         deliveryWorkerOrdersThisShift = savedShift.deliveryWorkerOrdersThisShift or 0,
     }
 end
@@ -524,6 +527,31 @@ function Economy.buyDeliveryFleet(state)
     state.cash -= Economy.DELIVERY_FLEET_COST
     state.deliveryFleetPurchased = true
     return true, "Delivery fleet added! The worker can pack up to three orders each shift."
+end
+
+function Economy.getBackstockCapacity(state)
+    return state.distributionCenterPurchased and Economy.DISTRIBUTION_CENTER_BACKSTOCK_CAPACITY
+        or Economy.BACKSTOCK_CAPACITY
+end
+
+function Economy.buyDistributionCenter(state)
+    if
+        state.stage ~= "Complete"
+        or not state.deliveryFleetPurchased
+        or state.distributionCenterPurchased
+    then
+        return false, "The regional distribution center requires an owned delivery fleet."
+    end
+    if state.cash < Economy.DISTRIBUTION_CENTER_COST then
+        return false,
+            string.format(
+                "You need $%d to build the distribution center.",
+                Economy.DISTRIBUTION_CENTER_COST
+            )
+    end
+    state.cash -= Economy.DISTRIBUTION_CENTER_COST
+    state.distributionCenterPurchased = true
+    return true, "Regional distribution center opened! Warehouse capacity doubled."
 end
 
 function Economy.getNextOnlineOrder(state)
@@ -868,7 +896,7 @@ function Economy.orderDelivery(state, now, productId)
                 )
             )
         )
-    if currentBackstock + product.deliveryQuantity > Economy.BACKSTOCK_CAPACITY then
+    if currentBackstock + product.deliveryQuantity > Economy.getBackstockCapacity(state) then
         return false, "There is not enough backroom space for another delivery."
     end
     if state.cash < product.deliveryCost then
@@ -922,7 +950,7 @@ function Economy.receiveDelivery(state, now)
                 )
             )
         )
-    if currentBackstock + state.shipmentQuantity > Economy.BACKSTOCK_CAPACITY then
+    if currentBackstock + state.shipmentQuantity > Economy.getBackstockCapacity(state) then
         return false, "The backroom is full. Clear space before receiving this delivery."
     end
     local quantity = state.shipmentQuantity

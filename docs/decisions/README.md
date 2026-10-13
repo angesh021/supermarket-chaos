@@ -304,6 +304,11 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Consequences:** Manual and automatic packing count against a bounded per-shift total; profile schema v34 migrates existing one-order markers. Existing rotation, stock, payout, worker toggle and transaction lock are reused.
 - **Verification:** See `docs/operations/PHASE54_DELIVERY_FLEET.md`.
 
+## ADR-0053: Add a persistent distribution center
+- **Decision:** After the delivery fleet, allow a one-time `$6,000` regional center purchase that increases each warehouse SKU's maximum backstock from 500 to 1,000.
+- **Consequences:** Profile schema v35 persists ownership and conditionally permits the higher inventory limit. Existing shipment quantity and timing remain the same; order/receive paths use the same server-owned cap.
+- **Verification:** See `docs/operations/PHASE55_DISTRIBUTION_CENTER.md`.
+
 ## ADR-0009 — Keep product inventory and supplier orders SKU-specific
 - **Status:** Accepted — 2026-10-12.
 - **Context:** The retail loop needs visible department variety and product-specific stock behavior while keeping stock and money authoritative.

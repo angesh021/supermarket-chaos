@@ -2629,6 +2629,24 @@ function WorldBuilder.build()
         10
     )
     deliveryFleetPrompt.Enabled = false
+    local distributionCenterPad = part(
+        exterior,
+        "Regional Distribution Center Pad",
+        Vector3.new(4.5, 0.5, 4.5),
+        CFrame.new(82, 0.45, 7),
+        COLORS.gold,
+        Enum.Material.Neon
+    )
+    local distributionCenterPrompt = prompt(
+        distributionCenterPad,
+        "Build Distribution Center ($6,000)",
+        "Regional Logistics",
+        "DistributionCenter",
+        10
+    )
+    distributionCenterPrompt.Enabled = false
+    local distributionCenterModel
+    local distributionCenterPurchased = false
     local warehouseModel
     local warehousePurchased = false
     local layoutFixtureFolder
@@ -3684,6 +3702,94 @@ function WorldBuilder.build()
         deliveryFleetPrompt.Enabled = false
     end
 
+    local function addDistributionCenter()
+        if distributionCenterModel then
+            return
+        end
+        distributionCenterModel = Instance.new("Model")
+        distributionCenterModel.Name = "Regional Distribution Center"
+        distributionCenterModel.Parent = exterior
+        local center = Vector3.new(81, 0, -11)
+        part(
+            distributionCenterModel,
+            "Distribution Center Loading Apron",
+            Vector3.new(18, 0.25, 8),
+            CFrame.new(center + Vector3.new(0, 0.12, 4)),
+            COLORS.gray,
+            Enum.Material.Concrete
+        )
+        part(
+            distributionCenterModel,
+            "Distribution Center Floor",
+            Vector3.new(18, 0.3, 16),
+            CFrame.new(center + Vector3.new(0, 0.18, -7)),
+            COLORS.cream,
+            Enum.Material.Concrete
+        )
+        part(
+            distributionCenterModel,
+            "Distribution Center Back Wall",
+            Vector3.new(18, 10, 0.65),
+            CFrame.new(center + Vector3.new(0, 5, -15)),
+            COLORS.deepTeal,
+            Enum.Material.Brick
+        )
+        for _, x in ipairs({ -9, 9 }) do
+            part(
+                distributionCenterModel,
+                "Distribution Center Side Wall",
+                Vector3.new(0.65, 10, 16),
+                CFrame.new(center + Vector3.new(x, 5, -7)),
+                COLORS.teal,
+                Enum.Material.Brick
+            )
+            for rackIndex = 1, 3 do
+                local z = -13 + rackIndex * 4
+                part(
+                    distributionCenterModel,
+                    "High-Bay Storage Rack",
+                    Vector3.new(2.2, 7, 0.4),
+                    CFrame.new(center + Vector3.new(x * 0.62, 3.7, z)),
+                    COLORS.orange,
+                    Enum.Material.Metal
+                )
+                for level = 1, 3 do
+                    part(
+                        distributionCenterModel,
+                        "Pallet Stock",
+                        Vector3.new(1.8, 0.75, 1.3),
+                        CFrame.new(center + Vector3.new(x * 0.62, 1 + level * 1.8, z)),
+                        ({ COLORS.green, COLORS.coral, COLORS.gold })[level],
+                        Enum.Material.WoodPlanks
+                    )
+                end
+            end
+        end
+        for _, x in ipairs({ -5, 0, 5 }) do
+            part(
+                distributionCenterModel,
+                "Loading Bay Door",
+                Vector3.new(4.2, 6.5, 0.22),
+                CFrame.new(center + Vector3.new(x, 3.4, 1.05)),
+                COLORS.blue,
+                Enum.Material.Glass,
+                0.48
+            )
+        end
+        label(
+            distributionCenterModel,
+            "Distribution Center Sign",
+            "REGIONAL DISTRIBUTION\nBACKSTOCK CAPACITY 1,000 / SKU",
+            Vector3.new(14, 2.2, 0.3),
+            CFrame.new(center + Vector3.new(0, 9.3, 1)),
+            COLORS.deepTeal,
+            COLORS.warmWhite
+        )
+        distributionCenterPad.Transparency = 1
+        distributionCenterPad.CanCollide = false
+        distributionCenterPrompt.Enabled = false
+    end
+
     local function setDeliveryState(readyAt, quantity, productId)
         deliveryReadyAt = readyAt or 0
         deliveryQuantity = quantity or 0
@@ -4121,6 +4227,14 @@ function WorldBuilder.build()
             and warehousePurchased
             and deliveryWorkerHired
             and not deliveryFleetPurchased
+        distributionCenterPrompt.Enabled = stage == "Complete"
+            and deliveryFleetPurchased
+            and not distributionCenterPurchased
+        distributionCenterPad.Transparency = (
+            deliveryFleetPurchased and not distributionCenterPurchased
+        )
+                and 0
+            or 1
         deliveryFleetPad.Transparency = (
             deliveryFleetPurchased
             or not warehousePurchased
@@ -4742,6 +4856,21 @@ function WorldBuilder.build()
                 or "Resume Automation"
         end,
         deliveryFleetPrompt = deliveryFleetPrompt,
+        distributionCenterPrompt = distributionCenterPrompt,
+        setDistributionCenterPurchased = function(purchased)
+            distributionCenterPurchased = purchased == true
+            if distributionCenterPurchased then
+                addDistributionCenter()
+            end
+            distributionCenterPrompt.Enabled = currentStage == "Complete"
+                and deliveryFleetPurchased
+                and not distributionCenterPurchased
+            distributionCenterPad.Transparency = (
+                deliveryFleetPurchased and not distributionCenterPurchased
+            )
+                    and 0
+                or 1
+        end,
         setDeliveryFleetPurchased = function(purchased)
             deliveryFleetPurchased = purchased == true
             if deliveryFleetPurchased then
@@ -4758,6 +4887,14 @@ function WorldBuilder.build()
             )
                     and 1
                 or 0
+            distributionCenterPrompt.Enabled = currentStage == "Complete"
+                and deliveryFleetPurchased
+                and not distributionCenterPurchased
+            distributionCenterPad.Transparency = (
+                deliveryFleetPurchased and not distributionCenterPurchased
+            )
+                    and 0
+                or 1
         end,
         addWarehouse = addWarehouse,
         setWarehousePurchased = function(purchased)
@@ -4778,6 +4915,14 @@ function WorldBuilder.build()
             )
                     and 1
                 or 0
+            distributionCenterPrompt.Enabled = currentStage == "Complete"
+                and deliveryFleetPurchased
+                and not distributionCenterPurchased
+            distributionCenterPad.Transparency = (
+                deliveryFleetPurchased and not distributionCenterPurchased
+            )
+                    and 0
+                or 1
         end,
         onlineOrderPrompt = function()
             return onlineOrderPrompt

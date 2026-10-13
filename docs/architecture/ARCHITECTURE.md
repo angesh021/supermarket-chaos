@@ -219,6 +219,12 @@ See `docs/decisions/README.md` for accepted ownership policy. Remaining decision
 - The persistent `$3,000` fleet upgrade requires warehouse ownership and a hired delivery worker; `WorldBuilder` builds two procedural trucks at the loading dock.
 - Existing online-order automation uses the same deterministic rotation and stock/payout transition, now capped at three packed orders per completed shift when the fleet is owned. Manual orders consume capacity too.
 - Profile schema v34 adds a 0–3 per-shift order count. Existing v33 profiles with a current-shift idempotency marker migrate with count 1; other profiles default to 0. The shared transaction lock and delivery-worker automation toggle remain authoritative.
+
+## Phase 55 distribution center
+- Owner/Manager can buy the one-time `$6,000` facility only after a completed shift and delivery-fleet ownership. `Economy` verifies prerequisites, funds and ownership; the prompt supplies no purchase values.
+- Profile schema v35 persists ownership. Inventory normalization allows up to 1,000 units per SKU only when this saved upgrade exists; legacy profiles default to the existing 500-unit cap.
+- Delivery ordering and receiving share the same server-derived capacity method, so a shipment cannot exceed the cap at either step. Existing shipment timing, cost, quantity, SKU and transaction lock remain unchanged.
+- `WorldBuilder` constructs the facility from original anchored parts. Runtime visuals are not persisted; they are rebuilt from profile ownership on load.
 # Cooperative ownership and cashier extension
 - One owner profile remains the persistence boundary. Per-server membership grants temporary action permissions but does not load a guest's profile into the owner's economy.
 - Server role map: Owner (all), Manager (all shift actions including staff hiring), Cashier (checkout), Stocker (stock), Maintenance (cart recovery).
