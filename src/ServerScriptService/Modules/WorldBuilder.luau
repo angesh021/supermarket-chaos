@@ -879,7 +879,18 @@ function WorldBuilder.build()
     end
 
     local customerProductName = "Citrus Pop"
+    local customerBasketName = "Citrus Pop x1"
     local customerProductPosition = Vector3.new(-10, 0.45, 4)
+    local customerProductPositions = { customerProductPosition }
+    local function browseCustomerBasket(entry, speed, flowVersion)
+        for _, position in ipairs(customerProductPositions) do
+            if not moveCustomer(entry, position, speed, flowVersion) then
+                return false
+            end
+        end
+        return true
+    end
+
     local function runCustomerVisit(entry, queuePosition, queueNumber, flowVersion)
         if queueNumber > 1 then
             task.wait((queueNumber - 1) * 1.1)
@@ -896,10 +907,10 @@ function WorldBuilder.build()
             end
         end
         entry.label.Text = "BROWSING"
-        if not moveCustomer(entry, customerProductPosition, 0.7, flowVersion) then
+        if not browseCustomerBasket(entry, 0.7, flowVersion) then
             return
         end
-        entry.label.Text = "PICKING " .. string.upper(customerProductName)
+        entry.label.Text = "BASKET: " .. string.upper(customerBasketName)
         task.wait(0.55)
         if not moveCustomer(entry, Vector3.new(5, 0.45, 4), 0.75, flowVersion) then
             return
@@ -915,8 +926,8 @@ function WorldBuilder.build()
     end
 
     local function runCustomerAdvance(entry, queuePosition, queueNumber, flowVersion)
-        entry.label.Text = "PICKING " .. string.upper(customerProductName)
-        if not moveCustomer(entry, customerProductPosition, 0.55, flowVersion) then
+        entry.label.Text = "BASKET: " .. string.upper(customerBasketName)
+        if not browseCustomerBasket(entry, 0.55, flowVersion) then
             return
         end
         task.wait(0.35)
@@ -1816,6 +1827,19 @@ function WorldBuilder.build()
             customerProductPosition = customerProductName == "Berry Bites"
                     and Vector3.new(10, 0.45, 4)
                 or Vector3.new(-10, 0.45, 4)
+        end,
+        setCustomerBasket = function(displayName)
+            customerBasketName = displayName or "Citrus Pop x1"
+            customerProductPositions = {}
+            if string.find(customerBasketName, "Berry Bites", 1, true) then
+                table.insert(customerProductPositions, Vector3.new(10, 0.45, 4))
+            end
+            if string.find(customerBasketName, "Citrus Pop", 1, true) then
+                table.insert(customerProductPositions, Vector3.new(-10, 0.45, 4))
+            end
+            if #customerProductPositions == 0 then
+                table.insert(customerProductPositions, customerProductPosition)
+            end
         end,
         setCustomerVisible = setCustomerVisible,
         setCustomerCount = setCustomerCount,

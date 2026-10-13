@@ -41,7 +41,8 @@ G0 was approved on 2026-10-12. The user authorized continued phase implementatio
 - [x] Serve customers through the existing server economy transaction; close the shift only when the queue is cleared.
 - [x] Reconstruct remaining queue positions from the persisted shift sales count after rejoin.
 - [x] Script bounded entrance, aisle browse, checkout queue and exit waypoints; add a 12-second queue recovery path.
-- [ ] Add customer product selection, shopping baskets, varied preferences and reactions to events.
+- [ ] Add customer reactions to chaos events and broader, weighted shopping preferences.
+- [x] Phase 14: add deterministic Citrus Pop/Berry Bites basket preferences, stock-aware fulfillment, atomic multi-item checkout and basket display; see `operations/PHASE14_CUSTOMER_BASKETS.md`.
 - [ ] Studio verification of three sales, queue visibility, cashier automation, helper races, and rejoin mid-queue.
 
 ## Phase 4 — Chaos operations (checkout spill increment implemented)
@@ -51,6 +52,7 @@ G0 was approved on 2026-10-12. The user authorized continued phase implementatio
 - [x] Add a bounded Power Outage after the second sale, with a physical breaker, role permissions, persisted deadline and automatic recovery.
 - [x] Add Customer Rush after the normal three sales: two bonus customers, a persisted 60-second deadline, server-priced checkout, a one-time `$20` clear bonus and safe no-bonus timeout.
 - [ ] Studio verification of the Customer Rush queue, payout, timeout, cashier behavior and save/rejoin; see `operations/PHASE13_CUSTOMER_RUSH.md`.
+- [ ] Studio verification of customer baskets, mixed/double-item totals, stock fallback, role races and save/rejoin; see `operations/PHASE14_CUSTOMER_BASKETS.md`.
 - [ ] Studio verification of Power Outage, including early/manual recovery, auto recovery, save/rejoin and helper roles; see `operations/PHASE12_POWER_OUTAGE.md`.
 - [ ] Studio verification of role permissions, reward idempotency, save/rejoin and cashier behavior during the event.
 
@@ -67,5 +69,6 @@ G0 was approved on 2026-10-12. The user authorized continued phase implementatio
 - [x] Phase 7 first increment: server-authoritative $200 warehouse annex purchase, physical buildout and per-player persistence.
 - [x] Phase 7 delivery increment: persistent backroom Citrus Pop stock, server-priced supply order, delayed shipment, receive prompt and stock HUD.
 - [x] Phase 7 follow-up increment: Citrus Pop and Berry Bites have separate server-owned shelf/backroom quantities, prices, shelf visuals and product-specific delivery.
+- [x] Phase 4 customer increment: server-derived five-pattern shopping baskets with atomic multi-item checkout, visible customer order, department browsing and no schema migration.
 - [ ] Phase 7 follow-up: warehouse inventory layout, additional departments and Studio verification of purchase/delivery/save/rejoin; see `operations/PHASE11_PRODUCTS.md`.
 - [ ] Later phases: broader economy, seasonal/live operations, production commerce and release work remain gated by the specification, Studio validation and explicit release approval.

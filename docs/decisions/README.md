@@ -59,6 +59,13 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Consequences:** Profile schema v9 saves the rush deadline; up to five customers are reconstructed from sales and the active deadline. Sales still use server catalog prices and inventory. The client timer is display-only; the server validates sale deadline, completion reward and timeout.
 - **Verification:** See `docs/operations/PHASE13_CUSTOMER_RUSH.md`; Studio timing, cashier, race and rejoin tests remain pending.
 
+## ADR-0012 — Derive customer baskets from shift progress
+- **Status:** Accepted — 2026-10-12.
+- **Context:** Two products are available, but checkout still represents each shopper as a single-item purchase and the next SKU is chosen by a fixed one-product rule.
+- **Decision:** Generate a bounded five-pattern basket intent from the server's next customer number; resolve it against server shelf quantities and transact all included item deductions and catalog-price credits as one customer sale. Derive the display and intent again after rejoin rather than persisting redundant basket data.
+- **Consequences:** A two-unit basket consumes two units but increments customer sales once. Out-of-stock preferences can reduce to the available items, with a one-item fallback when no preferred item is available. Existing schema v9 needs no migration. The behavior remains deterministic and does not model discounts or customer-specific negotiation.
+- **Verification:** See `docs/operations/PHASE14_CUSTOMER_BASKETS.md`; checkout, fallback, race and save/rejoin cases await Studio verification.
+
 ## ADR-0009 — Keep product inventory and supplier orders SKU-specific
 - **Status:** Accepted — 2026-10-12.
 - **Context:** The retail loop needs visible department variety and product-specific stock behavior while keeping stock and money authoritative.

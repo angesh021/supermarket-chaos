@@ -66,6 +66,12 @@ Currency and stock changes occur only after server-side validation. Transactions
 - Customer models are bounded to five and reconstructed from saved sales/deadline. Cashier automation is allowed during the rush but the economy checks its deadline. `ShiftService` expires it only after checking the owner and save lock.
 - See `operations/PHASE13_CUSTOMER_RUSH.md`; Studio queue, payout, timeout, automation and persistence checks remain pending.
 
+## Phase 4 customer basket increment
+- `Economy.getNextCheckoutBasket` derives a bounded basket pattern from the next server-owned customer number and resolves it against current Citrus Pop/Berry Bites shelf quantities. It returns item names, quantities and catalog prices for display; `sellProduct` recomputes the basket and applies all deductions and credits as one customer transaction.
+- Each basket increments `sales` once, so customer queues and chaos thresholds remain customer-based. If a preferred SKU is unavailable, its item is omitted; when no preferred item can be supplied, one stocked SKU is used. Empty shelves reject checkout without mutation.
+- The next intent is reconstructed from the persisted sales count and current saved inventory. Profile schema v9 does not change. The world route and HUD only display the server decision and cannot control it.
+- See `operations/PHASE14_CUSTOMER_BASKETS.md`; runtime pricing, stock, routing and rejoin checks remain pending.
+
 ## Open technical decisions
 See `docs/decisions/README.md` for accepted ownership policy. Remaining decisions include multi-store/guest permissions, production Studio place configuration, analytics implementation/privacy review, and any changes to persistence recovery. Verify platform APIs against official documentation when implementation starts.
 # Cooperative ownership and cashier extension

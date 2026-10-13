@@ -69,25 +69,25 @@ local function snapshot(message, recipient)
     local objective = OBJECTIVES[current.stage] or "Your store is starting up."
     if current.stage == "Checkout" then
         local remaining = Economy.getRemainingCustomers(current)
-        local productId = Economy.getNextCheckoutProductId(current)
-        local nextProduct = productId and Economy.PRODUCTS[productId].displayName
-            or "restock a shelf"
+        local basket = Economy.getNextCheckoutBasket(current)
+        local nextBasket = #basket.items > 0 and basket.displayName or "restock a shelf"
         objective = string.format(
-            "Checkout: serve the queue (%d customer%s left). Next up: %s.",
+            "Serve %d customer%s • Basket: %s ($%d).",
             remaining,
             remaining == 1 and "" or "s",
-            nextProduct
+            nextBasket,
+            basket.total
         )
     elseif current.stage == "Spill" then
         local remaining = Economy.getRemainingCustomers(current)
-        local productId = Economy.getNextCheckoutProductId(current)
-        local nextProduct = productId and Economy.PRODUCTS[productId].displayName
-            or "restock a shelf"
+        local basket = Economy.getNextCheckoutBasket(current)
+        local nextBasket = #basket.items > 0 and basket.displayName or "restock a shelf"
         objective = string.format(
-            "Clean the checkout spill, then serve %d more customer%s. Next up: %s.",
+            "Clean spill • %d customer%s left • %s ($%d).",
             remaining,
             remaining == 1 and "" or "s",
-            nextProduct
+            nextBasket,
+            basket.total
         )
     elseif current.stage == "CustomerRush" then
         objective = "Customer rush: serve the remaining shoppers before the timer ends."
@@ -120,9 +120,9 @@ local function snapshot(message, recipient)
         customerRushUntil = hasStoreAccess and current.customerRushUntil or 0,
         rushRemaining = hasStoreAccess and Economy.getRemainingCustomers(current) or 0,
         rushReward = hasStoreAccess and Economy.CUSTOMER_RUSH_REWARD or 0,
-        nextProductName = hasStoreAccess and Economy.PRODUCTS[Economy.getNextCheckoutProductId(
-            current
-        ) or "citrusPop"].displayName or "",
+        nextBasketName = hasStoreAccess and Economy.getNextCheckoutBasket(current).displayName
+            or "",
+        nextBasketTotal = hasStoreAccess and Economy.getNextCheckoutBasket(current).total or 0,
     }
 end
 
@@ -487,6 +487,7 @@ function ShiftService.init(event, membershipRemotes)
         world.setCustomerProduct(
             Economy.PRODUCTS[Economy.getNextCheckoutProductId(state) or "citrusPop"].displayName
         )
+        world.setCustomerBasket(Economy.getNextCheckoutBasket(state).displayName)
         world.setBerryStockAvailable(
             state.warehousePurchased
                 and state.berryBackstock >= Economy.BERRY_BITES_STOCK_PER_RESTOCK
@@ -837,6 +838,7 @@ function ShiftService.init(event, membershipRemotes)
             world.setCustomerProduct(
                 Economy.PRODUCTS[Economy.getNextCheckoutProductId(state) or "citrusPop"].displayName
             )
+            world.setCustomerBasket(Economy.getNextCheckoutBasket(state).displayName)
             world.setStage(state.stage)
             world.setCustomerCount(
                 Economy.getRemainingCustomers(state),

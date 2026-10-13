@@ -237,17 +237,70 @@ function Economy.receiveDelivery(state, now)
 end
 
 function Economy.getNextCheckoutProductId(state)
-    local preferredProduct = state.sales == 1 and "berryBites" or "citrusPop"
-    if preferredProduct == "berryBites" and state.berryStock > 0 then
-        return preferredProduct
+    local basket = Economy.getNextCheckoutBasket(state)
+    return basket and basket.items[1].productId or nil
+end
+
+-- Basket intent is derived from the next customer number. The server resolves it
+-- against current shelf stock, so a rejoin or a depleted preferred SKU is safe.
+function Economy.getNextCheckoutBasket(state)
+    local customerNumber = state.sales + 1
+    local intents = {
+        { "citrusPop" },
+        { "berryBites" },
+        { "citrusPop", "berryBites" },
+        { "berryBites", "berryBites" },
+        { "citrusPop", "citrusPop" },
+    }
+    local intent = intents[((customerNumber - 1) % #intents) + 1]
+    local available = {
+        citrusPop = math.max(0, math.floor(state.stock or 0)),
+        berryBites = math.max(0, math.floor(state.berryStock or 0)),
+    }
+    local items = {}
+    local counts = {}
+    local fulfilledCount = 0
+
+    for _, productId in ipairs(intent) do
+        if available[productId] > 0 then
+            available[productId] -= 1
+            counts[productId] = (counts[productId] or 0) + 1
+            fulfilledCount += 1
+        end
     end
-    if state.stock > 0 then
-        return "citrusPop"
+
+    -- A customer always has a fulfillable one-item basket when any shelf is stocked.
+    if fulfilledCount == 0 then
+        local fallbackId = state.stock > 0 and "citrusPop"
+            or (state.berryStock > 0 and "berryBites" or nil)
+        if fallbackId then
+            counts[fallbackId] = 1
+        end
     end
-    if state.berryStock > 0 then
-        return "berryBites"
+
+    for productId, quantity in pairs(counts) do
+        table.insert(items, {
+            productId = productId,
+            quantity = quantity,
+            displayName = Economy.PRODUCTS[productId].displayName,
+            unitPrice = Economy.PRODUCTS[productId].salePrice,
+        })
     end
-    return nil
+    table.sort(items, function(left, right)
+        return left.productId < right.productId
+    end)
+
+    local total = 0
+    local labels = {}
+    for _, item in ipairs(items) do
+        total += item.quantity * item.unitPrice
+        table.insert(labels, string.format("%s x%d", item.displayName, item.quantity))
+    end
+    return {
+        items = items,
+        total = total,
+        displayName = #labels > 0 and table.concat(labels, " + ") or "No shelf stock",
+    }
 end
 
 function Economy.sellProduct(state, now)
@@ -264,11 +317,10 @@ function Economy.sellProduct(state, now)
     then
         return false, "The customer rush has ended. Finish the shift at the board."
     end
-    local productId = Economy.getNextCheckoutProductId(state)
-    if not productId then
+    local basket = Economy.getNextCheckoutBasket(state)
+    if #basket.items == 0 then
         return false, "The shelves are empty. Restock a product before serving this customer."
     end
-    local product = Economy.PRODUCTS[productId]
     if
         (
             state.sales + 1 == Economy.CHAOS_EVENTS.PowerOutage.triggerSales
@@ -280,20 +332,22 @@ function Economy.sellProduct(state, now)
     then
         return false, "The event time could not be confirmed. Try again."
     end
-    if productId == "citrusPop" then
-        state.stock -= 1
-    else
-        state.berryStock -= 1
+    for _, item in ipairs(basket.items) do
+        if item.productId == "citrusPop" then
+            state.stock -= item.quantity
+        else
+            state.berryStock -= item.quantity
+        end
     end
     state.sales += 1
-    state.cash += product.salePrice
+    state.cash += basket.total
     if state.sales == Economy.CHAOS_EVENTS.CheckoutSpill.triggerSales then
         state.stage = "Spill"
         return true,
             string.format(
-                "Sale complete! +$%d for %s. A customer dropped groceries—clean up the spill!",
-                product.salePrice,
-                product.displayName
+                "Basket complete! +$%d for %s. A customer dropped groceries—clean up the spill!",
+                basket.total,
+                basket.displayName
             )
     end
     if state.sales == Economy.CHAOS_EVENTS.PowerOutage.triggerSales then
@@ -301,9 +355,9 @@ function Economy.sellProduct(state, now)
         state.stage = "PowerOutage"
         return true,
             string.format(
-                "Sale complete! +$%d for %s. The power is out—restore it at the breaker!",
-                product.salePrice,
-                product.displayName
+                "Basket complete! +$%d for %s. The power is out—restore it at the breaker!",
+                basket.total,
+                basket.displayName
             )
     end
     if
@@ -315,9 +369,9 @@ function Economy.sellProduct(state, now)
         state.stage = "CustomerRush"
         return true,
             string.format(
-                "Sale complete! +$%d for %s. Customer rush! Serve %d more shoppers within 60 seconds.",
-                product.salePrice,
-                product.displayName,
+                "Basket complete! +$%d for %s. Customer rush! Serve %d more shoppers within 60 seconds.",
+                basket.total,
+                basket.displayName,
                 Economy.CUSTOMER_RUSH_EXTRA_CUSTOMERS
             )
     end
@@ -335,16 +389,16 @@ function Economy.sellProduct(state, now)
         state.stage = "CloseShift"
         return true,
             string.format(
-                "Sale complete! +$%d for %s. All customers served. Close out your shift.",
-                product.salePrice,
-                product.displayName
+                "Basket complete! +$%d for %s. All customers served. Close out your shift.",
+                basket.total,
+                basket.displayName
             )
     end
     return true,
         string.format(
-            "Sale complete! +$%d for %s. %d customers remain in the queue.",
-            product.salePrice,
-            product.displayName,
+            "Basket complete! +$%d for %s. %d customers remain in the queue.",
+            basket.total,
+            basket.displayName,
             Economy.getCustomerTarget(state) - state.sales
         )
 end

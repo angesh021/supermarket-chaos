@@ -27,6 +27,7 @@ Phase 1 desktop first play and Phase 2 progression/persistence were reported pas
 - Phase 9 schema v5 accepts the new `Spill` shift stage while keeping the saved event decision server-authored. Existing schema v1–v4 data migrates through defaults and normalization; Studio save/rejoin verification is pending.
 - Phase 4 chaos increment adds a power outage after the second sale. Profile schema v8 persists the outage stage and deadline; Owner/Manager/Maintenance can restore power at the checkout breaker, while a server timer safely restores the queue after 30 seconds. Cashier automation pauses during the event. Studio event, timer and rejoin checks are pending in `operations/PHASE12_POWER_OUTAGE.md`.
 - Phase 4 Customer Rush adds two bonus shoppers after the three baseline sales when two shelf units remain. Profile schema v9 persists a 60-second deadline; serving both earns `$20` once, while timeout removes only the bonus queue and keeps closeout available. The five-customer cap, server-priced sales, display-only client countdown and saved queue reconstruction are implemented. Studio queue, reward, timeout, cashier, race and rejoin checks are pending in `operations/PHASE13_CUSTOMER_RUSH.md`.
+- Phase 14 customer baskets replace fixed one-item checkout with five deterministic Citrus Pop/Berry Bites basket patterns. `Economy` resolves intent against server shelf counts, prices and deducts every included item in one customer sale, and safely falls back when a preferred SKU is unavailable. The objective/customer model show the basket and the procedural route browses each included department. The next basket reconstructs from saved sales and inventory; Profile schema remains v9. Basket totals, stock fallback, routing, races and rejoin remain unverified in Studio; checklist is `operations/PHASE14_CUSTOMER_BASKETS.md`.
 - Phase 10 schema v6 adds a validated persistent cleaner employee flag; schemas v1–v5 default safely to no cleaner.
 - DataStore calls are enabled only when `game.GameId` matches development universe `10770581249`. Other universes display session-only status and never write to that store.
 
@@ -46,6 +47,7 @@ Use a private development test experience in universe `10770581249`; use two or 
 12. Follow [Phase 11 product checks](operations/PHASE11_PRODUCTS.md) for Berry Bites stocking, SKU-specific checkout, both delivery types, schema migration, helper permissions, concurrency and rejoin.
 13. Follow [Phase 12 power outage checks](operations/PHASE12_POWER_OUTAGE.md) for the second-sale trigger, breaker roles, 30-second fallback, cashier pause and save/rejoin behavior.
 14. Follow [Phase 13 Customer Rush checks](operations/PHASE13_CUSTOMER_RUSH.md) for the two bonus customers, `$20` reward, 60-second timeout, cashier automation, races and save/rejoin behavior.
+15. Follow [Phase 14 customer basket checks](operations/PHASE14_CUSTOMER_BASKETS.md) for mixed and double-item transactions, missing stock, one-customer sale count, role races and deterministic rejoin behavior.
 
 ## Toolchain and checks
 - Rojo 7.7.0, Selene 0.32.0 and StyLua 2.5.0 are pinned in `rokit.toml`.
@@ -63,7 +65,7 @@ Use a private development test experience in universe `10770581249`; use two or 
 3. Employees are a first automation increment and only auto-serve the introductory stock/checkout stage; they do not simulate a full queue or wages.
 4. Mobile layout, multi-server lease failure paths, malicious-client stress, development funnel ingestion and Studio behavior for Phases 3/4 remain unverified.
 5. Production universe ID, publishing and commerce are not configured. Development funnel ingestion and Creator Dashboard reporting remain unverified.
-6. Product variety is still a first increment: two SKUs, a scripted checkout choice, one pending shipment total and no customer basket/preferences, supplier selection, or editable warehouse layout. Chaos event selection remains predictable; no random director or event-specific customer reactions exist yet.
+6. Product variety remains limited to two SKUs, one pending shipment total, and no supplier selection or editable warehouse layout. Customer baskets have five deterministic patterns but no preference weights, discounts, or event-specific reactions. Chaos event selection remains predictable; there is no random event director yet.
 
 ## Current gate
 **G0:** approved. **G1:** desktop first-shift accepted. **G2:** user reported tests passed. **G3–G7 increments:** implemented; multiplayer, employee, customer queue, spill event, analytics, touch, visual, warehouse, delivery and multi-product verification pending. **Production:** disabled pending user-provided production universe ID and deployment approval.

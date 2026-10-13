@@ -95,3 +95,9 @@ Instrument funnel events for first interaction, first stock, first sale, first u
 - Serve both through the ordinary server-priced product transaction to earn one `$20` bonus; if time expires, allow normal shift closeout without the bonus.
 - Persist the active deadline, reconstruct queue state after rejoin, cap active NPCs at five, and keep the client countdown display-only.
 - See `operations/PHASE13_CUSTOMER_RUSH.md` for reward, timeout, race, cashier and recovery checks.
+
+### Phase 4 Customer basket increment
+- Derive each next customer's small basket from server-owned shift progress and resolve it against current shelf stock.
+- Price each item from the server catalog and atomically apply all basket deductions and credits as one customer sale; customer-count events remain based on customers served.
+- Show basket contents to the player and route mixed baskets past both departments. Presentation cannot change basket composition or transaction outcome.
+- Reconstruct the next customer intent from saved sale count and current inventory without adding redundant profile data. See `operations/PHASE14_CUSTOMER_BASKETS.md`.

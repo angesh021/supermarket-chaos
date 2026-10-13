@@ -489,15 +489,17 @@ end)
 local messageRevision = 0
 local customerRushUntil = 0
 local rushRemaining = 0
-local rushReward = 0
+local lastBasketName = ""
+local lastBasketTotal = 0
 
 local function renderRushObjective()
     if customerRushUntil > 0 and ownerView then
         objective.Text = string.format(
-            "Rush: %d shoppers | %d sec. Clear it for +$%d.",
+            "Rush %d • %ds • %s $%d",
             rushRemaining,
             math.max(0, customerRushUntil - os.time()),
-            rushReward
+            lastBasketName,
+            lastBasketTotal
         )
     end
 end
@@ -510,7 +512,8 @@ local function update(state)
     ownerView = state.hasStoreAccess == true or state.isOwner ~= false
     customerRushUntil = state.customerRushUntil or 0
     rushRemaining = state.rushRemaining or 0
-    rushReward = state.rushReward or 0
+    lastBasketName = tostring(state.nextBasketName or "")
+    lastBasketTotal = state.nextBasketTotal or 0
     renderRushObjective()
     warehouseView = state.warehousePurchased == true
     backroomValue.Text = string.format(
