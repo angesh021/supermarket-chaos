@@ -2079,7 +2079,8 @@ function ShiftService.init(event, membershipRemotes)
                 )
                 return
             end
-            state = Economy.newState(profile, player.UserId)
+            state =
+                Economy.newState(profile, player.UserId, ProfileService.getCompanyWallet(player))
             TelemetryService.begin(player, profile, state)
             ownerReady = true
             if state.upgradePurchased then

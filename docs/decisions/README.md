@@ -329,6 +329,11 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Consequences:** Schema v39 validates and preserves a second location record. Branch purchase, a synchronized wallet, independent runtime and location-scoped roles remain required for playable multi-store support.
 - **Verification:** See `docs/operations/PHASE60_LOCATION_PROFILE_STORAGE.md`.
 
+## ADR-0058: Share one in-memory company wallet across location states
+- **Decision:** Keep cash at the company profile root and bind each location state to one server-owned wallet per player profile.
+- **Consequences:** New runtime states can share cash without location snapshots overwriting one another's balance. The existing runtime uses the wallet; second branch runtime and location-scoped action locks remain pending.
+- **Verification:** See `docs/operations/PHASE61_COMPANY_WALLET.md`.
+
 ## ADR-0009 — Keep product inventory and supplier orders SKU-specific
 - **Status:** Accepted — 2026-10-12.
 - **Context:** The retail loop needs visible department variety and product-specific stock behavior while keeping stock and money authoritative.

@@ -254,8 +254,14 @@ See `docs/decisions/README.md` for accepted ownership policy. Remaining decision
 - Profile schema v39 permits exactly `neighborhood` and one optional `uptown` location. Each stores an independently normalized operational snapshot; the shared company balance and session lease remain at profile root.
 - `ProfileService.getLocation` returns a defensive copy for either existing location; `getCompanyBalance` reads the shared root balance. `createLocation` accepts only `uptown` and seeds a server-default snapshot; `saveProgress` accepts a known existing location and routes its snapshot update through the same serialized profile save.
 - Profile loading validates the original neighborhood against legacy flat fields and validates `uptown` through the normal profile validators. Unknown IDs, malformed state and unsupported counts are rejected.
-- This is only storage infrastructure. A shared in-memory wallet, branch purchase, branch runtime/world, switching and per-location memberships still need implementation before users can operate two stores.
+- This is only storage infrastructure. Shared wallet binding is added in Phase 61; branch purchase, branch runtime/world, switching and per-location memberships still need implementation before users can operate two stores.
 - See ADR-0057 and `operations/PHASE60_LOCATION_PROFILE_STORAGE.md`.
+
+## Phase 61 shared company wallet
+- `ProfileService` creates one server-owned cash wallet per loaded owner profile. The neighborhood `Economy` state proxies its `cash` field to this table; future branch states must use the same reference.
+- Profile mutation serialization spans location projection updates and the existing serialized DataStore save. Each save persists the wallet balance at the company root and keeps it out of location snapshots.
+- No second runtime is connected yet. Per-location interaction locks remain necessary in addition to the shared profile mutation lock.
+- See ADR-0058 and `operations/PHASE61_COMPANY_WALLET.md`.
 # Cooperative ownership and cashier extension
 - One owner profile remains the persistence boundary. Per-server membership grants temporary action permissions but does not load a guest's profile into the owner's economy.
 - Server role map: Owner (all), Manager (all shift actions including staff hiring), Cashier (checkout), Stocker (stock), Maintenance (cart recovery).

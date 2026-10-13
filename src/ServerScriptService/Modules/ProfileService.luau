@@ -1046,6 +1046,7 @@ function ProfileService.load(player)
             userId = player.UserId,
             key = key,
             profile = profile,
+            wallet = { cash = profile.balance },
             persistent = false,
             saveStatus = "session only",
             saveInProgress = false,
@@ -1111,6 +1112,7 @@ function ProfileService.load(player)
                 userId = player.UserId,
                 key = key,
                 profile = loadedProfile,
+                wallet = { cash = loadedProfile.balance },
                 persistent = true,
                 lockLost = false,
                 saveStatus = "saved",
@@ -1148,6 +1150,7 @@ function ProfileService.load(player)
         userId = player.UserId,
         key = key,
         profile = profile,
+        wallet = { cash = profile.balance },
         persistent = false,
         saveStatus = "session only",
         saveInProgress = false,
@@ -1173,6 +1176,11 @@ end
 function ProfileService.getCompanyBalance(player)
     local entry = profiles[player.UserId]
     return entry and entry.profile.balance or nil
+end
+
+function ProfileService.getCompanyWallet(player)
+    local entry = profiles[player.UserId]
+    return entry and entry.wallet or nil
 end
 
 function ProfileService.createLocation(player, locationId)
@@ -1312,10 +1320,11 @@ function ProfileService.saveProgress(player, state, eventName, locationId)
         end
         local locationProfile = profileFromLocationSnapshot(location, profile.balance)
         applyStateToProfile(locationProfile, state, eventName)
-        profile.balance = state.cash
+        profile.balance = entry.wallet.cash
         profile.locations.uptown = locationSnapshot(locationProfile)
     else
         applyStateToProfile(profile, state, eventName)
+        profile.balance = entry.wallet.cash
         profile.locations.neighborhood = locationSnapshot(profile)
     end
     local saved = true

@@ -196,7 +196,7 @@ local function makeChaosPlan(playerSeed, completedShifts)
     return { spillAt = selected.spillAt, powerOutageAt = selected.powerOutageAt }
 end
 
-function Economy.newState(profile, playerSeed)
+function Economy.newState(profile, playerSeed, companyWallet)
     profile = profile or {}
     local savedShift = profile.shift or {}
     local upgrades = profile.ownedUpgrades or {}
@@ -206,7 +206,7 @@ function Economy.newState(profile, playerSeed)
     local savedPrices = profile.productPrices or {}
     local shipmentQuantity = warehouseInventory.shipmentQuantity or 0
     local completedShifts = math.max(0, math.floor(profile.completedShifts or 0))
-    return {
+    local state = {
         stage = savedShift.stage or "Cart",
         cash = profile.balance or 0,
         customerSatisfaction = profile.customerSatisfaction or 75,
@@ -296,6 +296,25 @@ function Economy.newState(profile, playerSeed)
         supplierPartnershipPurchased = upgrades.supplierPartnership or false,
         deliveryWorkerOrdersThisShift = savedShift.deliveryWorkerOrdersThisShift or 0,
     }
+    if companyWallet then
+        companyWallet.cash = companyWallet.cash or state.cash
+        state.cash = nil
+        return setmetatable(state, {
+            __index = function(_, key)
+                if key == "cash" then
+                    return companyWallet.cash
+                end
+            end,
+            __newindex = function(target, key, value)
+                if key == "cash" then
+                    companyWallet.cash = value
+                else
+                    rawset(target, key, value)
+                end
+            end,
+        })
+    end
+    return state
 end
 
 function Economy.buyCafe(state)
