@@ -4,7 +4,7 @@ local HttpService = game:GetService("HttpService")
 
 local ProfileService = {}
 
-local SCHEMA_VERSION = 3
+local SCHEMA_VERSION = 4
 local SESSION_LEASE_SECONDS = 180
 local MAX_RETRIES = 3
 local STORE_NAME = "SupermarketChaos_PlayerProfiles_v1"
@@ -44,6 +44,10 @@ local function defaultProfile()
             cashier = false,
             stocker = false,
         },
+        warehouseInventory = {
+            citrusPop = 12,
+            shipmentReadyAt = 0,
+        },
         completedShifts = 0,
         lifetimeSales = 0,
     }
@@ -59,6 +63,17 @@ end
 local function validCounter(value)
     return value == nil
         or (type(value) == "number" and value == value and value >= 0 and value <= 1000000000)
+end
+
+local function validTimestamp(value)
+    return value == nil
+        or (
+            type(value) == "number"
+            and value == value
+            and value >= 0
+            and value <= 4102444800
+            and value % 1 == 0
+        )
 end
 
 local function validSchemaVersion(value)
@@ -99,8 +114,14 @@ local function normalizeProfile(value)
     end
     if type(value.ownedUpgrades) == "table" then
         if
-            (value.ownedUpgrades.shelfBay ~= nil and type(value.ownedUpgrades.shelfBay) ~= "boolean")
-            or (value.ownedUpgrades.warehouse ~= nil and type(value.ownedUpgrades.warehouse) ~= "boolean")
+            (
+                value.ownedUpgrades.shelfBay ~= nil
+                and type(value.ownedUpgrades.shelfBay) ~= "boolean"
+            )
+            or (
+                value.ownedUpgrades.warehouse ~= nil
+                and type(value.ownedUpgrades.warehouse) ~= "boolean"
+            )
         then
             return nil, "Stored upgrade flag is malformed."
         end
@@ -112,13 +133,48 @@ local function normalizeProfile(value)
     end
     if type(value.hiredEmployees) == "table" then
         if
-            (value.hiredEmployees.cashier ~= nil and type(value.hiredEmployees.cashier) ~= "boolean")
-            or (value.hiredEmployees.stocker ~= nil and type(value.hiredEmployees.stocker) ~= "boolean")
+            (
+                value.hiredEmployees.cashier ~= nil
+                and type(value.hiredEmployees.cashier) ~= "boolean"
+            )
+            or (
+                value.hiredEmployees.stocker ~= nil
+                and type(value.hiredEmployees.stocker) ~= "boolean"
+            )
         then
             return nil, "Stored employee flag is malformed."
         end
         profile.hiredEmployees.cashier = value.hiredEmployees.cashier == true
         profile.hiredEmployees.stocker = value.hiredEmployees.stocker == true
+    end
+    if value.warehouseInventory ~= nil and type(value.warehouseInventory) ~= "table" then
+        return nil, "Stored warehouse inventory is malformed."
+    end
+    if type(value.warehouseInventory) == "table" then
+        local inventory = value.warehouseInventory
+        if
+            (inventory.citrusPop ~= nil and not validCounter(inventory.citrusPop))
+            or (inventory.shipmentReadyAt ~= nil and not validTimestamp(inventory.shipmentReadyAt))
+            or (inventory.shipmentQuantity ~= nil and not validCounter(inventory.shipmentQuantity))
+        then
+            return nil, "Stored warehouse inventory contains an invalid counter."
+        end
+        local citrusPop = nonNegativeInteger(inventory.citrusPop, 12)
+        local shipmentQuantity = nonNegativeInteger(inventory.shipmentQuantity, 0)
+        local shipmentReadyAt = nonNegativeInteger(inventory.shipmentReadyAt, 0)
+        if
+            citrusPop > 500
+            or shipmentQuantity > 60
+            or (shipmentQuantity == 0) ~= (shipmentReadyAt == 0)
+        then
+            return nil, "Stored warehouse shipment is outside the supported limits."
+        end
+        if shipmentQuantity > 0 and profile.ownedUpgrades.warehouse ~= true then
+            return nil, "Stored shipment exists without an owned warehouse."
+        end
+        profile.warehouseInventory.citrusPop = citrusPop
+        profile.warehouseInventory.shipmentReadyAt = shipmentReadyAt
+        profile.warehouseInventory.shipmentQuantity = shipmentQuantity
     end
     if value.shift ~= nil and type(value.shift) ~= "table" then
         return nil, "Stored shift data is malformed."
@@ -173,6 +229,11 @@ local function copyProfile(profile)
         hiredEmployees = {
             cashier = profile.hiredEmployees.cashier,
             stocker = profile.hiredEmployees.stocker,
+        },
+        warehouseInventory = {
+            citrusPop = profile.warehouseInventory.citrusPop,
+            shipmentReadyAt = profile.warehouseInventory.shipmentReadyAt,
+            shipmentQuantity = profile.warehouseInventory.shipmentQuantity or 0,
         },
         completedShifts = profile.completedShifts,
         lifetimeSales = profile.lifetimeSales,
@@ -277,10 +338,16 @@ function ProfileService.load(player)
                     if type(current) ~= "table" or type(current.profile) ~= "table" then
                         error("Stored profile envelope is malformed.")
                     end
-                    if current.schemaVersion ~= nil and not validSchemaVersion(current.schemaVersion) then
+                    if
+                        current.schemaVersion ~= nil
+                        and not validSchemaVersion(current.schemaVersion)
+                    then
                         error("Stored profile envelope version is malformed.")
                     end
-                    if type(current.schemaVersion) == "number" and current.schemaVersion > SCHEMA_VERSION then
+                    if
+                        type(current.schemaVersion) == "number"
+                        and current.schemaVersion > SCHEMA_VERSION
+                    then
                         error("This profile was saved by a newer game version.")
                     end
                     rawProfile = current.profile
@@ -371,6 +438,9 @@ function ProfileService.saveProgress(player, state, eventName)
     profile.ownedUpgrades.warehouse = state.warehousePurchased
     profile.hiredEmployees.cashier = state.cashierHired
     profile.hiredEmployees.stocker = state.stockerHired
+    profile.warehouseInventory.citrusPop = state.backstock
+    profile.warehouseInventory.shipmentReadyAt = state.shipmentReadyAt
+    profile.warehouseInventory.shipmentQuantity = state.shipmentQuantity
     if eventName == "sale" then
         profile.lifetimeSales += 1
     elseif eventName == "shiftClosed" then

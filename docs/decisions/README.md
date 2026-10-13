@@ -19,3 +19,7 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 ## ADR-0004 — Serialize profile saves
 - **Status:** Accepted — 2026-10-12; see [ADR-0004](ADR-0004-serialize-profile-saves.md).
 - **Decision:** Serialize DataStore writes for each player profile so gameplay, autosave and release writes cannot overlap for the same in-memory entry.
+
+## ADR-0005 — Keep warehouse deliveries server-authoritative
+- **Status:** Accepted — 2026-10-12; see [ADR-0005](ADR-0005-warehouse-delivery-loop.md).
+- **Decision:** Persist backstock and one pending shipment; the server charges, times, validates and receives the shipment.

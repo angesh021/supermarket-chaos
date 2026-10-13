@@ -67,3 +67,10 @@ Instrument funnel events for first interaction, first stock, first sale, first u
 - The purchased annex appears on the reserved exterior plot, and a returning owner sees it without being charged again.
 - Legacy profiles default to no warehouse. Other universes remain session-only unless separately configured; production remains disabled.
 - G7 requires Studio verification of insufficient funds, unauthorized roles, exact charge, duplicate interaction, visible buildout, save/rejoin and non-development session-only behavior.
+
+### Phase 7 delivery increment
+- A warehouse owner starts with 12 Citrus Pop cans in persistent backstock; older profiles migrate safely to that starting inventory.
+- The owner or Manager can order 24 cans for $60 when there is room and no other shipment is pending. The order is available during any shift stage so a depleted shelf cannot trap shift progression.
+- A shipment becomes collectable at the warehouse dock after 15 seconds. Pending quantity and ready timestamp persist; rejoining does not charge again or duplicate the shipment.
+- Receiving a shipment adds its contents once to backstock. Stocking consumes three cans from backstock. Backstock is capped at 500; all quantities, costs and roles are checked on the server.
+- G7 delivery verification covers insufficient funds, already-pending orders, duplicate/racing receive requests, capacity, prompt distance, Manager/owner authorization, save/rejoin during transit, and non-development session-only behavior.

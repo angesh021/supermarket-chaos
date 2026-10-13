@@ -28,7 +28,7 @@ local function recordStep(player, session, step)
     end
 end
 
-local function reachedStep(profile, state)
+local function reachedStep(state)
     if state.upgradePurchased then
         return 6
     end
@@ -56,7 +56,7 @@ function TelemetryService.begin(player, profile, state)
         lastStep = 0,
     }
     sessions[player.UserId] = session
-    local highestStep = reachedStep(profile, state)
+    local highestStep = reachedStep(state)
     for step = 1, highestStep do
         recordStep(player, session, step)
     end

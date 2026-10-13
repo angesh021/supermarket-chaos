@@ -8,12 +8,16 @@ Economy.UPGRADE_COST = 45
 Economy.CASHIER_COST = 100
 Economy.STOCKER_COST = 80
 Economy.WAREHOUSE_COST = 200
+Economy.DELIVERY_COST = 60
+Economy.DELIVERY_QUANTITY = 24
+Economy.BACKSTOCK_CAPACITY = 500
 Economy.STARTING_STOCK = 3
 
 function Economy.newState(profile)
     profile = profile or {}
     local savedShift = profile.shift or {}
     local upgrades = profile.ownedUpgrades or {}
+    local warehouseInventory = profile.warehouseInventory or {}
     return {
         stage = savedShift.stage or "Cart",
         cash = profile.balance or 0,
@@ -25,6 +29,9 @@ function Economy.newState(profile)
         warehousePurchased = upgrades.warehouse or false,
         cashierHired = (profile.hiredEmployees and profile.hiredEmployees.cashier) or false,
         stockerHired = (profile.hiredEmployees and profile.hiredEmployees.stocker) or false,
+        backstock = warehouseInventory.citrusPop or 12,
+        shipmentReadyAt = warehouseInventory.shipmentReadyAt or 0,
+        shipmentQuantity = warehouseInventory.shipmentQuantity or 0,
     }
 end
 
@@ -46,9 +53,54 @@ function Economy.stockProduct(state)
     if state.stage ~= "Stock" then
         return false, "Finish the current objective first."
     end
+    if state.backstock < Economy.STARTING_STOCK then
+        return false, "The backroom is out of Citrus Pop. Order a delivery from the warehouse."
+    end
+    state.backstock -= Economy.STARTING_STOCK
     state.stock += Economy.STARTING_STOCK
     state.stage = "Checkout"
     return true, "Citrus Pop stocked. A customer is ready at checkout."
+end
+
+function Economy.orderDelivery(state, now)
+    if not state.warehousePurchased then
+        return false, "Unlock the warehouse before ordering stock."
+    end
+    if state.shipmentQuantity > 0 or state.shipmentReadyAt > 0 then
+        return false, "A delivery is already on the way."
+    end
+    if state.backstock + Economy.DELIVERY_QUANTITY > Economy.BACKSTOCK_CAPACITY then
+        return false, "There is not enough backroom space for another delivery."
+    end
+    if state.cash < Economy.DELIVERY_COST then
+        return false,
+            string.format("You need $%d to order a Citrus Pop delivery.", Economy.DELIVERY_COST)
+    end
+    if type(now) ~= "number" or now ~= now or now % 1 ~= 0 or now < 1 then
+        return false, "The delivery time could not be confirmed. Try again."
+    end
+    state.cash -= Economy.DELIVERY_COST
+    state.shipmentQuantity = Economy.DELIVERY_QUANTITY
+    state.shipmentReadyAt = now + 15
+    return true, "Delivery ordered for $60. It will arrive at the warehouse loading dock shortly."
+end
+
+function Economy.receiveDelivery(state, now)
+    if state.shipmentQuantity <= 0 or state.shipmentReadyAt <= 0 then
+        return false, "There is no delivery waiting at the loading dock."
+    end
+    if type(now) ~= "number" or now ~= now or now % 1 ~= 0 or now < state.shipmentReadyAt then
+        return false, "The delivery is still on its way."
+    end
+    if state.backstock + state.shipmentQuantity > Economy.BACKSTOCK_CAPACITY then
+        return false, "The backroom is full. Clear space before receiving this delivery."
+    end
+    local quantity = state.shipmentQuantity
+    state.backstock += quantity
+    state.shipmentQuantity = 0
+    state.shipmentReadyAt = 0
+    return true,
+        string.format("Delivery received: %d Citrus Pop cans added to backroom stock.", quantity)
 end
 
 function Economy.sellProduct(state)
@@ -133,7 +185,8 @@ function Economy.buyWarehouse(state)
         return false, "The warehouse expansion is not available right now."
     end
     if state.cash < Economy.WAREHOUSE_COST then
-        return false, string.format("You need $%d to expand into the warehouse.", Economy.WAREHOUSE_COST)
+        return false,
+            string.format("You need $%d to expand into the warehouse.", Economy.WAREHOUSE_COST)
     end
     state.cash -= Economy.WAREHOUSE_COST
     state.warehousePurchased = true

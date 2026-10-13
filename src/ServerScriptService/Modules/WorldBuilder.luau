@@ -71,10 +71,29 @@ local function createShelf(parent, name, x, z, width, department)
     shelf.Name = name
     shelf.Parent = parent
     local function fixture(partName, size, offset, color, material)
-        return part(shelf, partName, size, CFrame.new(x, 0, z) * CFrame.new(offset), color, material)
+        return part(
+            shelf,
+            partName,
+            size,
+            CFrame.new(x, 0, z) * CFrame.new(offset),
+            color,
+            material
+        )
     end
-    fixture("Wooden Kick Plate", Vector3.new(width, 0.6, 2.2), Vector3.new(0, 1.2, 0), COLORS.wood, Enum.Material.WoodPlanks)
-    fixture("Retail Gondola Back", Vector3.new(width, 5.4, 0.35), Vector3.new(0, 4, 0), COLORS.cream, Enum.Material.Metal)
+    fixture(
+        "Wooden Kick Plate",
+        Vector3.new(width, 0.6, 2.2),
+        Vector3.new(0, 1.2, 0),
+        COLORS.wood,
+        Enum.Material.WoodPlanks
+    )
+    fixture(
+        "Retail Gondola Back",
+        Vector3.new(width, 5.4, 0.35),
+        Vector3.new(0, 4, 0),
+        COLORS.cream,
+        Enum.Material.Metal
+    )
     for _, side in ipairs({ -1, 1 }) do
         fixture(
             "Gondola Upright",
@@ -184,7 +203,8 @@ local function createRefrigeratedCase(parent, x, z)
                 CFrame.new(bottleX, 2.42 + level * 0.85, z - 0.7),
                 COLORS.warmWhite,
                 Enum.Material.SmoothPlastic
-            ).Shape = Enum.PartType.Cylinder
+            ).Shape =
+                Enum.PartType.Cylinder
             bottle:SetAttribute("ProductDisplay", true)
         end
     end
@@ -640,9 +660,7 @@ function WorldBuilder.build()
                 "Fresh Produce",
                 Vector3.new(0.6, 0.58, 0.6),
                 CFrame.new(binX - 0.58 + (fruitIndex - 1) * 0.38, 3.15, 7.85),
-                ({ COLORS.coral, COLORS.paleGreen, COLORS.gold, COLORS.orange })[
-                    ((binIndex + fruitIndex - 2) % 4) + 1
-                ],
+                ({ COLORS.coral, COLORS.paleGreen, COLORS.gold, COLORS.orange })[((binIndex + fruitIndex - 2) % 4) + 1],
                 Enum.Material.SmoothPlastic
             )
             fruit.Shape = Enum.PartType.Ball
@@ -829,7 +847,8 @@ function WorldBuilder.build()
         COLORS.teal,
         COLORS.gold
     )
-    local cashierHirePrompt = prompt(hiringBoard, "Hire Cashier ($100)", "Staff Board", "HireCashier", 10)
+    local cashierHirePrompt =
+        prompt(hiringBoard, "Hire Cashier ($100)", "Staff Board", "HireCashier", 10)
     local cashierModel = createLowPolyPerson(
         interior,
         "Store Cashier",
@@ -855,13 +874,8 @@ function WorldBuilder.build()
         COLORS.teal,
         COLORS.gold
     )
-    local stockerHirePrompt = prompt(
-        stockerHiringBoard,
-        "Hire Stocker ($80)",
-        "Staff Board",
-        "HireStocker",
-        10
-    )
+    local stockerHirePrompt =
+        prompt(stockerHiringBoard, "Hire Stocker ($80)", "Staff Board", "HireStocker", 10)
     local stockerModel = createLowPolyPerson(
         interior,
         "Store Stock Clerk",
@@ -877,13 +891,7 @@ function WorldBuilder.build()
         end
     end
     local stockerHired = false
-    local stockPrompt = prompt(
-        shelf.PrimaryPart,
-        "Stock Shelf",
-        "Citrus Pop",
-        "Stock",
-        9
-    )
+    local stockPrompt = prompt(shelf.PrimaryPart, "Stock Shelf", "Citrus Pop", "Stock", 9)
     local shiftBoard = label(
         interior,
         "Shift Board",
@@ -1095,15 +1103,17 @@ function WorldBuilder.build()
         COLORS.gold,
         Enum.Material.Neon
     )
-    local warehousePrompt = prompt(
-        warehousePad,
-        "Build Warehouse ($200)",
-        "Retail Empire Expansion",
-        "Warehouse",
-        10
-    )
+    local warehousePrompt =
+        prompt(warehousePad, "Build Warehouse ($200)", "Retail Empire Expansion", "Warehouse", 10)
     local warehouseModel
     local warehousePurchased = false
+    local deliveryBoardLabel
+    local deliveryCrateSurface
+    local deliveryCrate
+    local deliveryPrompt
+    local orderDeliveryPrompt
+    local deliveryReadyAt = 0
+    local deliveryQuantity = 0
     label(
         exterior,
         "Warehouse Plot Sign",
@@ -1112,6 +1122,57 @@ function WorldBuilder.build()
         CFrame.new(59, 2.5, 10),
         COLORS.teal
     )
+
+    local orderBoard = label(
+        exterior,
+        "Warehouse Delivery Board",
+        "ORDER 24 CANS  •  $60",
+        Vector3.new(8, 3, 0.45),
+        CFrame.new(48.25, 4.5, -1) * CFrame.Angles(0, -math.pi / 2, 0),
+        COLORS.teal,
+        COLORS.warmWhite
+    )
+    orderBoard.Transparency = 1
+    local deliverySurface = orderBoard:FindFirstChildOfClass("SurfaceGui")
+    if deliverySurface then
+        deliverySurface.Enabled = false
+        deliveryBoardLabel = deliverySurface:FindFirstChildOfClass("TextLabel")
+    end
+    orderBoard:SetAttribute("WarehouseAccess", true)
+    orderDeliveryPrompt =
+        prompt(orderBoard, "Order Delivery ($60)", "Warehouse Board", "OrderDelivery", 10)
+    orderDeliveryPrompt.Enabled = false
+    deliveryCrate = Instance.new("Model")
+    deliveryCrate.Name = "Citrus Pop Delivery Crate"
+    deliveryCrate.Parent = exterior
+    local crate = part(
+        deliveryCrate,
+        "Delivery Crate",
+        Vector3.new(3.2, 2.3, 2.8),
+        CFrame.new(59, 2.15, 8.5),
+        COLORS.wood,
+        Enum.Material.WoodPlanks
+    )
+    crate.Transparency = 1
+    crate.CanCollide = false
+    local crateLabel = label(
+        deliveryCrate,
+        "Shipment Label",
+        "CITRUS POP\n24 CANS",
+        Vector3.new(2.2, 1.1, 0.08),
+        CFrame.new(59, 2.2, 9.92),
+        COLORS.cream,
+        COLORS.deepTeal
+    )
+    crateLabel.Transparency = 1
+    crateLabel.CanCollide = false
+    local crateSurface = crateLabel:FindFirstChildOfClass("SurfaceGui")
+    if crateSurface then
+        crateSurface.Enabled = false
+        deliveryCrateSurface = crateSurface
+    end
+    deliveryPrompt = prompt(crate, "Receive Delivery", "Citrus Pop Shipment", "ReceiveDelivery", 10)
+    deliveryPrompt.Enabled = false
 
     local lighting = game:GetService("Lighting")
     lighting.ClockTime = 14
@@ -1198,7 +1259,45 @@ function WorldBuilder.build()
             COLORS.wood,
             Enum.Material.Wood
         )
+        orderBoard.Transparency = 0
+        if deliverySurface then
+            deliverySurface.Enabled = true
+        end
+        deliveryCrate.Parent = warehouseModel
         warehousePrompt.Enabled = false
+    end
+
+    local function setDeliveryState(readyAt, quantity)
+        deliveryReadyAt = readyAt or 0
+        deliveryQuantity = quantity or 0
+        if not warehousePurchased or not deliveryBoardLabel then
+            return
+        end
+        if deliveryQuantity > 0 and os.time() < deliveryReadyAt then
+            deliveryBoardLabel.Text = "DELIVERY EN ROUTE\nARRIVES SHORTLY"
+        elseif deliveryQuantity > 0 then
+            deliveryBoardLabel.Text =
+                string.format("DELIVERY ARRIVED\n%d CANS TO COLLECT", deliveryQuantity)
+        else
+            deliveryBoardLabel.Text = "ORDER 24 CANS  •  $60\nWAREHOUSE SUPPLY"
+        end
+        if deliveryCrate then
+            for _, item in ipairs(deliveryCrate:GetDescendants()) do
+                if item:IsA("BasePart") then
+                    item.Transparency = deliveryQuantity > 0 and os.time() >= deliveryReadyAt and 0
+                        or 1
+                end
+            end
+        end
+        if deliveryCrateSurface then
+            deliveryCrateSurface.Enabled = deliveryQuantity > 0 and os.time() >= deliveryReadyAt
+        end
+        if deliveryPrompt then
+            deliveryPrompt.Enabled = deliveryQuantity > 0 and os.time() >= deliveryReadyAt
+        end
+        if orderDeliveryPrompt then
+            orderDeliveryPrompt.Enabled = deliveryQuantity == 0
+        end
     end
 
     local function setStage(stage)
@@ -1213,6 +1312,14 @@ function WorldBuilder.build()
         cashierHirePrompt.Enabled = stage == "Complete" and not cashierHired
         stockerHirePrompt.Enabled = stage == "Complete" and not stockerHired
         warehousePrompt.Enabled = stage == "Complete" and not warehousePurchased
+        if orderDeliveryPrompt then
+            orderDeliveryPrompt.Enabled = warehousePurchased and deliveryQuantity == 0
+        end
+        if deliveryPrompt then
+            deliveryPrompt.Enabled = warehousePurchased
+                and deliveryQuantity > 0
+                and os.time() >= deliveryReadyAt
+        end
         setCustomerVisible(stage == "Checkout" or stage == "CloseShift")
     end
 
@@ -1235,6 +1342,13 @@ function WorldBuilder.build()
         cashierHirePrompt = cashierHirePrompt,
         stockerHirePrompt = stockerHirePrompt,
         warehousePrompt = warehousePrompt,
+        orderDeliveryPrompt = function()
+            return orderDeliveryPrompt
+        end,
+        deliveryPrompt = function()
+            return deliveryPrompt
+        end,
+        setDeliveryState = setDeliveryState,
         upgradePrompt = upgradePrompt,
         setStage = setStage,
         setUpgradeReady = function(ready)

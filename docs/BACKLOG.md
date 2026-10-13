@@ -45,5 +45,6 @@ G0 was approved on 2026-10-12. The user authorized continued phase implementatio
 - [ ] Phase 6: device emulation/touch QA, performance review, external beta, staging and release approval.
 - [ ] Review the new visual pass in Studio from exterior approach, entrance, aisle and checkout camera positions; refine any collision, sightline or mobile issues.
 - [x] Phase 7 first increment: server-authoritative $200 warehouse annex purchase, physical buildout and per-player persistence.
-- [ ] Phase 7 follow-up: warehouse inventory, delivery loop, more departments and Studio verification of purchase/save/rejoin.
+- [x] Phase 7 delivery increment: persistent backroom Citrus Pop stock, server-priced supply order, delayed shipment, receive prompt and stock HUD.
+- [ ] Phase 7 follow-up: multiple product SKUs, warehouse inventory layout, additional departments and Studio verification of purchase/delivery/save/rejoin.
 - [ ] Later phases: broader economy, seasonal/live operations, production commerce and release work remain gated by the specification, Studio validation and explicit release approval.

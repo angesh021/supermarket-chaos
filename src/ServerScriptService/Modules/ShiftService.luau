@@ -33,6 +33,8 @@ local ROLE_ACTIONS = {
         HireCashier = true,
         HireStocker = true,
         Warehouse = true,
+        OrderDelivery = true,
+        ReceiveDelivery = true,
     },
     Cashier = { Checkout = true },
     Stocker = { Stock = true },
@@ -78,6 +80,8 @@ local function snapshot(message, recipient)
         hasStoreAccess = hasStoreAccess,
         memberRole = isOwner and "Owner" or (storeMembers[recipient.UserId] or "Visitor"),
         saveStatus = isOwner and ProfileService.getSaveStatus(recipient) or "view only",
+        warehousePurchased = hasStoreAccess and current.warehousePurchased or false,
+        backstock = hasStoreAccess and current.backstock or 0,
     }
 end
 
@@ -270,6 +274,28 @@ function ShiftService.init(event, membershipRemotes)
         end)
     end
 
+    local scheduledDeliveryAt
+    local function scheduleDeliveryArrival()
+        if not state or state.shipmentQuantity <= 0 or state.shipmentReadyAt <= 0 then
+            scheduledDeliveryAt = nil
+            return
+        end
+        local readyAt = state.shipmentReadyAt
+        if scheduledDeliveryAt == readyAt then
+            return
+        end
+        scheduledDeliveryAt = readyAt
+        task.delay(math.max(0, readyAt - os.time()), function()
+            if not state or state.shipmentReadyAt ~= readyAt or state.shipmentQuantity <= 0 then
+                return
+            end
+            if ownerReady then
+                world.setDeliveryState(state.shipmentReadyAt, state.shipmentQuantity)
+                broadcast("A Citrus Pop delivery has arrived at the warehouse loading dock.")
+            end
+        end)
+    end
+
     commit = function(eventName)
         ProfileService.saveProgress(ownerPlayer, state, eventName)
         TelemetryService.record(ownerPlayer, eventName)
@@ -277,6 +303,7 @@ function ShiftService.init(event, membershipRemotes)
         broadcast()
         scheduleStocker()
         scheduleCashierSale()
+        scheduleDeliveryArrival()
     end
 
     bind("Cart", world.cartPrompt, 12, function()
@@ -336,6 +363,24 @@ function ShiftService.init(event, membershipRemotes)
         broadcast(message)
     end)
 
+    bind("OrderDelivery", world.orderDeliveryPrompt(), 12, function()
+        local ok, message = Economy.orderDelivery(state, os.time())
+        if ok then
+            world.setDeliveryState(state.shipmentReadyAt, state.shipmentQuantity)
+            commit("deliveryOrdered")
+        end
+        broadcast(message)
+    end)
+
+    bind("ReceiveDelivery", world.deliveryPrompt(), 12, function()
+        local ok, message = Economy.receiveDelivery(state, os.time())
+        if ok then
+            world.setDeliveryState(state.shipmentReadyAt, state.shipmentQuantity)
+            commit("deliveryReceived")
+        end
+        broadcast(message)
+    end)
+
     bind("Complete", world.restartPrompt, 12, function()
         local ok, message = Economy.restartShift(state)
         if ok then
@@ -367,7 +412,12 @@ function ShiftService.init(event, membershipRemotes)
     end)
 
     joinRequestEvent.OnServerEvent:Connect(function(player)
-        if player == ownerPlayer or not ownerPlayer or not ownerReady or player.Parent ~= Players then
+        if
+            player == ownerPlayer
+            or not ownerPlayer
+            or not ownerReady
+            or player.Parent ~= Players
+        then
             return
         end
         local now = os.clock()
@@ -439,20 +489,29 @@ function ShiftService.init(event, membershipRemotes)
             joinRequests[targetUserId] = nil
             stateEvent:FireClient(
                 target,
-                snapshot("You joined " .. ownerPlayer.DisplayName .. "'s store as " .. role .. ".", target)
+                snapshot(
+                    "You joined " .. ownerPlayer.DisplayName .. "'s store as " .. role .. ".",
+                    target
+                )
             )
         elseif action == "decline" then
             if not joinRequests[targetUserId] then
                 return
             end
             joinRequests[targetUserId] = nil
-            stateEvent:FireClient(target, snapshot("The store owner declined your help request.", target))
+            stateEvent:FireClient(
+                target,
+                snapshot("The store owner declined your help request.", target)
+            )
         elseif action == "remove" then
             if not storeMembers[targetUserId] then
                 return
             end
             storeMembers[targetUserId] = nil
-            stateEvent:FireClient(target, snapshot("Your store access was removed by the owner.", target))
+            stateEvent:FireClient(
+                target,
+                snapshot("Your store access was removed by the owner.", target)
+            )
         else
             return
         end
@@ -496,6 +555,7 @@ function ShiftService.init(event, membershipRemotes)
                 world.addUpgrade()
             end
             world.setWarehousePurchased(state.warehousePurchased)
+            world.setDeliveryState(state.shipmentReadyAt, state.shipmentQuantity)
             world.setCashierHired(state.cashierHired)
             world.setStockerHired(state.stockerHired)
             world.setStockVisual(state.stock)
@@ -505,6 +565,7 @@ function ShiftService.init(event, membershipRemotes)
             end
             scheduleCashierSale()
             scheduleStocker()
+            scheduleDeliveryArrival()
             broadcast(
                 status == "session only" and "Data saving is off; this session will not persist."
                     or "Store profile loaded."

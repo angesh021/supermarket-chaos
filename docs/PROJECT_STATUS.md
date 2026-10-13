@@ -19,6 +19,7 @@ Phase 1 desktop first play and Phase 2 progression/persistence were reported pas
 - Phase 6 UI increment uses a collapsed top-center objective card on touch devices, a centered team panel sized to the viewport, and larger role controls. Device emulation is not yet verified.
 - Phase 6 visual increment adds recognizable storefront glazing and entry, market fascia/canopy, cart return, two stocked aisle rows, a produce island, chilled-drinks case, retail checkout details and stylized human blockouts. It uses only original procedural Roblox parts. Visual/runtime/mobile review remains pending.
 - Phase 7 warehouse increment adds a $200 purchase available at Complete, an exterior annex buildout, and per-player owned-upgrade persistence in profile schema v3. Owner/Manager authorization uses the existing server-side role, prompt-distance and rate-limit checks. Purchase/rejoin behavior is not yet verified in Studio.
+- Phase 7 delivery increment adds schema v4 persistent Citrus Pop backstock and an optional $60 order for 24 cans. The shipment is ready after 15 seconds, survives rejoin, and must be collected at the loading dock; stocking consumes three backroom cans. Ordering/receiving is owner/Manager-only, server-priced and range-checked. Studio verification is pending.
 - DataStore calls are enabled only when `game.GameId` matches development universe `10770581249`. Other universes display session-only status and never write to that store.
 
 ## Studio verification needed (G3–G7)
@@ -33,10 +34,11 @@ Use a private development test experience in universe `10770581249`; use two or 
 8. Leave and rejoin the development experience; confirm the warehouse remains and is not charged again. In a non-development universe, confirm the session-only fallback.
 9. Follow [Phase 5 persistence checks](operations/PHASE5_PERSISTENCE.md) for same-user lease contention, autosave overlap, normal release, shutdown and session-only fallback.
 10. Follow [Visual review](operations/VISUAL_REVIEW.md) to inspect the exterior, aisle route, products, produce, refrigerator, checkout and character scale in Studio.
+11. Follow [Phase 7 delivery checks](operations/PHASE7_DELIVERY.md) for backstock, order charge, arrival, receipt, low-stock recovery and save/rejoin.
 
 ## Toolchain and checks
 - Rojo 7.7.0, Selene 0.32.0 and StyLua 2.5.0 are pinned in `rokit.toml`.
-- Current environment attempts to launch these executables returned `ERROR home directory not found`. The shell has a Windows user profile but an empty `HOME`; setting the command-scoped `HOME` to `USERPROFILE` did not resolve the launcher error. `git diff --check` passed with Windows line-ending normalization warnings.
+- The `rojo`, `selene` and `stylua` launch shims returned `ERROR home directory not found`; invoking the pinned binaries directly from `.rokit/tool-storage` worked. `stylua --check src` passed, `selene src` reported 0 errors/0 warnings/0 parse errors, and `rojo build default.project.json -o %TEMP%\supermarket-chaos.rbxlx` succeeded. `git diff --check` passed with Windows line-ending normalization warnings.
 - Roblox Studio runtime and DataStore behavior cannot be exercised from the local shell. Do not mark the new multiplayer or employee behavior passed until the user confirms Studio results.
 
 ## Known limitations
@@ -47,4 +49,4 @@ Use a private development test experience in universe `10770581249`; use two or 
 5. Production universe ID, publishing and commerce are not configured. Development funnel ingestion and Creator Dashboard reporting remain unverified.
 
 ## Current gate
-**G0:** approved. **G1:** desktop first-shift accepted. **G2:** user reported tests passed. **G3–G7 increments:** implemented; multiplayer, employee, analytics, touch and warehouse verification pending. **Production:** disabled pending user-provided production universe ID and deployment approval.
+**G0:** approved. **G1:** desktop first-shift accepted. **G2:** user reported tests passed. **G3–G7 increments:** implemented; multiplayer, employee, analytics, touch, visual, warehouse and delivery verification pending. **Production:** disabled pending user-provided production universe ID and deployment approval.

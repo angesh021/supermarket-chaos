@@ -1,7 +1,6 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
-local UserInputService = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -191,6 +190,20 @@ feedback.TextYAlignment = Enum.TextYAlignment.Center
 feedback.TextTruncate = Enum.TextTruncate.AtEnd
 feedback.Parent = card
 
+local backroomValue = Instance.new("TextLabel")
+backroomValue.Name = "BackroomInventory"
+backroomValue.Position = UDim2.fromOffset(0, 110)
+backroomValue.Size = UDim2.new(1, 0, 0, 18)
+backroomValue.BackgroundTransparency = 1
+backroomValue.Text = "BACKROOM STOCK  0 CANS"
+backroomValue.TextColor3 = COLORS.teal
+backroomValue.Font = Enum.Font.GothamBold
+backroomValue.TextSize = 10
+backroomValue.TextXAlignment = Enum.TextXAlignment.Left
+backroomValue.Visible = false
+backroomValue.Parent = card
+feedback.Position = UDim2.fromOffset(0, 132)
+
 local teamPanel = Instance.new("Frame")
 teamPanel.Name = "TeamPanel"
 teamPanel.AnchorPoint = Vector2.new(0, 1)
@@ -264,9 +277,9 @@ local function addTeamLabel(text, height)
     label.TextSize = 12
     label.TextWrapped = true
     label.Parent = teamScroll
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 6)
-    corner.Parent = label
+    local labelCorner = Instance.new("UICorner")
+    labelCorner.CornerRadius = UDim.new(0, 6)
+    labelCorner.Parent = label
     return label
 end
 
@@ -280,9 +293,9 @@ local function addTeamButton(parent, text, width, callback)
     button.TextSize = 10
     button.TextWrapped = true
     button.Parent = parent
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 5)
-    corner.Parent = button
+    local buttonCorner = Instance.new("UICorner")
+    buttonCorner.CornerRadius = UDim.new(0, 5)
+    buttonCorner.Parent = button
     button.Activated:Connect(callback)
     return button
 end
@@ -360,7 +373,10 @@ local function renderTeam(data)
             removeButton.Position = UDim2.new(1, -78, 0, 3)
         end
     elseif data.ownRole == "Visitor" then
-        addTeamLabel(data.ownerName .. " owns this store. Request a role to help with the shift.", 62)
+        addTeamLabel(
+            data.ownerName .. " owns this store. Request a role to help with the shift.",
+            62
+        )
         local row = Instance.new("Frame")
         row.Size = UDim2.new(1, -4, 0, 48)
         row.BackgroundTransparency = 1
@@ -370,7 +386,7 @@ local function renderTeam(data)
             data.requestPending and "REQUEST SENT" or "REQUEST TO HELP",
             170,
             function()
-            joinRequestEvent:FireServer()
+                joinRequestEvent:FireServer()
             end
         )
         requestButton.Size = UDim2.fromOffset(170, 44)
@@ -381,7 +397,10 @@ local function renderTeam(data)
             addTeamLabel(member.name .. " · " .. member.role, 30)
         end
     else
-        addTeamLabel("You are helping " .. data.ownerName .. " as " .. tostring(data.ownRole) .. ".", 48)
+        addTeamLabel(
+            "You are helping " .. data.ownerName .. " as " .. tostring(data.ownRole) .. ".",
+            48
+        )
         for _, member in ipairs(data.members or {}) do
             addTeamLabel(member.name .. " · " .. member.role, 30)
         end
@@ -401,12 +420,14 @@ memberStateEvent.OnClientEvent:Connect(renderTeam)
 
 local collapsed = false
 local ownerView = true
+local warehouseView = false
 local function setCollapsed(value)
     collapsed = value
     objective.Visible = not collapsed
     stats.Visible = not collapsed and ownerView
     feedback.Visible = not collapsed
-    card.Size = UDim2.fromOffset(280, collapsed and 40 or 145)
+    card.Size = UDim2.fromOffset(280, collapsed and 40 or (warehouseView and 165 or 145))
+    backroomValue.Visible = not collapsed and ownerView and warehouseView
     toggle.Text = collapsed and "+" or "−"
 end
 
@@ -423,14 +444,14 @@ local function applyResponsiveLayout()
 
     local cardWidth = math.max(220, math.min(280, viewport.X - 24))
     sizeConstraint.MinSize = Vector2.new(math.min(235, cardWidth), 40)
-    sizeConstraint.MaxSize = Vector2.new(cardWidth, 145)
+    sizeConstraint.MaxSize = Vector2.new(cardWidth, 165)
     if UserInputService.TouchEnabled then
         teamToggle.Size = UDim2.fromOffset(48, 32)
         teamToggle.Position = UDim2.new(1, -27, 0, 4)
         card.AnchorPoint = Vector2.new(0.5, 0)
         card.Position = UDim2.new(0.5, 0, 0, 8)
         teamPanel.AnchorPoint = Vector2.new(0.5, 0.5)
-        teamPanel.Position = UDim2.new(0.5, 0, 0.52, 0)
+        teamPanel.Position = UDim2.fromScale(0.5, 0.52)
         teamPanel.Size = UDim2.fromOffset(
             math.max(220, math.min(300, viewport.X - 24)),
             math.max(220, math.min(340, viewport.Y - 130))
@@ -472,6 +493,11 @@ local function update(state)
     end
     objective.Text = tostring(state.objective or "Keep the store running.")
     ownerView = state.hasStoreAccess == true or state.isOwner ~= false
+    warehouseView = state.warehousePurchased == true
+    backroomValue.Text = string.format("BACKROOM STOCK  %d CANS", state.backstock or 0)
+    backroomValue.Visible = not collapsed and ownerView and warehouseView
+    card.Size = UDim2.fromOffset(280, collapsed and 40 or (warehouseView and 165 or 145))
+    feedback.Position = UDim2.fromOffset(0, warehouseView and 132 or 113)
     stats.Visible = not collapsed and ownerView
     local saveText = tostring(state.saveStatus or "loading")
     if saveText == "saved" then
