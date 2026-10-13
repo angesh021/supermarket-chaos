@@ -69,8 +69,11 @@ local ROLE_ACTIONS = {
         RestockGarden = true,
         SellGarden = true,
         BuildFlorist = true,
+        BuildBookshop = true,
         RestockFlorist = true,
+        RestockBookshop = true,
         SellFlorist = true,
+        SellBookshop = true,
         PlazaStyle = true,
         PreviewPlazaStyle = true,
         DeliveryFleet = true,
@@ -109,6 +112,7 @@ local ROLE_ACTIONS = {
         SellElectronics = true,
         SellGarden = true,
         SellFlorist = true,
+        SellBookshop = true,
     },
     Stocker = {
         Stock = true,
@@ -123,6 +127,7 @@ local ROLE_ACTIONS = {
         RestockElectronics = true,
         RestockGarden = true,
         RestockFlorist = true,
+        RestockBookshop = true,
     },
     Maintenance = { Cart = true, Spill = true, RestorePower = true },
 }
@@ -205,6 +210,9 @@ local function snapshot(message, recipient)
         freezerPurchased = hasStoreAccess and current.freezerPurchased or false,
         employeePayroll = hasStoreAccess and Economy.getShiftPayroll(current) or 0,
         operatingCosts = hasStoreAccess and Economy.getShiftOperatingCosts(current) or 0,
+        bookshopPurchased = hasStoreAccess and current.bookshopPurchased or false,
+        bookshopStock = hasStoreAccess and current.bookshopStock or 0,
+        bookshopSales = hasStoreAccess and current.bookshopSales or 0,
         sales = hasStoreAccess and current.sales or 0,
         message = message or "",
         upgradePurchased = current.upgradePurchased,
@@ -860,6 +868,7 @@ function ShiftService.init(event, membershipRemotes, options)
         )
         world.setGardenStoreState(state.gardenStorePurchased, state.gardenStock, state.gardenSales)
         world.setFloristState(state.floristStorePurchased, state.floristStock, state.floristSales)
+        world.setBookshopState(state.bookshopPurchased, state.bookshopStock, state.bookshopSales)
         world.setPlazaStyle(state.plazaStylePurchased, state.plazaStyleId)
         world.setUptownStorePurchased(
             state.uptownStorePurchased,
@@ -882,7 +891,7 @@ function ShiftService.init(event, membershipRemotes, options)
     world.plazaVisitEvent.Event:Connect(function(businessId)
         if
             type(businessId) ~= "string"
-            or (businessId ~= "cafe" and businessId ~= "restaurant" and businessId ~= "electronics" and businessId ~= "garden" and businessId ~= "florist")
+            or (businessId ~= "cafe" and businessId ~= "restaurant" and businessId ~= "electronics" and businessId ~= "garden" and businessId ~= "florist" and businessId ~= "bookshop")
             or saleTransactionInProgress
             or not ownerReady
             or not ownerPlayer
@@ -908,8 +917,10 @@ function ShiftService.init(event, membershipRemotes, options)
             ok, message = Economy.sellElectronics(state)
         elseif businessId == "garden" then
             ok, message = Economy.sellGardenItem(state)
-        else
+        elseif businessId == "florist" then
             ok, message = Economy.sellFloristBouquet(state)
+        else
+            ok, message = Economy.sellBookshopPaperback(state)
         end
         if ok then
             lastPlazaSaleAt[businessId] = now
@@ -1246,6 +1257,11 @@ function ShiftService.init(event, membershipRemotes, options)
                 state.floristStock,
                 state.floristSales
             )
+            world.setBookshopState(
+                state.bookshopPurchased,
+                state.bookshopStock,
+                state.bookshopSales
+            )
             commit("restaurantBuilt")
         end
         saleTransactionInProgress = false
@@ -1395,6 +1411,27 @@ function ShiftService.init(event, membershipRemotes, options)
         broadcast(message)
     end)
 
+    bind("BuildBookshop", world.bookshopBuildPrompt, 12, function()
+        if saleTransactionInProgress then
+            broadcast(
+                "A store transaction is saving. Try opening Riverside Bookshop again shortly."
+            )
+            return
+        end
+        saleTransactionInProgress = true
+        local ok, message = Economy.buyBookshop(state)
+        if ok then
+            world.setBookshopState(
+                state.bookshopPurchased,
+                state.bookshopStock,
+                state.bookshopSales
+            )
+            commit("bookshopBuilt")
+        end
+        saleTransactionInProgress = false
+        broadcast(message)
+    end)
+
     if world.uptownPurchasePrompt then
         bind("BuildUptownStore", world.uptownPurchasePrompt, 14, function()
             local ok, message = Economy.buyUptownStore(state)
@@ -1467,6 +1504,34 @@ function ShiftService.init(event, membershipRemotes, options)
         local ok, message = Economy.sellFloristBouquet(state)
         if ok then
             commit("floristBouquetSold")
+        end
+        saleTransactionInProgress = false
+        broadcast(message)
+    end)
+
+    bind("RestockBookshop", world.bookshopRestockPrompt, 12, function()
+        if saleTransactionInProgress then
+            broadcast("A store transaction is saving. Try restocking Riverside Bookshop shortly.")
+            return
+        end
+        saleTransactionInProgress = true
+        local ok, message = Economy.restockBookshop(state)
+        if ok then
+            commit("bookshopRestocked")
+        end
+        saleTransactionInProgress = false
+        broadcast(message)
+    end)
+
+    bind("SellBookshop", world.bookshopSalePrompt, 12, function()
+        if saleTransactionInProgress then
+            broadcast("A store transaction is saving. Try selling the paperback again shortly.")
+            return
+        end
+        saleTransactionInProgress = true
+        local ok, message = Economy.sellBookshopPaperback(state)
+        if ok then
+            commit("bookshopPaperbackSold")
         end
         saleTransactionInProgress = false
         broadcast(message)
@@ -2412,6 +2477,11 @@ function ShiftService.init(event, membershipRemotes, options)
                 state.floristStorePurchased,
                 state.floristStock,
                 state.floristSales
+            )
+            world.setBookshopState(
+                state.bookshopPurchased,
+                state.bookshopStock,
+                state.bookshopSales
             )
             world.setPlazaStyle(state.plazaStylePurchased, state.plazaStyleId)
             world.setCashierHired(state.cashierHired)

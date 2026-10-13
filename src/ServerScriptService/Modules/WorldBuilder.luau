@@ -607,7 +607,7 @@ function WorldBuilder.build(locationId, origin)
         COLORS.green,
         "MAPLE CORNER\nFLOWERS & GIFTS"
     )
-    createNeighborhoodStorefront(
+    local bookshopShell = createNeighborhoodStorefront(
         exterior,
         "Riverside Bookshop Shell",
         Vector3.new(79, 0, -72),
@@ -2675,6 +2675,15 @@ function WorldBuilder.build(locationId, origin)
     local floristMenuLabel
     local floristRestockPrompt
     local floristSalePrompt
+    local bookshopPurchased = false
+    local bookshopStock = 0
+    local bookshopSales = 0
+    local bookshopItemVisuals = {}
+    local bookshopMenuLabel
+    local bookshopBuildPad
+    local bookshopBuildPrompt
+    local bookshopRestockPrompt
+    local bookshopSalePrompt
     local plazaStylePurchased = false
     local plazaStyleId = ""
     local plazaStylePreviewId = nil
@@ -2993,6 +3002,86 @@ function WorldBuilder.build(locationId, origin)
         bouquet.CanCollide = false
         bouquet.Transparency = 1
         table.insert(floristItemVisuals, bouquet)
+    end
+    bookshopBuildPad = part(
+        exterior,
+        "Riverside Bookshop Purchase Pad",
+        Vector3.new(4.5, 0.5, 4.5),
+        CFrame.new(78, 0.45, -57),
+        COLORS.gold,
+        Enum.Material.Neon
+    )
+    bookshopBuildPrompt =
+        prompt(bookshopBuildPad, "Open Bookshop ($2,500)", "Plaza Business", "BuildBookshop", 10)
+    bookshopBuildPrompt.Enabled = false
+    local bookshopCounter = part(
+        bookshopShell,
+        "Riverside Bookshop Counter",
+        Vector3.new(8, 1.4, 1.8),
+        CFrame.new(79, 1.2, -67.8),
+        COLORS.wood,
+        Enum.Material.WoodPlanks
+    )
+    bookshopRestockPrompt = prompt(
+        bookshopCounter,
+        "Restock Paperbacks ($300)",
+        "Riverside Bookshop",
+        "RestockBookshop",
+        10
+    )
+    bookshopSalePrompt =
+        prompt(bookshopCounter, "Sell Paperback ($130)", "Riverside Bookshop", "SellBookshop", 10)
+    bookshopRestockPrompt.Enabled = false
+    bookshopSalePrompt.Enabled = false
+    local bookshopSign = label(
+        bookshopShell,
+        "Riverside Bookshop Menu",
+        "RIVERSIDE BOOKSHOP\nPAPERBACKS $130\nSTOCK 0  •  SALES 0",
+        Vector3.new(8, 2.5, 0.3),
+        CFrame.new(79, 4.8, -64.55),
+        COLORS.coral,
+        COLORS.warmWhite
+    )
+    local bookshopSurface = bookshopSign:FindFirstChildOfClass("SurfaceGui")
+    if bookshopSurface then
+        bookshopMenuLabel = bookshopSurface:FindFirstChildOfClass("TextLabel")
+    end
+    for shelfIndex = 1, 3 do
+        local shelfX = 72 + shelfIndex * 4.5
+        part(
+            bookshopShell,
+            "Paperback Bookcase",
+            Vector3.new(3.8, 4.8, 0.7),
+            CFrame.new(shelfX, 2.8, -77),
+            COLORS.wood,
+            Enum.Material.WoodPlanks
+        )
+        for level = 1, 2 do
+            part(
+                bookshopShell,
+                "Bookcase Shelf",
+                Vector3.new(3.5, 0.18, 1.15),
+                CFrame.new(shelfX, 1.6 + level * 1.65, -76.3),
+                COLORS.warmWhite,
+                Enum.Material.WoodPlanks
+            )
+        end
+    end
+    local bookColors = { COLORS.blue, COLORS.green, COLORS.coral, COLORS.gold }
+    for index = 1, Economy.BOOKSHOP_SHELF_CAPACITY do
+        local column = (index - 1) % 6
+        local row = math.floor((index - 1) / 6)
+        local paperback = part(
+            bookshopShell,
+            "Paperback Display",
+            Vector3.new(0.68, 1.1, 0.22),
+            CFrame.new(73.5 + column * 2.15, 2 + row * 2, -75.5),
+            bookColors[((index - 1) % #bookColors) + 1],
+            Enum.Material.SmoothPlastic
+        )
+        paperback.CanCollide = false
+        paperback.Transparency = 1
+        table.insert(bookshopItemVisuals, paperback)
     end
     local plazaStylePad = part(
         exterior,
@@ -3910,6 +3999,13 @@ function WorldBuilder.build(locationId, origin)
                         front = Vector3.new(54, 0.45, -64.5),
                     })
                 end
+                if bookshopPurchased then
+                    table.insert(openBusinesses, {
+                        id = "bookshop",
+                        name = "RIVERSIDE BOOKSHOP",
+                        front = Vector3.new(79, 0.45, -64.5),
+                    })
+                end
                 if #openBusinesses == 0 then
                     entry.billboard.Enabled = false
                     for _, item in ipairs(entry.model:GetDescendants()) do
@@ -4547,6 +4643,17 @@ function WorldBuilder.build(locationId, origin)
             and floristStock > 0
             and currentStage ~= "Loading"
             and currentStage ~= "OwnerOffline"
+        bookshopBuildPrompt.Enabled = currentStage == "Complete"
+            and floristStorePurchased
+            and not bookshopPurchased
+        bookshopRestockPrompt.Enabled = bookshopPurchased
+            and currentStage == "Complete"
+            and bookshopStock + Economy.BOOKSHOP_RESTOCK_QUANTITY
+                <= Economy.BOOKSHOP_SHELF_CAPACITY
+        bookshopSalePrompt.Enabled = bookshopPurchased
+            and bookshopStock > 0
+            and currentStage ~= "Loading"
+            and currentStage ~= "OwnerOffline"
         plazaStylePrompt.Enabled = not plazaStylePurchased
             and gardenStorePurchased
             and currentStage == "Complete"
@@ -5182,6 +5289,28 @@ function WorldBuilder.build(locationId, origin)
                 )
             end
             floristBuildPad.Transparency = floristStorePurchased and 1 or 0
+            updatePlazaPrompts()
+        end,
+        bookshopBuildPrompt = bookshopBuildPrompt,
+        bookshopRestockPrompt = bookshopRestockPrompt,
+        bookshopSalePrompt = bookshopSalePrompt,
+        setBookshopState = function(purchased, stock, sales)
+            bookshopPurchased = purchased == true
+            bookshopStock =
+                math.max(0, math.min(math.floor(stock or 0), Economy.BOOKSHOP_SHELF_CAPACITY))
+            bookshopSales = math.max(0, math.floor(sales or 0))
+            for index, paperback in ipairs(bookshopItemVisuals) do
+                paperback.Transparency = bookshopStock >= index and 0 or 1
+            end
+            if bookshopMenuLabel then
+                bookshopMenuLabel.Text = string.format(
+                    "RIVERSIDE BOOKSHOP\nPAPERBACKS $%d\nSTOCK %d  •  SALES %d",
+                    Economy.BOOKSHOP_BOOK_PRICE,
+                    bookshopStock,
+                    bookshopSales
+                )
+            end
+            bookshopBuildPad.Transparency = bookshopPurchased and 1 or 0
             updatePlazaPrompts()
         end,
         plazaVisitEvent = plazaVisitEvent,

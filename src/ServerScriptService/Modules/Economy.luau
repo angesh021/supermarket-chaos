@@ -50,6 +50,11 @@ Economy.FLORIST_RESTOCK_COST = 320
 Economy.FLORIST_RESTOCK_QUANTITY = 4
 Economy.FLORIST_SHELF_CAPACITY = 12
 Economy.FLORIST_BOUQUET_PRICE = 240
+Economy.BOOKSHOP_COST = 2500
+Economy.BOOKSHOP_RESTOCK_COST = 300
+Economy.BOOKSHOP_RESTOCK_QUANTITY = 3
+Economy.BOOKSHOP_SHELF_CAPACITY = 12
+Economy.BOOKSHOP_BOOK_PRICE = 130
 Economy.UPTOWN_STORE_COST = 15000
 Economy.PLAZA_STYLE_COST = 750
 Economy.DELIVERY_FLEET_COST = 3000
@@ -299,6 +304,9 @@ function Economy.newState(profile, playerSeed, companyWallet)
         floristStorePurchased = upgrades.floristStore or false,
         floristStock = savedShift.floristStock or 0,
         floristSales = savedShift.floristSales or 0,
+        bookshopPurchased = upgrades.bookshop or false,
+        bookshopStock = savedShift.bookshopStock or 0,
+        bookshopSales = savedShift.bookshopSales or 0,
         plazaStylePurchased = upgrades.plazaStyleId ~= nil and upgrades.plazaStyleId ~= "",
         plazaStyleId = upgrades.plazaStyleId or "",
         deliveryFleetPurchased = upgrades.deliveryFleet or false,
@@ -603,6 +611,57 @@ function Economy.sellFloristBouquet(state)
     state.cash += Economy.FLORIST_BOUQUET_PRICE
     state.floristSales += 1
     return true, string.format("Bouquet sold! +$%d.", Economy.FLORIST_BOUQUET_PRICE)
+end
+
+function Economy.buyBookshop(state)
+    if state.stage ~= "Complete" or not state.floristStorePurchased or state.bookshopPurchased then
+        return false, "Riverside Bookshop opens after Maple Corner, between shifts."
+    end
+    if state.cash < Economy.BOOKSHOP_COST then
+        return false,
+            string.format("You need $%d to open Riverside Bookshop.", Economy.BOOKSHOP_COST)
+    end
+    state.cash -= Economy.BOOKSHOP_COST
+    state.bookshopPurchased = true
+    state.bookshopStock = 0
+    return true, "Riverside Bookshop opened! Stock paperbacks at the counter to start selling."
+end
+
+function Economy.restockBookshop(state)
+    if not state.bookshopPurchased or state.stage ~= "Complete" then
+        return false, "Restock Riverside Bookshop between supermarket shifts."
+    end
+    if
+        state.bookshopStock + Economy.BOOKSHOP_RESTOCK_QUANTITY > Economy.BOOKSHOP_SHELF_CAPACITY
+    then
+        return false, "The bookshop display is full."
+    end
+    if state.cash < Economy.BOOKSHOP_RESTOCK_COST then
+        return false,
+            string.format("You need $%d for three paperbacks.", Economy.BOOKSHOP_RESTOCK_COST)
+    end
+    state.cash -= Economy.BOOKSHOP_RESTOCK_COST
+    state.bookshopStock += Economy.BOOKSHOP_RESTOCK_QUANTITY
+    return true, string.format("Stocked %d paperbacks.", Economy.BOOKSHOP_RESTOCK_QUANTITY)
+end
+
+function Economy.sellBookshopPaperback(state)
+    if not state.bookshopPurchased then
+        return false, "Open Riverside Bookshop before selling books."
+    end
+    if state.stage == "Loading" or state.stage == "OwnerOffline" then
+        return false, "Wait until the bookshop owner profile is ready."
+    end
+    if state.bookshopStock < 1 then
+        return false, "The bookshop display is empty. Restock between shifts."
+    end
+    if state.bookshopSales >= 1000000000 then
+        return false, "The bookshop sales counter has reached its supported limit."
+    end
+    state.bookshopStock -= 1
+    state.cash += Economy.BOOKSHOP_BOOK_PRICE
+    state.bookshopSales += 1
+    return true, string.format("Paperback sold! +$%d.", Economy.BOOKSHOP_BOOK_PRICE)
 end
 
 function Economy.buyPlazaStyle(state, styleId)

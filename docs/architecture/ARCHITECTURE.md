@@ -251,7 +251,7 @@ See `docs/decisions/README.md` for accepted ownership policy. Remaining decision
 
 ## Phase 58 commercial neighborhood buildout
 - The neighborhood ground now covers the plaza extent, and a delivery avenue meets the main road at a marked pedestrian crossing. Five original streetlights and two glass-front decorative shop shells fill the commercial block.
-- Riverside Bookshop remains scenery. Maple Corner Florist now has its own server-owned purchase, stock, sales and visitor transactions, stored on the existing neighborhood profile. This is not a second store location or separate branch runtime.
+- Maple Corner Florist and Riverside Bookshop are server-owned businesses stored on the existing neighborhood location profile. The bookshop is unlocked after the florist and uses bounded paperback stock, server-priced sales and the existing plaza visitor transaction path. These businesses are not separate store locations or branch runtimes.
 - All scenery is generated from Roblox parts/materials, is contained in the location model and moves with its server-approved origin.
 
 ## Phase 59 Maple Corner Florist
@@ -259,6 +259,12 @@ See `docs/decisions/README.md` for accepted ownership policy. Remaining decision
 - Owner/Manager can build, restock and sell; Stocker can restock; Cashier can sell. Visitor purchases call the same sale transition, require an available profile and stock, share the transaction lock, and use the existing 15-second business throttle.
 - Profile schema v38 stores florist ownership, stock and sales. v37 migration supplies false/zero defaults and validates the old `locations.neighborhood` snapshot with those newly added fields omitted. Existing profile values remain the source of truth.
 - See ADR-0056 and `operations/PHASE59_MAPLE_CORNER_FLORIST.md`. Multi-store runtime and Studio verification remain pending.
+
+## Phase 69 Riverside Bookshop
+- The bookshop unlocks after florist ownership for `$2,500`; three paperbacks cost `$300` to restock (12-item cap) and sell for `$130` each. Server-built bookcases, visible stocked books, a sign and counter prompts are presentation; the profile state remains authoritative.
+- Owner/Manager build, Manager/Stocker restock, Manager/Cashier sell. Automated plaza purchases use the same bounded sale transition, 15-second per-business throttle and transaction lock as the florist.
+- Profile schema v40 stores bookshop ownership, stock and sales in the existing neighborhood location. Version 39 profiles and location snapshots gain safe defaults; `RetailLayoutService` validates saved layout versions during migration.
+- See ADR-0065 and `operations/PHASE69_RIVERSIDE_BOOKSHOP.md`; Studio visuals, roles, visitor sales, migration and save/rejoin remain pending.
 
 ## Phase 60 multi-location profile storage
 - Profile schema v39 permits exactly `neighborhood` and one optional `uptown` location. Each stores an independently normalized operational snapshot; the shared company balance and session lease remain at profile root.

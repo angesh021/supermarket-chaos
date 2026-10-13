@@ -364,6 +364,11 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Consequences:** Costs use active-location ownership state and persist only through existing cash; affordability, save and duplicate-close checks remain server-side.
 - **Verification:** See `docs/operations/PHASE68_SHIFT_OPERATING_COSTS.md`.
 
+## ADR-0065: Make Riverside Bookshop a persistent business
+- **Decision:** Open the neighborhood bookshop after florist ownership and add bounded, server-priced paperback restock and sales.
+- **Consequences:** Schema v40 stores bookshop state in the neighborhood location; existing plaza role, visitor, transaction-lock and profile-save boundaries apply.
+- **Verification:** See `docs/operations/PHASE69_RIVERSIDE_BOOKSHOP.md`.
+
 ## ADR-0009 — Keep product inventory and supplier orders SKU-specific
 - **Status:** Accepted — 2026-10-12.
 - **Context:** The retail loop needs visible department variety and product-specific stock behavior while keeping stock and money authoritative.

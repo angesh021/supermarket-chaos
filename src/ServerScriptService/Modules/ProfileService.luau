@@ -6,7 +6,7 @@ local ProfileService = {}
 local LayoutService = require(script.Parent.LayoutService)
 local RetailLayoutService = require(script.Parent.RetailLayoutService)
 
-local SCHEMA_VERSION = 39
+local SCHEMA_VERSION = 40
 local SESSION_LEASE_SECONDS = 180
 local MAX_RETRIES = 3
 local STORE_NAME = "SupermarketChaos_PlayerProfiles_v1"
@@ -105,6 +105,8 @@ local function defaultProfile()
             gardenSales = 0,
             floristStock = 0,
             floristSales = 0,
+            bookshopStock = 0,
+            bookshopSales = 0,
         },
         ownedUpgrades = {
             shelfBay = false,
@@ -120,6 +122,7 @@ local function defaultProfile()
             electronicsStore = false,
             gardenStore = false,
             floristStore = false,
+            bookshop = false,
             plazaStyleId = "",
             deliveryFleet = false,
             distributionCenter = false,
@@ -289,6 +292,7 @@ local function normalizeProfile(value)
             ) ~= "boolean")
             or (value.ownedUpgrades.gardenStore ~= nil and type(value.ownedUpgrades.gardenStore) ~= "boolean")
             or (value.ownedUpgrades.floristStore ~= nil and type(value.ownedUpgrades.floristStore) ~= "boolean")
+            or (value.ownedUpgrades.bookshop ~= nil and type(value.ownedUpgrades.bookshop) ~= "boolean")
             or (value.ownedUpgrades.deliveryFleet ~= nil and type(value.ownedUpgrades.deliveryFleet) ~= "boolean")
             or (value.ownedUpgrades.distributionCenter ~= nil and type(
                 value.ownedUpgrades.distributionCenter
@@ -318,6 +322,7 @@ local function normalizeProfile(value)
         profile.ownedUpgrades.electronicsStore = value.ownedUpgrades.electronicsStore == true
         profile.ownedUpgrades.gardenStore = value.ownedUpgrades.gardenStore == true
         profile.ownedUpgrades.floristStore = value.ownedUpgrades.floristStore == true
+        profile.ownedUpgrades.bookshop = value.ownedUpgrades.bookshop == true
         profile.ownedUpgrades.deliveryFleet = value.ownedUpgrades.deliveryFleet == true
         profile.ownedUpgrades.distributionCenter = value.ownedUpgrades.distributionCenter == true
         profile.ownedUpgrades.supplierPartnership = value.ownedUpgrades.supplierPartnership == true
@@ -360,6 +365,9 @@ local function normalizeProfile(value)
     end
     if profile.ownedUpgrades.floristStore and not profile.ownedUpgrades.gardenStore then
         return nil, "Stored florist ownership exists without the garden store prerequisite."
+    end
+    if profile.ownedUpgrades.bookshop and not profile.ownedUpgrades.floristStore then
+        return nil, "Stored bookshop ownership exists without the florist prerequisite."
     end
     if profile.ownedUpgrades.plazaStyleId ~= "" and not profile.ownedUpgrades.gardenStore then
         return nil, "Stored plaza style exists without plaza customization ownership."
@@ -619,6 +627,8 @@ local function normalizeProfile(value)
             or not validCounter(value.shift.gardenSales)
             or not validCounter(value.shift.floristStock)
             or not validCounter(value.shift.floristSales)
+            or not validCounter(value.shift.bookshopStock)
+            or not validCounter(value.shift.bookshopSales)
         then
             return nil, "Stored shift counters are invalid."
         end
@@ -655,6 +665,9 @@ local function normalizeProfile(value)
         if nonNegativeInteger(value.shift.floristStock, 0) > 12 then
             return nil, "Stored florist stock is outside the supported limit."
         end
+        if nonNegativeInteger(value.shift.bookshopStock, 0) > 12 then
+            return nil, "Stored bookshop stock is outside the supported limit."
+        end
         if
             (
                 nonNegativeInteger(value.shift.electronicsStock, 0) > 0
@@ -678,6 +691,14 @@ local function normalizeProfile(value)
             ) and profile.ownedUpgrades.floristStore ~= true
         then
             return nil, "Stored florist state exists without florist ownership."
+        end
+        if
+            (
+                nonNegativeInteger(value.shift.bookshopStock, 0) > 0
+                or nonNegativeInteger(value.shift.bookshopSales, 0) > 0
+            ) and profile.ownedUpgrades.bookshop ~= true
+        then
+            return nil, "Stored bookshop state exists without bookshop ownership."
         end
         if
             (
@@ -780,12 +801,15 @@ local function normalizeProfile(value)
         profile.shift.gardenSales = nonNegativeInteger(value.shift.gardenSales, 0)
         profile.shift.floristStock = nonNegativeInteger(value.shift.floristStock, 0)
         profile.shift.floristSales = nonNegativeInteger(value.shift.floristSales, 0)
+        profile.shift.bookshopStock = nonNegativeInteger(value.shift.bookshopStock, 0)
+        profile.shift.bookshopSales = nonNegativeInteger(value.shift.bookshopSales, 0)
     end
     local snapshot = locationSnapshot(profile)
     if value.locations ~= nil then
         if
             (
                 value.schemaVersion ~= SCHEMA_VERSION
+                and value.schemaVersion ~= 39
                 and value.schemaVersion ~= 38
                 and value.schemaVersion ~= 37
             ) or type(value.locations) ~= "table"
@@ -798,7 +822,7 @@ local function normalizeProfile(value)
             if not LOCATION_IDS[locationId] or type(record) ~= "table" then
                 return nil, "Stored profile contains an unknown or malformed location."
             end
-            if value.schemaVersion < SCHEMA_VERSION and locationId ~= "neighborhood" then
+            if value.schemaVersion < 39 and locationId ~= "neighborhood" then
                 return nil, "Older stored profiles cannot contain an additional location."
             end
         end
@@ -809,10 +833,31 @@ local function normalizeProfile(value)
             return nil, "Stored profile is missing its original neighborhood location."
         end
         local expectedSnapshot = cloneData(snapshot)
-        if value.schemaVersion == 37 then
+        if value.schemaVersion < 38 then
             expectedSnapshot.shift.floristStock = nil
             expectedSnapshot.shift.floristSales = nil
             expectedSnapshot.ownedUpgrades.floristStore = nil
+        end
+        if value.schemaVersion < SCHEMA_VERSION then
+            expectedSnapshot.shift.bookshopStock = nil
+            expectedSnapshot.shift.bookshopSales = nil
+            expectedSnapshot.ownedUpgrades.bookshop = nil
+            if type(value.locations.neighborhood.retailLayout) == "table" then
+                local storedLayoutVersion = value.locations.neighborhood.retailLayout.version
+                if
+                    type(storedLayoutVersion) ~= "number"
+                    or storedLayoutVersion % 1 ~= 0
+                    or storedLayoutVersion < 1
+                    or storedLayoutVersion > RetailLayoutService.VERSION
+                then
+                    return nil, "Stored neighborhood retail layout version is invalid."
+                end
+                expectedSnapshot.retailLayout.version =
+                    value.locations.neighborhood.retailLayout.version
+                if value.locations.neighborhood.retailLayout.aisles == nil then
+                    expectedSnapshot.retailLayout.aisles = nil
+                end
+            end
         end
         if not sameData(value.locations.neighborhood, expectedSnapshot) then
             return nil, "Stored neighborhood location does not match the migrated profile state."
@@ -839,7 +884,28 @@ local function normalizeProfile(value)
                 return nil, "Stored uptown location is invalid: " .. tostring(branchError)
             end
             local normalizedBranch = locationSnapshot(branchProfile)
-            if not sameData(branch, normalizedBranch) then
+            local expectedBranch = cloneData(normalizedBranch)
+            if value.schemaVersion < SCHEMA_VERSION then
+                expectedBranch.shift.bookshopStock = nil
+                expectedBranch.shift.bookshopSales = nil
+                expectedBranch.ownedUpgrades.bookshop = nil
+                if type(branch.retailLayout) == "table" then
+                    local storedLayoutVersion = branch.retailLayout.version
+                    if
+                        type(storedLayoutVersion) ~= "number"
+                        or storedLayoutVersion % 1 ~= 0
+                        or storedLayoutVersion < 1
+                        or storedLayoutVersion > RetailLayoutService.VERSION
+                    then
+                        return nil, "Stored uptown retail layout version is invalid."
+                    end
+                    expectedBranch.retailLayout.version = branch.retailLayout.version
+                    if branch.retailLayout.aisles == nil then
+                        expectedBranch.retailLayout.aisles = nil
+                    end
+                end
+            end
+            if not sameData(branch, expectedBranch) then
                 return nil, "Stored uptown location contains unsupported or divergent data."
             end
             profile.locations = { neighborhood = snapshot, uptown = normalizedBranch }
@@ -879,6 +945,8 @@ local function copyProfile(profile)
             gardenSales = profile.shift.gardenSales,
             floristStock = profile.shift.floristStock,
             floristSales = profile.shift.floristSales,
+            bookshopStock = profile.shift.bookshopStock,
+            bookshopSales = profile.shift.bookshopSales,
         },
         ownedUpgrades = {
             shelfBay = profile.ownedUpgrades.shelfBay,
@@ -894,6 +962,7 @@ local function copyProfile(profile)
             electronicsStore = profile.ownedUpgrades.electronicsStore,
             gardenStore = profile.ownedUpgrades.gardenStore,
             floristStore = profile.ownedUpgrades.floristStore,
+            bookshop = profile.ownedUpgrades.bookshop,
             deliveryFleet = profile.ownedUpgrades.deliveryFleet,
             distributionCenter = profile.ownedUpgrades.distributionCenter,
             supplierPartnership = profile.ownedUpgrades.supplierPartnership,
@@ -1267,6 +1336,8 @@ local function applyStateToProfile(profile, state, eventName)
     profile.shift.gardenSales = state.gardenSales
     profile.shift.floristStock = state.floristStock
     profile.shift.floristSales = state.floristSales
+    profile.shift.bookshopStock = state.bookshopStock
+    profile.shift.bookshopSales = state.bookshopSales
     profile.ownedUpgrades.shelfBay = state.upgradePurchased
     profile.ownedUpgrades.warehouse = state.warehousePurchased
     profile.ownedUpgrades.marketStyle = state.marketStylePurchased
@@ -1280,6 +1351,7 @@ local function applyStateToProfile(profile, state, eventName)
     profile.ownedUpgrades.electronicsStore = state.electronicsStorePurchased
     profile.ownedUpgrades.gardenStore = state.gardenStorePurchased
     profile.ownedUpgrades.floristStore = state.floristStorePurchased
+    profile.ownedUpgrades.bookshop = state.bookshopPurchased
     profile.ownedUpgrades.deliveryFleet = state.deliveryFleetPurchased
     profile.ownedUpgrades.distributionCenter = state.distributionCenterPurchased
     profile.ownedUpgrades.supplierPartnership = state.supplierPartnershipPurchased
