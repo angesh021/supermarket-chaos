@@ -1,7 +1,7 @@
 # Phase 57 — Multi-store foundation
 
 ## Current status
-Architecture decision recorded; no multi-store runtime or profile migration is claimed as implemented. The current `ShiftService` has one state/world/owner for the server. The current profile schema v36 contains one flat location's stock, shift, upgrades and business inventory.
+Architecture decision, schema v37 migration, and unique world-container support are implemented. `WorldBuilder.build(locationId, origin)` validates the server-supplied ID, uses a location-specific world model and can position it independently. Profile schema v37 migrates the v36 flat state to `locations.neighborhood`, verifies the location record stays synchronized with the legacy runtime fields, and exposes a server-only read-only location accessor. The current `ShiftService` still starts only one state/world/owner for the server; no second branch is playable yet.
 
 ## Target acceptance criteria
 - One player can own at least two independently managed store locations under the same account and company balance.
@@ -11,11 +11,10 @@ Architecture decision recorded; no multi-store runtime or profile migration is c
 - Existing profile state migrates once into the stable `neighborhood` location ID without changing the cash balance, stock, pending shipment, active shift, upgrades or progression counters.
 - Profile writes from two location runtimes remain serialized under one player lease. Rejoin restores both locations; a second server cannot take the same profile lease.
 
-## Planned implementation increments
-1. Introduce a normalized location record and v37 migration from the existing flat profile to `locations.neighborhood`, with duplicate/unknown ID rejection and bounded location count. Do not add a purchasable branch in this migration step.
-2. Extract one location runtime from the singleton `ShiftService`, parameterize `WorldBuilder` with a unique container/location ID, and scope action authorization and client snapshots to that runtime.
-3. Add a server-priced branch purchase and a second fixed plot. Reuse the same profile save lock, but persist the branch's state independently.
-4. Add per-location membership grants and test same-owner writes, branch switching, rejoin and unauthorized cross-branch actions.
+## Remaining implementation increments
+1. Extract one location runtime from the singleton `ShiftService`, and scope action authorization and client snapshots to that runtime.
+2. Add a server-priced branch purchase and a second fixed plot. Reuse the same profile save lock, but persist the branch's state independently.
+3. Add per-location membership grants and test same-owner writes, branch switching, rejoin and unauthorized cross-branch actions.
 
 ## Security and persistence boundaries
 - The client may request an action within a visible store, but cannot create location IDs, choose another owner's profile, or supply the location's stock, cash or upgrade state.
@@ -30,5 +29,12 @@ No branch purchase checklist can be run yet. Once the implementation steps above
 3. Run two branch actions close together and verify both save without lost updates. Leave/rejoin and compare both locations.
 4. Grant a helper Manager access to one branch only. Verify they can manage it and cannot use another branch's prompts/remotes.
 5. Start a second server for the same player and confirm the existing per-profile lease rejects conflicting ownership or writes.
+
+### Schema v37 migration check (available before the branch runtime)
+1. Load a known v36 profile and record balance, shift stage/sales, all SKU inventory and shipment, upgrades, employees, layouts, business stock/sales and progression counters.
+2. Let the profile save through the development DataStore. Confirm the profile reports schema v37 and contains exactly one `locations.neighborhood` record.
+3. Rejoin and compare the recorded values. Balance and location state must be unchanged; the snapshot must agree with the legacy fields used by the current runtime.
+4. Confirm a fresh/session-only profile also has the default neighborhood record and remains playable when DataStore access is unavailable.
+5. In an isolated local migration harness, change the record to contain an unknown ID, duplicate/unexpected location, or a value divergent from the flat profile. Confirm normalization rejects it without silently selecting or merging a location.
 
 No Studio result is claimed until these steps are observed and recorded.

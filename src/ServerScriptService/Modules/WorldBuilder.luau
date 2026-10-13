@@ -329,15 +329,30 @@ local function createLowPolyPerson(parent, name, position, shirtColor, pantsColo
     return person
 end
 
-function WorldBuilder.build()
+function WorldBuilder.build(locationId, origin)
+    locationId = locationId or "neighborhood"
+    if
+        type(locationId) ~= "string"
+        or #locationId > 32
+        or string.match(locationId, "^[%w_%-]+$") == nil
+    then
+        error("WorldBuilder requires a server-approved location ID.")
+    end
+    origin = origin or CFrame.new()
+    if typeof(origin) ~= "CFrame" then
+        error("WorldBuilder origin must be a CFrame.")
+    end
     local customerAssistantHired = false
-    local previous = workspace:FindFirstChild("SupermarketChaosWorld")
+    local worldName = locationId == "neighborhood" and "SupermarketChaosWorld"
+        or "SupermarketChaosWorld_" .. locationId
+    local previous = workspace:FindFirstChild(worldName)
     if previous then
         previous:Destroy()
     end
 
-    local world = Instance.new("Folder")
-    world.Name = "SupermarketChaosWorld"
+    local world = Instance.new("Model")
+    world.Name = worldName
+    world:SetAttribute("LocationId", locationId)
     world.Parent = workspace
     local exterior = Instance.new("Folder")
     exterior.Name = "Exterior"
@@ -4330,6 +4345,7 @@ function WorldBuilder.build()
         setPowerOutage(stage == "PowerOutage")
     end
 
+    world:PivotTo(origin)
     return {
         root = world,
         cartPrompt = cartPrompt,

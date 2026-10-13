@@ -6,7 +6,7 @@ local ProfileService = {}
 local LayoutService = require(script.Parent.LayoutService)
 local RetailLayoutService = require(script.Parent.RetailLayoutService)
 
-local SCHEMA_VERSION = 36
+local SCHEMA_VERSION = 37
 local SESSION_LEASE_SECONDS = 180
 local MAX_RETRIES = 3
 local STORE_NAME = "SupermarketChaos_PlayerProfiles_v1"
@@ -27,8 +27,56 @@ else
     )
 end
 
-local function defaultProfile()
+local function cloneData(value)
+    if type(value) ~= "table" then
+        return value
+    end
+    local copy = {}
+    for key, child in pairs(value) do
+        copy[cloneData(key)] = cloneData(child)
+    end
+    return copy
+end
+
+local function locationSnapshot(profile)
     return {
+        shift = cloneData(profile.shift),
+        ownedUpgrades = cloneData(profile.ownedUpgrades),
+        hiredEmployees = cloneData(profile.hiredEmployees),
+        employeeAutomation = cloneData(profile.employeeAutomation),
+        warehouseInventory = cloneData(profile.warehouseInventory),
+        warehouseLayout = cloneData(profile.warehouseLayout),
+        retailLayout = cloneData(profile.retailLayout),
+        productPrices = cloneData(profile.productPrices),
+        completedShifts = profile.completedShifts,
+        customerSatisfaction = profile.customerSatisfaction,
+        lifetimeSales = profile.lifetimeSales,
+        onlineOrdersFulfilled = profile.onlineOrdersFulfilled,
+    }
+end
+
+local function sameData(left, right)
+    if type(left) ~= type(right) then
+        return false
+    end
+    if type(left) ~= "table" then
+        return left == right
+    end
+    for key, value in pairs(left) do
+        if not sameData(value, right[key]) then
+            return false
+        end
+    end
+    for key in pairs(right) do
+        if left[key] == nil then
+            return false
+        end
+    end
+    return true
+end
+
+local function defaultProfile()
+    local profile = {
         schemaVersion = SCHEMA_VERSION,
         balance = 0,
         shift = {
@@ -112,6 +160,8 @@ local function defaultProfile()
         lifetimeSales = 0,
         onlineOrdersFulfilled = 0,
     }
+    profile.locations = { neighborhood = locationSnapshot(profile) }
+    return profile
 end
 
 local function nonNegativeInteger(value, fallback)
@@ -705,6 +755,23 @@ local function normalizeProfile(value)
         profile.shift.gardenStock = nonNegativeInteger(value.shift.gardenStock, 0)
         profile.shift.gardenSales = nonNegativeInteger(value.shift.gardenSales, 0)
     end
+    local snapshot = locationSnapshot(profile)
+    if value.locations ~= nil then
+        if value.schemaVersion ~= SCHEMA_VERSION or type(value.locations) ~= "table" then
+            return nil, "Stored location records are malformed or have an unsupported schema."
+        end
+        local count = 0
+        for locationId, record in pairs(value.locations) do
+            count += 1
+            if locationId ~= "neighborhood" or type(record) ~= "table" then
+                return nil, "Stored profile contains an unknown or malformed location."
+            end
+        end
+        if count ~= 1 or not sameData(value.locations.neighborhood, snapshot) then
+            return nil, "Stored neighborhood location does not match the migrated profile state."
+        end
+    end
+    profile.locations = { neighborhood = snapshot }
     return profile
 end
 
@@ -818,6 +885,7 @@ local function copyProfile(profile)
         z = profile.retailLayout.checkout.z,
         rotation = profile.retailLayout.checkout.rotation,
     }
+    copy.locations = { neighborhood = locationSnapshot(profile) }
     return copy
 end
 
@@ -1003,6 +1071,14 @@ function ProfileService.get(player)
     return entry and entry.profile or nil
 end
 
+function ProfileService.getLocation(player, locationId)
+    local entry = profiles[player.UserId]
+    if not entry or locationId ~= "neighborhood" then
+        return nil
+    end
+    return cloneData(entry.profile.locations.neighborhood)
+end
+
 function ProfileService.saveProgress(player, state, eventName)
     local entry = profiles[player.UserId]
     if not entry then
@@ -1089,6 +1165,7 @@ function ProfileService.saveProgress(player, state, eventName)
     elseif eventName == "shiftClosed" then
         profile.completedShifts += 1
     end
+    profile.locations = { neighborhood = locationSnapshot(profile) }
     if entry.persistent then
         return saveEntry(entry, false)
     end

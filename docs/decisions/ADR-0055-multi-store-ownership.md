@@ -1,6 +1,6 @@
 # ADR-0055: Multi-store ownership and persistence boundary
 
-- **Status:** Accepted for implementation planning; runtime migration not started.
+- **Status:** Accepted; schema v37 migration and unique world-container foundations implemented, with per-location runtime pending.
 - **Context:** The current experience stores one physical store and one `ShiftService` state per server. A player's profile contains one balance, one shift, and one set of stock/upgrades. The master specification calls for multiple stores and regional expansion.
 - **Decision:** Model a retail chain as one owner profile with a shared company balance and independent location records. Each location owns its shift, product stock, upgrades, staff, warehouse, and business inventory. Helpers remain scoped to the location they joined. The original store becomes the stable `neighborhood` location ID; later branches get server-generated allow-listed IDs. Clients never choose a location record or profile key.
 - **Migration:** Introduce a versioned locations collection by moving the existing single-store fields into `neighborhood` exactly once. Preserve the same player UserId key and lease. Reject malformed location IDs, duplicate IDs, impossible ownership/prerequisite combinations, and over-limit branch counts. Do not duplicate balance or grant currency during migration.
