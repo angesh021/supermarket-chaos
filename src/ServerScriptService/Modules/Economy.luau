@@ -11,6 +11,12 @@ Economy.STOCKER_COST = 80
 Economy.CLEANER_COST = 120
 Economy.DELIVERY_WORKER_COST = 140
 Economy.CUSTOMER_ASSISTANT_COST = 160
+Economy.STORE_UTILITIES_PER_SHIFT = 2
+Economy.WAREHOUSE_UPKEEP_PER_SHIFT = 2
+Economy.REAR_WING_UPKEEP_PER_SHIFT = 1
+Economy.DEPARTMENT_UPKEEP_PER_SHIFT = 1
+Economy.SELF_CHECKOUT_UPKEEP_PER_SHIFT = 1
+Economy.RETAIL_AISLE_UPKEEP_PER_SHIFT = 1
 Economy.WAREHOUSE_COST = 200
 Economy.MARKET_STYLE_COST = 180
 Economy.AISLE_EXPANSION_COST = 220
@@ -766,6 +772,34 @@ function Economy.getShiftPayroll(state)
         end
     end
     return total
+end
+
+function Economy.getShiftOperatingCosts(state)
+    local costs = 0
+    if state.upgradePurchased then
+        costs += Economy.STORE_UTILITIES_PER_SHIFT
+    end
+    if state.warehousePurchased then
+        costs += Economy.WAREHOUSE_UPKEEP_PER_SHIFT
+    end
+    if state.floorExpansionPurchased then
+        costs += Economy.REAR_WING_UPKEEP_PER_SHIFT
+    end
+    if state.bakeryPurchased then
+        costs += Economy.DEPARTMENT_UPKEEP_PER_SHIFT
+    end
+    if state.freezerPurchased then
+        costs += Economy.DEPARTMENT_UPKEEP_PER_SHIFT
+    end
+    if state.selfCheckoutPurchased then
+        costs += Economy.SELF_CHECKOUT_UPKEEP_PER_SHIFT
+    end
+    local aisleCount = 0
+    for _ in pairs(state.retailLayout and state.retailLayout.aisles or {}) do
+        aisleCount += 1
+    end
+    costs += math.min(aisleCount, RetailLayoutService.MAX_CONSTRUCTED_AISLES)
+    return costs
 end
 
 function Economy.cycleProductPrice(state, productId)
@@ -1663,14 +1697,20 @@ function Economy.closeShift(state)
     state.cash += Economy.SHIFT_REWARD
     local payroll = Economy.getShiftPayroll(state)
     state.cash -= payroll
-    local netReward = Economy.SHIFT_REWARD - payroll
+    local operatingCosts = Economy.getShiftOperatingCosts(state)
+    local operatingCostsPaid = math.min(math.max(0, state.cash), operatingCosts)
+    state.cash -= operatingCostsPaid
+    local netReward = Economy.SHIFT_REWARD - payroll - operatingCostsPaid
     local closeMessage
-    if payroll > 0 then
+    if payroll > 0 or operatingCosts > 0 then
         closeMessage = string.format(
-            "Shift complete! +$%d bonus, -$%d staff payroll (net +$%d).",
+            "Shift complete! +$%d bonus, -$%d payroll, -$%d/$%d operating costs (net %s$%d).",
             Economy.SHIFT_REWARD,
             payroll,
-            netReward
+            operatingCostsPaid,
+            operatingCosts,
+            netReward >= 0 and "+" or "-",
+            math.abs(netReward)
         )
     else
         closeMessage = state.upgradePurchased and "Shift complete! +$20."

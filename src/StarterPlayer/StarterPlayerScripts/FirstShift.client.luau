@@ -594,16 +594,29 @@ local function update(state)
             and Color3.fromRGB(48, 112, 61)
         or ((state.customerSatisfaction or 0) >= 35 and COLORS.deepTeal or COLORS.coral)
     feedback.Text = tostring(state.message or "")
-    if feedback.Text == "" and (state.employeePayroll or 0) > 0 then
-        feedback.Text = string.format("STAFF PAYROLL: $%d per shift", state.employeePayroll)
+    if
+        feedback.Text == ""
+        and ((state.employeePayroll or 0) > 0 or (state.operatingCosts or 0) > 0)
+    then
+        feedback.Text = string.format(
+            "SHIFT COSTS: $%d payroll + $%d upkeep",
+            state.employeePayroll or 0,
+            state.operatingCosts or 0
+        )
     end
     messageRevision += 1
     local thisRevision = messageRevision
     if feedback.Text ~= "" then
         task.delay(5, function()
             if messageRevision == thisRevision then
-                feedback.Text = (state.employeePayroll or 0) > 0
-                        and string.format("STAFF PAYROLL: $%d per shift", state.employeePayroll)
+                feedback.Text = (
+                    (state.employeePayroll or 0) > 0 or (state.operatingCosts or 0) > 0
+                )
+                        and string.format(
+                            "SHIFT COSTS: $%d payroll + $%d upkeep",
+                            state.employeePayroll or 0,
+                            state.operatingCosts or 0
+                        )
                     or ""
             end
         end)

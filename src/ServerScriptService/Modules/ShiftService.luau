@@ -175,8 +175,9 @@ local function snapshot(message, recipient)
     end
     if current.stage == "Complete" and hasStoreAccess then
         objective = string.format(
-            "Shift complete • staff payroll $%d per shift. Visit the shift board to continue.",
-            Economy.getShiftPayroll(current)
+            "Shift complete • payroll $%d + store costs $%d per shift. Visit the shift board to continue.",
+            Economy.getShiftPayroll(current),
+            Economy.getShiftOperatingCosts(current)
         )
     end
     if not isOwner and not isHelper then
@@ -203,6 +204,7 @@ local function snapshot(message, recipient)
         bakeryPurchased = hasStoreAccess and current.bakeryPurchased or false,
         freezerPurchased = hasStoreAccess and current.freezerPurchased or false,
         employeePayroll = hasStoreAccess and Economy.getShiftPayroll(current) or 0,
+        operatingCosts = hasStoreAccess and Economy.getShiftOperatingCosts(current) or 0,
         sales = hasStoreAccess and current.sales or 0,
         message = message or "",
         upgradePurchased = current.upgradePurchased,

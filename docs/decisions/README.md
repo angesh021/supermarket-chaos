@@ -359,6 +359,11 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Consequences:** Retail layout v5 stores bounded aisle GUIDs and transforms per location; all future layout moves must preserve aisle clearance.
 - **Verification:** See `docs/operations/PHASE67_CONSTRUCTED_GROCERY_AISLES.md`.
 
+## ADR-0064: Derive recurring operating costs
+- **Decision:** Charge bounded, server-derived facility upkeep during the existing idempotent shift closeout.
+- **Consequences:** Costs use active-location ownership state and persist only through existing cash; affordability, save and duplicate-close checks remain server-side.
+- **Verification:** See `docs/operations/PHASE68_SHIFT_OPERATING_COSTS.md`.
+
 ## ADR-0009 — Keep product inventory and supplier orders SKU-specific
 - **Status:** Accepted — 2026-10-12.
 - **Context:** The retail loop needs visible department variety and product-specific stock behavior while keeping stock and money authoritative.

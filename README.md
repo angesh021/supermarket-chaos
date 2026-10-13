@@ -2,7 +2,7 @@
 
 **Start Small. Build Big. Survive the Chaos.**
 
-Roblox cooperative supermarket management game. Phase 67 adds server-priced, persistent grocery aisle construction; Phase 66 extends the installed store palettes across the supermarket interior. Roblox Studio multiplayer, layout and persistence verification remain pending. See [project status](docs/PROJECT_STATUS.md), the [Phase 67 checklist](docs/operations/PHASE67_CONSTRUCTED_GROCERY_AISLES.md), the [documentation index](docs/README.md), and [master specification](MASTER_SPECIFICATION.md).
+Roblox cooperative supermarket management game. Phase 68 adds bounded, ownership-derived operating costs to shift closeout; Phase 67 adds server-priced, persistent grocery aisle construction. Roblox Studio multiplayer, layout, economy and persistence verification remain pending. See [project status](docs/PROJECT_STATUS.md), the [Phase 68 checklist](docs/operations/PHASE68_SHIFT_OPERATING_COSTS.md), the [documentation index](docs/README.md), and [master specification](MASTER_SPECIFICATION.md).
 
 GitHub repository supplied by the project owner: [angesh021/supermarket-chaos](https://github.com/angesh021/supermarket-chaos).
 

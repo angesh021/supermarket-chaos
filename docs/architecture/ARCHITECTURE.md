@@ -275,6 +275,7 @@ See `docs/decisions/README.md` for accepted ownership policy. Remaining decision
 - Phase 66 reuses the installed storefront palette ID for selected interior surfaces. WorldBuilder maps IDs to role-specific fixed colors; preview remains server-session-only and the owned palette stays in the location profile.
 - No new client color data, profile fields, remotes or economy transitions are introduced. See ADR-0062 and operations/PHASE66_INTERIOR_STYLE_PALETTES.md.
 - Phase 67 adds up to four GUID-keyed constructed aisle transforms to retail layout v5 in each owned location. `Economy` charges the fixed build cost, `RetailLayoutService` validates the grid and collisions, `WorldBuilder` builds the fixture, and `ProfileService` persists it under the existing owner lease. No profile schema change is needed.
+- Phase 68 derives facility operating costs from the active server state and applies them in the existing guarded shift-close transition after payroll. Only the resulting cash persists; owned upgrades remain the source of truth, and no new profile field or client charge input is used.
 
 # Cooperative ownership and cashier extension
 - One owner profile remains the persistence boundary. Per-server membership grants temporary action permissions but does not load a guest's profile into the owner's economy.
