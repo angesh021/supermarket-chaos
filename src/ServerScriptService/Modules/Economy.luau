@@ -13,6 +13,16 @@ Economy.DELIVERY_QUANTITY = 24
 Economy.BACKSTOCK_CAPACITY = 500
 Economy.STARTING_STOCK = 3
 Economy.CUSTOMERS_PER_SHIFT = 3
+Economy.SPILL_CLEAN_REWARD = 5
+
+Economy.CHAOS_EVENTS = {
+    CheckoutSpill = {
+        id = "checkout_spill",
+        triggerSales = 1,
+        objective = "Clean up the spilled groceries by checkout.",
+        reward = Economy.SPILL_CLEAN_REWARD,
+    },
+}
 
 function Economy.newState(profile)
     profile = profile or {}
@@ -117,6 +127,10 @@ function Economy.sellProduct(state)
     state.stock -= 1
     state.sales += 1
     state.cash += Economy.SALE_REWARD
+    if state.sales == Economy.CHAOS_EVENTS.CheckoutSpill.triggerSales then
+        state.stage = "Spill"
+        return true, "Sale complete! +$25. A customer dropped groceries—clean up the spill!"
+    end
     if state.sales >= Economy.CUSTOMERS_PER_SHIFT then
         state.stage = "CloseShift"
         return true, "Sale complete! +$25. All customers served. Close out your shift."
@@ -126,6 +140,15 @@ function Economy.sellProduct(state)
             "Sale complete! +$25. %d customers remain in the queue.",
             Economy.CUSTOMERS_PER_SHIFT - state.sales
         )
+end
+
+function Economy.cleanSpill(state)
+    if state.stage ~= "Spill" then
+        return false, "There is no spill to clean up right now."
+    end
+    state.cash += Economy.CHAOS_EVENTS.CheckoutSpill.reward
+    state.stage = "Checkout"
+    return true, "Aisle clear! +$5. The checkout queue is moving again."
 end
 
 function Economy.closeShift(state)

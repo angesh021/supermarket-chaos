@@ -27,8 +27,8 @@ This is a queue and checkout loop, not full customer AI. Customers do not yet br
 
 1. Start a private server in the development universe and begin a new shift. Confirm no checkout customers are shown during the cart objective.
 2. Recover the cart and stock the product. Confirm three customers appear in a readable line and the objective reports three remaining.
-3. Serve one customer. Confirm one model leaves/hides, the prompt reports two left, stock falls by one, and cash rises by exactly $25.
-4. Repeat twice. Confirm the line clears, three total sales are recorded, and the shift board becomes available only after the third sale.
+3. Serve the first customer. Confirm one sale is recorded for $25, then the spill event interrupts checkout. Follow [Phase 9 chaos checks](PHASE9_CHAOS.md) to clear it before resuming.
+4. Serve the remaining two customers. Confirm the line clears, three total sales are recorded, and the shift board becomes available only after the third sale.
 5. Re-trigger checkout after the queue is empty and try an unauthorized role. Confirm cash and sales do not change.
 6. Hire a cashier, start another shift, and confirm the cashier completes three sales with $25 per transaction, consumes all three units, and closes the queue once.
 7. Leave and rejoin while two customers remain. Confirm the saved objective, remaining line, cash, sales, and stock agree; serve the last two and confirm closeout.

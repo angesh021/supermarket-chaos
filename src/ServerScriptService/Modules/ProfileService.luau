@@ -4,7 +4,7 @@ local HttpService = game:GetService("HttpService")
 
 local ProfileService = {}
 
-local SCHEMA_VERSION = 4
+local SCHEMA_VERSION = 5
 local SESSION_LEASE_SECONDS = 180
 local MAX_RETRIES = 3
 local STORE_NAME = "SupermarketChaos_PlayerProfiles_v1"
@@ -186,6 +186,7 @@ local function normalizeProfile(value)
                 stage ~= "Cart"
                 and stage ~= "Stock"
                 and stage ~= "Checkout"
+                and stage ~= "Spill"
                 and stage ~= "CloseShift"
                 and stage ~= "Upgrade"
                 and stage ~= "Complete"

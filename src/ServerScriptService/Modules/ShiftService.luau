@@ -27,6 +27,7 @@ local ROLE_ACTIONS = {
         Cart = true,
         Stock = true,
         Checkout = true,
+        Spill = true,
         CloseShift = true,
         Upgrade = true,
         Complete = true,
@@ -38,7 +39,7 @@ local ROLE_ACTIONS = {
     },
     Cashier = { Checkout = true },
     Stocker = { Stock = true },
-    Maintenance = { Cart = true },
+    Maintenance = { Cart = true, Spill = true },
 }
 local ASSIGNABLE_ROLES = { Manager = true, Cashier = true, Stocker = true, Maintenance = true }
 local MAX_STORE_PLAYERS = 4
@@ -48,6 +49,7 @@ local OBJECTIVES = {
     Cart = "First Shift: stop the runaway shopping cart near the entrance.",
     Stock = "Stock three Citrus Pop cans on the marked shelf.",
     Checkout = "Serve the customers waiting in the checkout queue.",
+    Spill = "Clean up the dropped groceries by checkout.",
     CloseShift = "All customers are served. Close the shift at the shift board.",
     Upgrade = "Upgrade: use the gold pad just inside the front entrance. Press E to spend $45.",
     Complete = "Shift complete. Visit the shift board to start another shift.",
@@ -63,6 +65,13 @@ local function snapshot(message, recipient)
         local remaining = math.max(0, Economy.CUSTOMERS_PER_SHIFT - current.sales)
         objective = string.format(
             "Checkout: serve the queue (%d customer%s left).",
+            remaining,
+            remaining == 1 and "" or "s"
+        )
+    elseif current.stage == "Spill" then
+        local remaining = math.max(0, Economy.CUSTOMERS_PER_SHIFT - current.sales)
+        objective = string.format(
+            "Clean the checkout spill, then serve %d more customer%s.",
             remaining,
             remaining == 1 and "" or "s"
         )
@@ -342,6 +351,15 @@ function ShiftService.init(event, membershipRemotes)
         if ok then
             world.setStockVisual(state.stock)
             commit("sale")
+        end
+        broadcast(message)
+    end)
+
+    bind("Spill", world.spillPrompt, 12, function()
+        local ok, message = Economy.cleanSpill(state)
+        if ok then
+            world.setSpillVisible(false)
+            commit("spillCleaned")
         end
         broadcast(message)
     end)

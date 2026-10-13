@@ -16,5 +16,6 @@
 | [Decision records](decisions/README.md) | Material architecture and product decisions |
 | [Project status](PROJECT_STATUS.md) | Current state, risks, manual actions, G0 gate |
 | [Customer queue verification](operations/PHASE8_CUSTOMERS.md) | Checkout queue acceptance and Studio procedure |
+| [Chaos event verification](operations/PHASE9_CHAOS.md) | Spill event acceptance and Studio procedure |
 
 Keep this index and linked documents current as implementation changes. See [AGENTS.md](../AGENTS.md) for repository rules.

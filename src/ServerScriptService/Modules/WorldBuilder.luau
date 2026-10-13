@@ -828,12 +828,13 @@ function WorldBuilder.build()
 
     local register = prompt(counter, "Serve Customer", "Checkout", "Checkout", 9)
     local function setCustomerCount(count)
-        local remaining = currentStage == "Checkout"
+        local remaining = (currentStage == "Checkout" or currentStage == "Spill")
                 and math.min(math.max(math.floor(count), 0), #customerModels)
             or 0
         local served = #customerModels - remaining
         for index, entry in ipairs(customerModels) do
-            local visible = index > served and currentStage == "Checkout"
+            local visible = index > served
+                and (currentStage == "Checkout" or currentStage == "Spill")
             local queueOffset = Vector3.new(0, 0, -4 * served)
             entry.model:PivotTo(entry.homePivot + queueOffset)
             for _, item in ipairs(entry.model:GetDescendants()) do
@@ -850,6 +851,46 @@ function WorldBuilder.build()
 
     local function setCustomerVisible(visible)
         setCustomerCount(visible and #customerModels or 0)
+    end
+
+    local spillModel = Instance.new("Model")
+    spillModel.Name = "Checkout Spill"
+    spillModel.Parent = interior
+    local spillPuddle = part(
+        spillModel,
+        "Dropped Grocery Spill",
+        Vector3.new(3.2, 0.12, 2.3),
+        CFrame.new(7, 0.58, 5.5),
+        COLORS.gold,
+        Enum.Material.SmoothPlastic,
+        1
+    )
+    spillPuddle.Shape = Enum.PartType.Ball
+    spillPuddle.CanCollide = false
+    local spillSign = label(
+        spillModel,
+        "Spill Caution Sign",
+        "SPILL!\nCLEAN UP",
+        Vector3.new(2.2, 1.35, 0.25),
+        CFrame.new(7, 1.45, 6.2),
+        COLORS.gold,
+        COLORS.deepTeal
+    )
+    spillSign.Transparency = 1
+    spillSign.CanCollide = false
+    local spillSurface = spillSign:FindFirstChildOfClass("SurfaceGui")
+    if spillSurface then
+        spillSurface.Enabled = false
+    end
+    local spillPrompt = prompt(spillPuddle, "Clean Spill", "Dropped Groceries", "Spill", 9)
+    spillPrompt.Enabled = false
+    local function setSpillVisible(visible)
+        spillPuddle.Transparency = visible and 0.08 or 1
+        spillSign.Transparency = visible and 0 or 1
+        if spillSurface then
+            spillSurface.Enabled = visible
+        end
+        spillPrompt.Enabled = visible and currentStage == "Spill"
     end
 
     local stockedCans = {}
@@ -1340,6 +1381,7 @@ function WorldBuilder.build()
         stockPrompt.Enabled = stage == "Stock"
         register.Enabled = stage == "Checkout"
         closePrompt.Enabled = stage == "CloseShift"
+        spillPrompt.Enabled = stage == "Spill"
         upgradePrompt.Enabled = stage == "Upgrade"
         restartPrompt.Enabled = stage == "Complete"
         upgradeMarker.Enabled = stage == "Upgrade"
@@ -1354,7 +1396,8 @@ function WorldBuilder.build()
                 and deliveryQuantity > 0
                 and os.time() >= deliveryReadyAt
         end
-        setCustomerVisible(stage == "Checkout" or stage == "CloseShift")
+        setCustomerVisible(stage == "Checkout" or stage == "CloseShift" or stage == "Spill")
+        setSpillVisible(stage == "Spill")
     end
 
     return {
@@ -1372,6 +1415,8 @@ function WorldBuilder.build()
         setCustomerVisible = setCustomerVisible,
         setCustomerCount = setCustomerCount,
         registerPrompt = register,
+        spillPrompt = spillPrompt,
+        setSpillVisible = setSpillVisible,
         closePrompt = closePrompt,
         restartPrompt = restartPrompt,
         cashierHirePrompt = cashierHirePrompt,

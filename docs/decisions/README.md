@@ -30,3 +30,10 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Decision:** Each shift serves three customers using a fixed, visible queue. The server's existing sale transition owns stock and revenue; the existing persisted sales count reconstructs queue progress.
 - **Consequences:** No new customer persistence fields or remote payloads are needed. Browsing, path navigation, exit behavior, and larger traffic events remain later increments; queue positions are visual staging, not autonomous AI navigation.
 - **Verification:** See `docs/operations/PHASE8_CUSTOMERS.md`; Roblox Studio runtime checks remain pending.
+
+## ADR-0007 — Persist chaos interruptions in the shift stage
+- **Status:** Accepted — 2026-10-12.
+- **Context:** A temporary event must survive player rejoin without trusting client event state or adding unnecessary event records.
+- **Decision:** The checkout spill is represented by the versioned `Spill` shift stage. The server owns eligibility, role authorization, cleanup reward and resume transition. Profile schema v5 admits this stage; older profile shapes migrate through the existing normalizer.
+- **Consequences:** The event has no client remote, deadline or destructive failure state. If cleanup is delayed, the queue waits safely until an authorized player resumes it. Customer Rush and Power Outage require separate eligibility and recovery rules before implementation.
+- **Verification:** See `docs/operations/PHASE9_CHAOS.md`; persistence and Studio runtime checks remain pending.
