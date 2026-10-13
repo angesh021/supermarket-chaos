@@ -65,6 +65,8 @@ G0 was approved on 2026-10-12. The user authorized continued phase implementatio
 - [ ] Studio verification of warehouse prerequisite, purchase, café visuals, stock cap, coffee sale, role permissions, v28-to-v29 migration and save/rejoin; see `operations/PHASE47_CORNER_CAFE.md`.
 - [x] Phase 48 Stage 4 increment: add persistent Market Table restaurant after the café, with a fixed dining storefront, four-meal prep batches, server-priced sales, Cashier/Stocker role boundaries and v30 migration; see `operations/PHASE48_MARKET_TABLE_RESTAURANT.md`.
 - [ ] Studio verification of café prerequisite, restaurant purchase, visuals, stock cap, meal payout, role permissions, v29-to-v30 migration and save/rejoin; see `operations/PHASE48_MARKET_TABLE_RESTAURANT.md`.
+- [x] Phase 49 Stage 4 increment: add a persistent Pixel & Plug electronics storefront after the restaurant, fixed headphone stock/sales, Cashier/Stocker role boundaries and v31 migration; see `operations/PHASE49_ELECTRONICS_STORE.md`.
+- [ ] Studio verification of restaurant prerequisite, storefront layout, stock cap, payout, role permissions, v30-to-v31 migration and save/rejoin; see `operations/PHASE49_ELECTRONICS_STORE.md`.
 - [ ] Studio verification of satisfaction thresholds, patience timing, event pauses, cashier parity and rejoin; see `operations/PHASE38_LOYALTY_AND_PATIENCE.md`.
 - [x] Phase 33: score customer satisfaction from preference fulfillment/price tiers and expose the bounded rating in the HUD; see `operations/PHASE33_CUSTOMER_SATISFACTION.md`.
 - [ ] Studio verification of cleaner hire/migration, save/rejoin, automatic cleanup and player/employee races.

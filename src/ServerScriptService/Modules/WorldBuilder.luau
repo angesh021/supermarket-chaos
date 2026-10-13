@@ -2286,6 +2286,14 @@ function WorldBuilder.build()
     local restaurantMenuLabel
     local restaurantRestockPrompt
     local restaurantServePrompt
+    local electronicsStorePurchased = false
+    local electronicsStock = 0
+    local electronicsSales = 0
+    local electronicsStoreModel
+    local electronicsItemVisuals = {}
+    local electronicsMenuLabel
+    local electronicsRestockPrompt
+    local electronicsSalePrompt
     part(
         exterior,
         "Cafe Plaza Walkway",
@@ -2305,8 +2313,8 @@ function WorldBuilder.build()
     part(
         exterior,
         "Restaurant Plaza Walkway",
-        Vector3.new(8, 0.18, 56),
-        CFrame.new(-80, 0.1, -7),
+        Vector3.new(8, 0.18, 102),
+        CFrame.new(-80, 0.1, -30),
         COLORS.gray,
         Enum.Material.Concrete
     )
@@ -2315,6 +2323,14 @@ function WorldBuilder.build()
         "Restaurant Walkway Connector",
         Vector3.new(30, 0.18, 10),
         CFrame.new(-65, 0.1, -25.8),
+        COLORS.gray,
+        Enum.Material.Concrete
+    )
+    part(
+        exterior,
+        "Electronics Plaza Walkway Connector",
+        Vector3.new(30, 0.18, 10),
+        CFrame.new(-65, 0.1, -65.8),
         COLORS.gray,
         Enum.Material.Concrete
     )
@@ -2411,6 +2427,57 @@ function WorldBuilder.build()
     if restaurantMenuSurface then
         restaurantMenuSurface.Enabled = false
         restaurantMenuLabel = restaurantMenuSurface:FindFirstChildOfClass("TextLabel")
+    end
+    local electronicsBuildPad = part(
+        exterior,
+        "Pixel and Plug Purchase Pad",
+        Vector3.new(4.5, 0.5, 4.5),
+        CFrame.new(-52.5, 0.45, -70),
+        COLORS.gold,
+        Enum.Material.Neon
+    )
+    local electronicsBuildPrompt = prompt(
+        electronicsBuildPad,
+        "Build Pixel & Plug ($2,400)",
+        "Plaza Business",
+        "BuildElectronicsStore",
+        10
+    )
+    electronicsBuildPrompt.Enabled = false
+    local electronicsCounter = part(
+        exterior,
+        "Pixel and Plug Service Counter",
+        Vector3.new(9, 1.5, 1.8),
+        CFrame.new(-65, 1.25, -78),
+        COLORS.wood,
+        Enum.Material.WoodPlanks,
+        1
+    )
+    electronicsRestockPrompt = prompt(
+        electronicsCounter,
+        "Restock Headphones ($300)",
+        "Pixel & Plug",
+        "RestockElectronics",
+        10
+    )
+    electronicsSalePrompt =
+        prompt(electronicsCounter, "Sell Headphones ($220)", "Pixel & Plug", "SellElectronics", 10)
+    electronicsRestockPrompt.Enabled = false
+    electronicsSalePrompt.Enabled = false
+    local electronicsMenuBoard = label(
+        exterior,
+        "Pixel and Plug Store Sign",
+        "PIXEL & PLUG\nWIRELESS HEADPHONES $220\nSTOCK 0  •  SALES 0",
+        Vector3.new(9, 3, 0.35),
+        CFrame.new(-65, 5.3, -72.7),
+        COLORS.deepTeal,
+        COLORS.warmWhite
+    )
+    electronicsMenuBoard.Transparency = 1
+    local electronicsMenuSurface = electronicsMenuBoard:FindFirstChildOfClass("SurfaceGui")
+    if electronicsMenuSurface then
+        electronicsMenuSurface.Enabled = false
+        electronicsMenuLabel = electronicsMenuSurface:FindFirstChildOfClass("TextLabel")
     end
     local warehousePad = part(
         exterior,
@@ -2862,6 +2929,113 @@ function WorldBuilder.build()
         restaurantBuildPrompt.Enabled = false
     end
 
+    local function addElectronicsStore()
+        if electronicsStoreModel then
+            return
+        end
+        electronicsStorePurchased = true
+        electronicsStoreModel = Instance.new("Model")
+        electronicsStoreModel.Name = "Pixel and Plug Electronics Plaza Business"
+        electronicsStoreModel.Parent = exterior
+        local center = Vector3.new(-65, 0, -82)
+        part(
+            electronicsStoreModel,
+            "Electronics Store Tile Floor",
+            Vector3.new(24, 0.35, 20),
+            CFrame.new(center + Vector3.new(0, 0.05, 0)),
+            COLORS.cream,
+            Enum.Material.CeramicTiles
+        )
+        part(
+            electronicsStoreModel,
+            "Electronics Store Back Wall",
+            Vector3.new(24, 9, 0.55),
+            CFrame.new(center + Vector3.new(0, 4.5, -9.7)),
+            COLORS.deepTeal
+        )
+        for _, side in ipairs({ -11.7, 11.7 }) do
+            part(
+                electronicsStoreModel,
+                "Electronics Store Side Wall",
+                Vector3.new(0.6, 9, 20),
+                CFrame.new(center + Vector3.new(side, 4.5, 0)),
+                COLORS.cream
+            )
+        end
+        for _, side in ipairs({ -7.6, 7.6 }) do
+            part(
+                electronicsStoreModel,
+                "Electronics Store Front Pier",
+                Vector3.new(8, 9, 0.6),
+                CFrame.new(center + Vector3.new(side, 4.5, 9.7)),
+                COLORS.cream
+            )
+        end
+        part(
+            electronicsStoreModel,
+            "Electronics Store Roof",
+            Vector3.new(25, 0.8, 21),
+            CFrame.new(center + Vector3.new(0, 9.4, 0)),
+            COLORS.gray,
+            Enum.Material.Metal
+        )
+        part(
+            electronicsStoreModel,
+            "Electronics Store Awning",
+            Vector3.new(18, 0.35, 2.3),
+            CFrame.new(center + Vector3.new(0, 7.4, 10.8)),
+            COLORS.teal,
+            Enum.Material.Fabric
+        )
+        electronicsMenuBoard.Parent = electronicsStoreModel
+        electronicsMenuBoard.CFrame = CFrame.new(center + Vector3.new(0, 5.7, 10.05))
+        electronicsMenuBoard.Transparency = 0
+        if electronicsMenuSurface then
+            electronicsMenuSurface.Enabled = true
+        end
+        electronicsCounter.Parent = electronicsStoreModel
+        electronicsCounter.CFrame = CFrame.new(center + Vector3.new(0, 1.45, 5.4))
+        electronicsCounter.Transparency = 0
+        electronicsCounter.CanCollide = true
+        part(
+            electronicsStoreModel,
+            "Headphone Display Cabinet",
+            Vector3.new(10, 2.5, 2.2),
+            CFrame.new(center + Vector3.new(0, 1.5, -1.8)),
+            COLORS.gray,
+            Enum.Material.Glass
+        )
+        for index = 1, 4 do
+            local item = part(
+                electronicsStoreModel,
+                "Wireless Headphones Display",
+                Vector3.new(1.25, 1.1, 0.5),
+                CFrame.new(center + Vector3.new(-3.9 + index * 2.1, 3.35, -1.8)),
+                COLORS.coral,
+                Enum.Material.SmoothPlastic
+            )
+            item.CanCollide = false
+            item.Transparency = 1
+            table.insert(electronicsItemVisuals, item)
+        end
+        local clerk = createLowPolyPerson(
+            electronicsStoreModel,
+            "Pixel and Plug Clerk",
+            center + Vector3.new(3.5, 0.45, 2),
+            COLORS.teal,
+            COLORS.gray,
+            COLORS.deepTeal
+        )
+        for _, item in ipairs(clerk:GetDescendants()) do
+            if item:IsA("BasePart") then
+                item.CanCollide = false
+            end
+        end
+        electronicsBuildPad.Transparency = 1
+        electronicsBuildPad.CanCollide = false
+        electronicsBuildPrompt.Enabled = false
+    end
+
     local function addWarehouse()
         if warehouseModel then
             return
@@ -3265,6 +3439,16 @@ function WorldBuilder.build()
             and restaurantStock + 4 <= 16
         restaurantServePrompt.Enabled = restaurantPurchased
             and restaurantStock > 0
+            and currentStage ~= "Loading"
+            and currentStage ~= "OwnerOffline"
+        electronicsBuildPrompt.Enabled = currentStage == "Complete"
+            and restaurantPurchased
+            and not electronicsStorePurchased
+        electronicsRestockPrompt.Enabled = electronicsStorePurchased
+            and currentStage == "Complete"
+            and electronicsStock + 2 <= 8
+        electronicsSalePrompt.Enabled = electronicsStorePurchased
+            and electronicsStock > 0
             and currentStage ~= "Loading"
             and currentStage ~= "OwnerOffline"
     end
@@ -3741,6 +3925,29 @@ function WorldBuilder.build()
                     Economy.RESTAURANT_MEAL_PRICE,
                     restaurantStock,
                     restaurantSales
+                )
+            end
+            updatePlazaPrompts()
+        end,
+        electronicsBuildPrompt = electronicsBuildPrompt,
+        electronicsRestockPrompt = electronicsRestockPrompt,
+        electronicsSalePrompt = electronicsSalePrompt,
+        setElectronicsStoreState = function(purchased, stock, sales)
+            electronicsStorePurchased = purchased == true
+            electronicsStock = math.max(0, math.min(math.floor(stock or 0), 8))
+            electronicsSales = math.max(0, math.floor(sales or 0))
+            if electronicsStorePurchased then
+                addElectronicsStore()
+            end
+            for index, item in ipairs(electronicsItemVisuals) do
+                item.Transparency = electronicsStock >= index * 2 - 1 and 0 or 1
+            end
+            if electronicsMenuLabel then
+                electronicsMenuLabel.Text = string.format(
+                    "PIXEL & PLUG\nWIRELESS HEADPHONES $%d\nSTOCK %d  •  SALES %d",
+                    Economy.ELECTRONICS_ITEM_PRICE,
+                    electronicsStock,
+                    electronicsSales
                 )
             end
             updatePlazaPrompts()

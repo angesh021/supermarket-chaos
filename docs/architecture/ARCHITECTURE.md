@@ -189,6 +189,11 @@ See `docs/decisions/README.md` for accepted ownership policy. Remaining decision
 - `Economy.buyRestaurant`, `restockRestaurant` and `serveRestaurantMeal` own the `$1,200` purchase, `$80` batch of four, 16-meal capacity and `$38` sale price. Restaurant sales share cash but do not increment grocery-shift customers or sales.
 - The restaurant is gated behind the café, which already implies warehouse ownership. The same role/range/rate/profile-lock checks and shared transaction lock protect build, prep and service.
 - `WorldBuilder` renders the fixed dining building, awning, menu, tables, chef, warmer and meal visuals from built-in parts. `ProfileService` schema v30 validates restaurant ownership after café ownership, and meal stock/sales only when the restaurant exists.
+
+## Phase 49 Pixel & Plug electronics store
+- The electronics business follows the same owner profile and shared balance. It unlocks after the restaurant, costs `$2,400`, stocks two headphones for `$300` up to eight and sells each for `$220`.
+- Owner/Manager build, Stocker restock and Cashier sale use the common prompt security and shared transaction lock. Store sales do not change supermarket shift progression.
+- Profile schema v31 persists ownership, bounded stock and sales. Built-in parts render the plaza shop, product display, clerk and menu; no third-party assets are used.
 # Cooperative ownership and cashier extension
 - One owner profile remains the persistence boundary. Per-server membership grants temporary action permissions but does not load a guest's profile into the owner's economy.
 - Server role map: Owner (all), Manager (all shift actions including staff hiring), Cashier (checkout), Stocker (stock), Maintenance (cart recovery).

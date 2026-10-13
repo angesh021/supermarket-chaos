@@ -60,6 +60,9 @@ local ROLE_ACTIONS = {
         BuildRestaurant = true,
         RestockRestaurant = true,
         ServeRestaurant = true,
+        BuildElectronicsStore = true,
+        RestockElectronics = true,
+        SellElectronics = true,
         FulfillOnlineOrder = true,
         SelfCheckout = true,
         EditLayout = true,
@@ -90,6 +93,7 @@ local ROLE_ACTIONS = {
         SelfCheckout = true,
         ServeCafe = true,
         ServeRestaurant = true,
+        SellElectronics = true,
     },
     Stocker = {
         Stock = true,
@@ -101,6 +105,7 @@ local ROLE_ACTIONS = {
         FulfillOnlineOrder = true,
         RestockCafe = true,
         RestockRestaurant = true,
+        RestockElectronics = true,
     },
     Maintenance = { Cart = true, Spill = true, RestorePower = true },
 }
@@ -789,6 +794,11 @@ function ShiftService.init(event, membershipRemotes)
             state.restaurantStock,
             state.restaurantSales
         )
+        world.setElectronicsStoreState(
+            state.electronicsStorePurchased,
+            state.electronicsStock,
+            state.electronicsSales
+        )
         broadcast()
         scheduleOnlineOrderWorker()
         scheduleStocker()
@@ -1106,6 +1116,11 @@ function ShiftService.init(event, membershipRemotes)
                 state.restaurantStock,
                 state.restaurantSales
             )
+            world.setElectronicsStoreState(
+                state.electronicsStorePurchased,
+                state.electronicsStock,
+                state.electronicsSales
+            )
             commit("restaurantBuilt")
         end
         saleTransactionInProgress = false
@@ -1135,6 +1150,53 @@ function ShiftService.init(event, membershipRemotes)
         local ok, message = Economy.serveRestaurantMeal(state)
         if ok then
             commit("restaurantMealSold")
+        end
+        saleTransactionInProgress = false
+        broadcast(message)
+    end)
+
+    bind("BuildElectronicsStore", world.electronicsBuildPrompt, 12, function()
+        if saleTransactionInProgress then
+            broadcast("A store transaction is saving. Try building Pixel & Plug again shortly.")
+            return
+        end
+        saleTransactionInProgress = true
+        local ok, message = Economy.buyElectronicsStore(state)
+        if ok then
+            world.setElectronicsStoreState(
+                state.electronicsStorePurchased,
+                state.electronicsStock,
+                state.electronicsSales
+            )
+            commit("electronicsStoreBuilt")
+        end
+        saleTransactionInProgress = false
+        broadcast(message)
+    end)
+
+    bind("RestockElectronics", world.electronicsRestockPrompt, 12, function()
+        if saleTransactionInProgress then
+            broadcast("A store transaction is saving. Try restocking Pixel & Plug again shortly.")
+            return
+        end
+        saleTransactionInProgress = true
+        local ok, message = Economy.restockElectronics(state)
+        if ok then
+            commit("electronicsRestocked")
+        end
+        saleTransactionInProgress = false
+        broadcast(message)
+    end)
+
+    bind("SellElectronics", world.electronicsSalePrompt, 12, function()
+        if saleTransactionInProgress then
+            broadcast("A store transaction is saving. Try selling headphones again shortly.")
+            return
+        end
+        saleTransactionInProgress = true
+        local ok, message = Economy.sellElectronics(state)
+        if ok then
+            commit("electronicsItemSold")
         end
         saleTransactionInProgress = false
         broadcast(message)

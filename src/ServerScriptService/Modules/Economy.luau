@@ -28,6 +28,11 @@ Economy.RESTAURANT_RESTOCK_COST = 80
 Economy.RESTAURANT_RESTOCK_QUANTITY = 4
 Economy.RESTAURANT_SHELF_CAPACITY = 16
 Economy.RESTAURANT_MEAL_PRICE = 38
+Economy.ELECTRONICS_STORE_COST = 2400
+Economy.ELECTRONICS_RESTOCK_COST = 300
+Economy.ELECTRONICS_RESTOCK_QUANTITY = 2
+Economy.ELECTRONICS_SHELF_CAPACITY = 8
+Economy.ELECTRONICS_ITEM_PRICE = 220
 Economy.ONLINE_ORDER_PRODUCTS = {
     { "citrusPop", "berryBites", "goldenApples" },
     { "sunriseCereal", "citrusPop", "goldenApples" },
@@ -258,6 +263,9 @@ function Economy.newState(profile, playerSeed)
         restaurantPurchased = upgrades.restaurant or false,
         restaurantStock = savedShift.restaurantStock or 0,
         restaurantSales = savedShift.restaurantSales or 0,
+        electronicsStorePurchased = upgrades.electronicsStore or false,
+        electronicsStock = savedShift.electronicsStock or 0,
+        electronicsSales = savedShift.electronicsSales or 0,
     }
 end
 
@@ -358,6 +366,62 @@ function Economy.serveRestaurantMeal(state)
     state.cash += Economy.RESTAURANT_MEAL_PRICE
     state.restaurantSales += 1
     return true, string.format("Garden Bowl served! +$%d.", Economy.RESTAURANT_MEAL_PRICE)
+end
+
+function Economy.buyElectronicsStore(state)
+    if
+        state.stage ~= "Complete"
+        or not state.restaurantPurchased
+        or state.electronicsStorePurchased
+    then
+        return false, "Pixel & Plug opens after the Market Table restaurant, between shifts."
+    end
+    if state.cash < Economy.ELECTRONICS_STORE_COST then
+        return false,
+            string.format("You need $%d to open Pixel & Plug.", Economy.ELECTRONICS_STORE_COST)
+    end
+    state.cash -= Economy.ELECTRONICS_STORE_COST
+    state.electronicsStorePurchased = true
+    state.electronicsStock = 0
+    return true, "Pixel & Plug is open! Stock the display to start selling headphones."
+end
+
+function Economy.restockElectronics(state)
+    if not state.electronicsStorePurchased or state.stage ~= "Complete" then
+        return false, "Stock electronics between supermarket shifts."
+    end
+    if
+        state.electronicsStock + Economy.ELECTRONICS_RESTOCK_QUANTITY
+        > Economy.ELECTRONICS_SHELF_CAPACITY
+    then
+        return false, "The electronics display is full."
+    end
+    if state.cash < Economy.ELECTRONICS_RESTOCK_COST then
+        return false,
+            string.format("You need $%d for two headphones.", Economy.ELECTRONICS_RESTOCK_COST)
+    end
+    state.cash -= Economy.ELECTRONICS_RESTOCK_COST
+    state.electronicsStock += Economy.ELECTRONICS_RESTOCK_QUANTITY
+    return true, string.format("Stocked %d headphones.", Economy.ELECTRONICS_RESTOCK_QUANTITY)
+end
+
+function Economy.sellElectronics(state)
+    if not state.electronicsStorePurchased then
+        return false, "Open Pixel & Plug before selling electronics."
+    end
+    if state.stage == "Loading" or state.stage == "OwnerOffline" then
+        return false, "Wait until the store owner profile is ready."
+    end
+    if state.electronicsStock < 1 then
+        return false, "The headphone display is empty. Restock it between shifts."
+    end
+    if state.electronicsSales >= 1000000000 then
+        return false, "The electronics sales counter has reached its supported limit."
+    end
+    state.electronicsStock -= 1
+    state.cash += Economy.ELECTRONICS_ITEM_PRICE
+    state.electronicsSales += 1
+    return true, string.format("Headphones sold! +$%d.", Economy.ELECTRONICS_ITEM_PRICE)
 end
 
 function Economy.getNextOnlineOrder(state)

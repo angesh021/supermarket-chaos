@@ -6,7 +6,7 @@ local ProfileService = {}
 local LayoutService = require(script.Parent.LayoutService)
 local RetailLayoutService = require(script.Parent.RetailLayoutService)
 
-local SCHEMA_VERSION = 30
+local SCHEMA_VERSION = 31
 local SESSION_LEASE_SECONDS = 180
 local MAX_RETRIES = 3
 local STORE_NAME = "SupermarketChaos_PlayerProfiles_v1"
@@ -49,6 +49,8 @@ local function defaultProfile()
             cafeSales = 0,
             restaurantStock = 0,
             restaurantSales = 0,
+            electronicsStock = 0,
+            electronicsSales = 0,
         },
         ownedUpgrades = {
             shelfBay = false,
@@ -61,6 +63,7 @@ local function defaultProfile()
             selfCheckout = false,
             cafe = false,
             restaurant = false,
+            electronicsStore = false,
             marketStyleId = "",
         },
         hiredEmployees = {
@@ -219,6 +222,9 @@ local function normalizeProfile(value)
             or (value.ownedUpgrades.selfCheckout ~= nil and type(value.ownedUpgrades.selfCheckout) ~= "boolean")
             or (value.ownedUpgrades.cafe ~= nil and type(value.ownedUpgrades.cafe) ~= "boolean")
             or (value.ownedUpgrades.restaurant ~= nil and type(value.ownedUpgrades.restaurant) ~= "boolean")
+            or (value.ownedUpgrades.electronicsStore ~= nil and type(
+                value.ownedUpgrades.electronicsStore
+            ) ~= "boolean")
             or (value.ownedUpgrades.marketStyleId ~= nil and value.ownedUpgrades.marketStyleId ~= "" and value.ownedUpgrades.marketStyleId ~= "coastal" and value.ownedUpgrades.marketStyleId ~= "urban" and value.ownedUpgrades.marketStyleId ~= "harvest")
             or (
                 value.ownedUpgrades.marketStyle ~= nil
@@ -237,6 +243,7 @@ local function normalizeProfile(value)
         profile.ownedUpgrades.selfCheckout = value.ownedUpgrades.selfCheckout == true
         profile.ownedUpgrades.cafe = value.ownedUpgrades.cafe == true
         profile.ownedUpgrades.restaurant = value.ownedUpgrades.restaurant == true
+        profile.ownedUpgrades.electronicsStore = value.ownedUpgrades.electronicsStore == true
         local savedStyleId = value.ownedUpgrades.marketStyleId
         if savedStyleId == "coastal" or savedStyleId == "urban" or savedStyleId == "harvest" then
             profile.ownedUpgrades.marketStyleId = savedStyleId
@@ -258,6 +265,9 @@ local function normalizeProfile(value)
     end
     if profile.ownedUpgrades.restaurant and not profile.ownedUpgrades.cafe then
         return nil, "Stored restaurant ownership exists without the café prerequisite."
+    end
+    if profile.ownedUpgrades.electronicsStore and not profile.ownedUpgrades.restaurant then
+        return nil, "Stored electronics store ownership exists without the restaurant prerequisite."
     end
     if
         profile.ownedUpgrades.bakery
@@ -489,6 +499,8 @@ local function normalizeProfile(value)
             or not validCounter(value.shift.cafeSales)
             or not validCounter(value.shift.restaurantStock)
             or not validCounter(value.shift.restaurantSales)
+            or not validCounter(value.shift.electronicsStock)
+            or not validCounter(value.shift.electronicsSales)
         then
             return nil, "Stored shift counters are invalid."
         end
@@ -515,6 +527,17 @@ local function normalizeProfile(value)
         end
         if nonNegativeInteger(value.shift.restaurantStock, 0) > 16 then
             return nil, "Stored restaurant meal stock is outside the supported limit."
+        end
+        if nonNegativeInteger(value.shift.electronicsStock, 0) > 8 then
+            return nil, "Stored electronics stock is outside the supported limit."
+        end
+        if
+            (
+                nonNegativeInteger(value.shift.electronicsStock, 0) > 0
+                or nonNegativeInteger(value.shift.electronicsSales, 0) > 0
+            ) and profile.ownedUpgrades.electronicsStore ~= true
+        then
+            return nil, "Stored electronics state exists without electronics store ownership."
         end
         if
             (
@@ -601,6 +624,8 @@ local function normalizeProfile(value)
         profile.shift.cafeSales = nonNegativeInteger(value.shift.cafeSales, 0)
         profile.shift.restaurantStock = nonNegativeInteger(value.shift.restaurantStock, 0)
         profile.shift.restaurantSales = nonNegativeInteger(value.shift.restaurantSales, 0)
+        profile.shift.electronicsStock = nonNegativeInteger(value.shift.electronicsStock, 0)
+        profile.shift.electronicsSales = nonNegativeInteger(value.shift.electronicsSales, 0)
     end
     return profile
 end
@@ -627,6 +652,8 @@ local function copyProfile(profile)
             cafeSales = profile.shift.cafeSales,
             restaurantStock = profile.shift.restaurantStock,
             restaurantSales = profile.shift.restaurantSales,
+            electronicsStock = profile.shift.electronicsStock,
+            electronicsSales = profile.shift.electronicsSales,
         },
         ownedUpgrades = {
             shelfBay = profile.ownedUpgrades.shelfBay,
@@ -639,6 +666,7 @@ local function copyProfile(profile)
             selfCheckout = profile.ownedUpgrades.selfCheckout,
             cafe = profile.ownedUpgrades.cafe,
             restaurant = profile.ownedUpgrades.restaurant,
+            electronicsStore = profile.ownedUpgrades.electronicsStore,
             marketStyleId = profile.ownedUpgrades.marketStyleId,
         },
         hiredEmployees = {
@@ -914,6 +942,8 @@ function ProfileService.saveProgress(player, state, eventName)
     profile.shift.cafeSales = state.cafeSales
     profile.shift.restaurantStock = state.restaurantStock
     profile.shift.restaurantSales = state.restaurantSales
+    profile.shift.electronicsStock = state.electronicsStock
+    profile.shift.electronicsSales = state.electronicsSales
     profile.ownedUpgrades.shelfBay = state.upgradePurchased
     profile.ownedUpgrades.warehouse = state.warehousePurchased
     profile.ownedUpgrades.marketStyle = state.marketStylePurchased
@@ -924,6 +954,7 @@ function ProfileService.saveProgress(player, state, eventName)
     profile.ownedUpgrades.selfCheckout = state.selfCheckoutPurchased
     profile.ownedUpgrades.cafe = state.cafePurchased
     profile.ownedUpgrades.restaurant = state.restaurantPurchased
+    profile.ownedUpgrades.electronicsStore = state.electronicsStorePurchased
     profile.ownedUpgrades.marketStyleId = state.marketStyleId
     profile.warehouseLayout = state.warehouseLayout
     profile.retailLayout = RetailLayoutService.normalize(

@@ -274,6 +274,11 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Consequences:** Profile schema v30 stores restaurant ownership, meal stock and sales. Owner/Manager build, Stocker prep and Cashier serve are authorized; restaurant service does not alter supermarket shift customer progression.
 - **Verification:** See `docs/operations/PHASE48_MARKET_TABLE_RESTAURANT.md`.
 
+## ADR-0047: Add Pixel & Plug electronics retail
+- **Decision:** Add a fixed persistent electronics shop after the Market Table restaurant, with server-priced headphone inventory and sales sharing the owner's business balance.
+- **Consequences:** Profile schema v31 stores store ownership, bounded stock and sales. Owner/Manager build, Stocker restock and Cashier sell; these sales do not alter supermarket customer progression.
+- **Verification:** See `docs/operations/PHASE49_ELECTRONICS_STORE.md`.
+
 ## ADR-0009 — Keep product inventory and supplier orders SKU-specific
 - **Status:** Accepted — 2026-10-12.
 - **Context:** The retail loop needs visible department variety and product-specific stock behavior while keeping stock and money authoritative.
