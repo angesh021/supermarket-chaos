@@ -1754,6 +1754,16 @@ function WorldBuilder.build(locationId, origin)
     end
 
     local stockedCans = {}
+    local function shelfDisplayFrame(productId, offset)
+        local position = retailShelfPositions[productId]
+        if not position then
+            return CFrame.new(offset)
+        end
+        return CFrame.new(position.x, 0, position.z)
+            * CFrame.Angles(0, math.rad(position.rotation or 0), 0)
+            * CFrame.new(offset)
+    end
+
     local function setStockVisual(count)
         for _, can in ipairs(stockedCans) do
             can:Destroy()
@@ -1765,10 +1775,11 @@ function WorldBuilder.build(locationId, origin)
             local x = -12.45 + column * 0.7
             local y = 2.35 + row * 1.3
             local can = part(
-                interior,
+                retailDepartmentShelves.citrusPop,
                 "Stocked Citrus Pop Can",
                 Vector3.new(0.62, 0.8, 0.62),
-                CFrame.new(x, y, -0.54) * CFrame.Angles(0, 0, math.rad(90)),
+                shelfDisplayFrame("citrusPop", Vector3.new(x + 10, y, 0.46))
+                    * CFrame.Angles(0, 0, math.rad(90)),
                 index % 2 == 0 and COLORS.green or COLORS.coral,
                 Enum.Material.Metal
             )
@@ -1786,10 +1797,10 @@ function WorldBuilder.build(locationId, origin)
         for index = 1, count do
             local x = 10 + (index - (count + 1) / 2) * 0.62
             local bag = part(
-                interior,
+                retailDepartmentShelves.berryBites,
                 "Stocked Berry Bites Pack",
                 Vector3.new(0.5, 0.65, 0.5),
-                CFrame.new(x, 3.73, -0.62),
+                shelfDisplayFrame("berryBites", Vector3.new(x - 10, 2.53, 0.38)),
                 index % 2 == 0 and COLORS.coral or COLORS.orange,
                 Enum.Material.SmoothPlastic
             )
@@ -1807,10 +1818,13 @@ function WorldBuilder.build(locationId, origin)
             local column = (index - 1) % 8
             local row = math.floor((index - 1) / 8)
             local apple = part(
-                interior,
+                retailDepartmentShelves.goldenApples,
                 "Stocked Golden Apple",
                 Vector3.new(0.48, 0.48, 0.48),
-                CFrame.new(-18.5 + column * 0.42, 3.55 + row * 1.3, -0.57),
+                shelfDisplayFrame(
+                    "goldenApples",
+                    Vector3.new(-1.47 + column * 0.42, 2.35 + row * 1.3, 0.43)
+                ),
                 index % 2 == 0 and COLORS.gold or COLORS.paleGreen,
                 Enum.Material.SmoothPlastic
             )
@@ -1831,18 +1845,18 @@ function WorldBuilder.build(locationId, origin)
             local x = -2.45 + column * 0.7
             local y = 3.75 + row * 1.3
             local box = part(
-                interior,
+                retailDepartmentShelves.sunriseCereal,
                 "Stocked Sunrise Cereal Box",
                 Vector3.new(0.56, 0.82, 0.44),
-                CFrame.new(x, y, -9.55),
+                shelfDisplayFrame("sunriseCereal", Vector3.new(x, y - 1.2, -0.55)),
                 ({ COLORS.orange, COLORS.gold, COLORS.green, COLORS.blue })[((index - 1) % 4) + 1],
                 Enum.Material.SmoothPlastic
             )
             local labelPlate = part(
-                interior,
+                retailDepartmentShelves.sunriseCereal,
                 "Sunrise Cereal Package Label",
                 Vector3.new(0.4, 0.24, 0.03),
-                CFrame.new(x, y, -9.32),
+                shelfDisplayFrame("sunriseCereal", Vector3.new(x, y - 1.2, -0.32)),
                 COLORS.warmWhite,
                 Enum.Material.SmoothPlastic
             )
