@@ -112,6 +112,7 @@ function Economy.newState(profile)
     local upgrades = profile.ownedUpgrades or {}
     local employeeAutomation = profile.employeeAutomation or {}
     local warehouseInventory = profile.warehouseInventory or {}
+    local warehouseLayout = profile.warehouseLayout or { version = 1, items = {} }
     local savedPrices = profile.productPrices or {}
     local shipmentQuantity = warehouseInventory.shipmentQuantity or 0
     return {
@@ -130,6 +131,7 @@ function Economy.newState(profile)
         warehousePurchased = upgrades.warehouse or false,
         marketStylePurchased = upgrades.marketStyle or false,
         aisleExpansionPurchased = upgrades.aisleExpansion or false,
+        warehouseLayout = warehouseLayout,
         cashierHired = (profile.hiredEmployees and profile.hiredEmployees.cashier) or false,
         stockerHired = (profile.hiredEmployees and profile.hiredEmployees.stocker) or false,
         cleanerHired = (profile.hiredEmployees and profile.hiredEmployees.cleaner) or false,

@@ -67,19 +67,13 @@ local function label(parent, name, text, size, cframe, color, textColor)
     return board
 end
 
-local function createShelf(parent, name, x, z, width, department)
+local function createShelf(parent, name, x, z, width, department, rotation)
     local shelf = Instance.new("Model")
     shelf.Name = name
     shelf.Parent = parent
+    local origin = CFrame.new(x, 0, z) * CFrame.Angles(0, math.rad(rotation or 0), 0)
     local function fixture(partName, size, offset, color, material)
-        return part(
-            shelf,
-            partName,
-            size,
-            CFrame.new(x, 0, z) * CFrame.new(offset),
-            color,
-            material
-        )
+        return part(shelf, partName, size, origin * CFrame.new(offset), color, material)
     end
     fixture(
         "Wooden Kick Plate",
@@ -1816,6 +1810,32 @@ function WorldBuilder.build()
         prompt(warehousePad, "Build Warehouse ($200)", "Retail Empire Expansion", "Warehouse", 10)
     local warehouseModel
     local warehousePurchased = false
+    local layoutFixtureFolder
+    local layoutAnchor = part(
+        exterior,
+        "Warehouse Layout Board",
+        Vector3.new(5, 2.2, 0.3),
+        CFrame.new(59, 2.4, 4.2),
+        COLORS.teal
+    )
+    layoutAnchor.Transparency = 1
+    layoutAnchor.CanCollide = false
+    local layoutHeader = label(
+        exterior,
+        "Warehouse Layout Header",
+        "STORAGE BUILD ZONE",
+        Vector3.new(5, 0.8, 0.25),
+        CFrame.new(59, 4.1, 4.05),
+        COLORS.deepTeal
+    )
+    layoutHeader.Transparency = 1
+    local layoutHeaderSurface = layoutHeader:FindFirstChildOfClass("SurfaceGui")
+    if layoutHeaderSurface then
+        layoutHeaderSurface.Enabled = false
+    end
+    local layoutPrompt =
+        prompt(layoutAnchor, "Edit Storage Layout", "Warehouse Build Board", "EditLayout", 10)
+    layoutPrompt.Enabled = false
     local deliveryBoardLabel
     local deliveryCrateSurface
     local deliveryCrate
@@ -1929,6 +1949,42 @@ function WorldBuilder.build()
         warehouseModel.Name = "Purchased Warehouse Annex"
         warehouseModel.Parent = exterior
         local center = Vector3.new(59, 0, -2)
+        part(
+            warehouseModel,
+            "Warehouse Tile Floor",
+            Vector3.new(18, 0.3, 13),
+            CFrame.new(center + Vector3.new(0, 0.05, 0)),
+            COLORS.cream,
+            Enum.Material.CeramicTiles
+        )
+        for _, x in ipairs({ 50.8, 67.2 }) do
+            local edge = part(
+                warehouseModel,
+                "Warehouse Build Zone Boundary",
+                Vector3.new(0.08, 0.025, 12),
+                CFrame.new(x, 0.215, -2),
+                COLORS.gold,
+                Enum.Material.Neon,
+                0.35
+            )
+            edge.CanCollide = false
+            edge.CanQuery = false
+        end
+        for _, z in ipairs({ -8, 4 }) do
+            local edge = part(
+                warehouseModel,
+                "Warehouse Build Zone Boundary",
+                Vector3.new(16.4, 0.025, 0.08),
+                CFrame.new(59, 0.215, z),
+                COLORS.gold,
+                Enum.Material.Neon,
+                0.35
+            )
+            edge.CanCollide = false
+            edge.CanQuery = false
+        end
+        warehousePad.Transparency = 1
+        warehousePad.CanCollide = false
         local backWall = part(
             warehouseModel,
             "Warehouse Back Wall",
@@ -2003,6 +2059,16 @@ function WorldBuilder.build()
             deliverySurface.Enabled = true
         end
         deliveryCrate.Parent = warehouseModel
+        layoutAnchor.Parent = warehouseModel
+        layoutAnchor.Transparency = 0
+        layoutHeader.Parent = warehouseModel
+        layoutHeader.Transparency = 0
+        if layoutHeaderSurface then
+            layoutHeaderSurface.Enabled = true
+        end
+        layoutFixtureFolder = Instance.new("Folder")
+        layoutFixtureFolder.Name = "Custom Warehouse Fixtures"
+        layoutFixtureFolder.Parent = warehouseModel
         warehousePrompt.Enabled = false
     end
 
@@ -2101,6 +2167,7 @@ function WorldBuilder.build()
         closePrompt.Enabled = stage == "CloseShift"
         spillPrompt.Enabled = stage == "Spill"
         powerPrompt.Enabled = stage == "PowerOutage"
+        layoutPrompt.Enabled = warehousePurchased and stage == "Complete"
         upgradePrompt.Enabled = stage == "Upgrade"
         aisleExpansionPrompt.Enabled = stage == "Complete"
             and not aisleExpansionPurchased
@@ -2323,6 +2390,27 @@ function WorldBuilder.build()
         end,
         deliveryWorkerAutomationPrompt = deliveryWorkerAutomationPrompt,
         warehousePrompt = warehousePrompt,
+        layoutPrompt = layoutPrompt,
+        layoutAnchor = layoutAnchor,
+        setStorageLayout = function(layout)
+            if not warehousePurchased or not layoutFixtureFolder then
+                return
+            end
+            layoutFixtureFolder:ClearAllChildren()
+            for _, item in ipairs(layout.items) do
+                local placedShelfModel = createShelf(
+                    layoutFixtureFolder,
+                    "Placed Warehouse Shelf",
+                    item.x,
+                    item.z,
+                    6,
+                    "STORAGE",
+                    item.rotation
+                )
+                placedShelfModel:SetAttribute("LayoutId", item.id)
+                placedShelfModel:SetAttribute("PlayerPurchased", true)
+            end
+        end,
         marketStylePrompt = stylePrompt,
         marketStylePreviewPrompt = stylePreviewPrompt,
         setMarketStyle = setMarketStyle,

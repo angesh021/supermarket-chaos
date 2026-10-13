@@ -164,6 +164,13 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Consequences:** The current balance remains the single persisted monetary source; no wage debt or profile schema field is introduced. More detailed schedules and other operating expenses remain future work.
 - **Verification:** See `docs/operations/PHASE28_SHIFT_PAYROLL.md`; Studio transaction, HUD and persistence checks remain pending.
 
+## ADR-0027 — Keep warehouse layout edits server-authoritative
+- **Status:** Accepted — 2026-10-12.
+- **Context:** The store-building specification calls for placement, rotation, collision validation and persistent layouts. Free client transforms could intersect fixed warehouse structure or bypass costs and ownership.
+- **Decision:** Start with an editable fixture type in a bounded, snapped warehouse zone. The client previews proposed changes; server-side `LayoutService` checks each position/orientation against the grid, bounds and other fixtures, then the server creates and persists the result.
+- **Consequences:** Profile schema v18 stores compact versioned shelf records. Layouts cap at six shelves, rotate in 90-degree increments, cost `$50` to place and refund `$25` to remove. Main-floor placement, other object types and plots remain future work.
+- **Verification:** See `docs/operations/PHASE29_WAREHOUSE_LAYOUT_EDITOR.md`; Studio and DataStore checks remain pending.
+
 ## ADR-0009 — Keep product inventory and supplier orders SKU-specific
 - **Status:** Accepted — 2026-10-12.
 - **Context:** The retail loop needs visible department variety and product-specific stock behavior while keeping stock and money authoritative.

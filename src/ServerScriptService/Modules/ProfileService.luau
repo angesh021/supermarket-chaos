@@ -3,8 +3,9 @@ local DataStoreService = game:GetService("DataStoreService")
 local HttpService = game:GetService("HttpService")
 
 local ProfileService = {}
+local LayoutService = require(script.Parent.LayoutService)
 
-local SCHEMA_VERSION = 17
+local SCHEMA_VERSION = 18
 local SESSION_LEASE_SECONDS = 180
 local MAX_RETRIES = 3
 local STORE_NAME = "SupermarketChaos_PlayerProfiles_v1"
@@ -68,6 +69,7 @@ local function defaultProfile()
             shipmentReadyAt = 0,
             shipmentProductId = "",
         },
+        warehouseLayout = { version = LayoutService.VERSION, items = {} },
         productPrices = {
             citrusPop = 25,
             berryBites = 18,
@@ -185,6 +187,12 @@ local function normalizeProfile(value)
     if profile.ownedUpgrades.aisleExpansion and not profile.ownedUpgrades.shelfBay then
         return nil, "Stored aisle expansion exists without the first shelf bay."
     end
+    local normalizedLayout, layoutError =
+        LayoutService.normalize(value.warehouseLayout, profile.ownedUpgrades.warehouse)
+    if not normalizedLayout then
+        return nil, layoutError
+    end
+    profile.warehouseLayout = normalizedLayout
     if value.hiredEmployees ~= nil and type(value.hiredEmployees) ~= "table" then
         return nil, "Stored employee data is malformed."
     end
@@ -394,7 +402,7 @@ local function normalizeProfile(value)
 end
 
 local function copyProfile(profile)
-    return {
+    local copy = {
         schemaVersion = SCHEMA_VERSION,
         balance = profile.balance,
         shift = {
@@ -437,6 +445,10 @@ local function copyProfile(profile)
             shipmentQuantity = profile.warehouseInventory.shipmentQuantity or 0,
             shipmentProductId = profile.warehouseInventory.shipmentProductId or "",
         },
+        warehouseLayout = {
+            version = profile.warehouseLayout.version,
+            items = {},
+        },
         productPrices = {
             citrusPop = profile.productPrices.citrusPop,
             berryBites = profile.productPrices.berryBites,
@@ -446,6 +458,16 @@ local function copyProfile(profile)
         completedShifts = profile.completedShifts,
         lifetimeSales = profile.lifetimeSales,
     }
+    for index, item in ipairs(profile.warehouseLayout.items) do
+        copy.warehouseLayout.items[index] = {
+            id = item.id,
+            kind = item.kind,
+            x = item.x,
+            z = item.z,
+            rotation = item.rotation,
+        }
+    end
+    return copy
 end
 
 local function keyFor(player)
@@ -651,6 +673,7 @@ function ProfileService.saveProgress(player, state, eventName)
     profile.ownedUpgrades.warehouse = state.warehousePurchased
     profile.ownedUpgrades.marketStyle = state.marketStylePurchased
     profile.ownedUpgrades.aisleExpansion = state.aisleExpansionPurchased
+    profile.warehouseLayout = state.warehouseLayout
     profile.hiredEmployees.cashier = state.cashierHired
     profile.hiredEmployees.stocker = state.stockerHired
     profile.hiredEmployees.cleaner = state.cleanerHired

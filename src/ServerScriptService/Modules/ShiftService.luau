@@ -1,15 +1,18 @@
 local Players = game:GetService("Players")
+local HttpService = game:GetService("HttpService")
 local TweenService = game:GetService("TweenService")
 
 local Economy = require(script.Parent.Economy)
 local ProfileService = require(script.Parent.ProfileService)
 local TelemetryService = require(script.Parent.TelemetryService)
 local WorldBuilder = require(script.Parent.WorldBuilder)
+local LayoutService = require(script.Parent.LayoutService)
 
 local ShiftService = {}
 
 local interactionTimes = {}
 local membershipTimes = {}
+local layoutActionTimes = {}
 local storeMembers = {}
 local joinRequests = {}
 local state
@@ -21,6 +24,7 @@ local stateEvent
 local joinRequestEvent
 local memberActionEvent
 local memberStateEvent
+local layoutRequestEvent
 
 local ROLE_ACTIONS = {
     Manager = {
@@ -43,6 +47,7 @@ local ROLE_ACTIONS = {
         ToggleDeliveryWorkerAutomation = true,
         Warehouse = true,
         AisleExpansion = true,
+        EditLayout = true,
         MarketStyle = true,
         PreviewMarketStyle = true,
         OrderDelivery = true,
@@ -278,6 +283,7 @@ function ShiftService.init(event, membershipRemotes)
     joinRequestEvent = membershipRemotes.joinRequest
     memberActionEvent = membershipRemotes.memberAction
     memberStateEvent = membershipRemotes.memberState
+    layoutRequestEvent = membershipRemotes.layoutRequest
     world = WorldBuilder.build()
     local marketStylePreviewing = false
     world.setStage("Loading")
@@ -797,9 +803,19 @@ function ShiftService.init(event, membershipRemotes)
         local ok, message = Economy.buyWarehouse(state)
         if ok then
             world.addWarehouse()
+            world.setStorageLayout(state.warehouseLayout)
             commit("warehouse")
         end
         broadcast(message)
+    end)
+
+    bind("EditLayout", world.layoutPrompt, 12, function(player)
+        if state.warehousePurchased then
+            layoutRequestEvent:FireClient(player, {
+                action = "Open",
+                layout = state.warehouseLayout,
+            })
+        end
     end)
 
     bind("AisleExpansion", world.aisleExpansionPrompt, 12, function()
@@ -1024,6 +1040,107 @@ function ShiftService.init(event, membershipRemotes)
         stateEvent:FireClient(player, snapshot("Help request sent to the store owner.", player))
     end)
 
+    layoutRequestEvent.OnServerEvent:Connect(function(player, request)
+        local function reject(message)
+            layoutRequestEvent:FireClient(player, { action = "Rejected", message = message })
+        end
+
+        if type(request) ~= "table" then
+            return reject("That layout request is invalid.")
+        end
+        local now = os.clock()
+        local previousRequest = layoutActionTimes[player]
+        if previousRequest and now - previousRequest < 0.4 then
+            return reject("Please wait before changing the layout again.")
+        end
+        layoutActionTimes[player] = now
+
+        local role = player == ownerPlayer and "Owner" or storeMembers[player.UserId]
+        if
+            (role ~= "Owner" and role ~= "Manager")
+            or not ownerReady
+            or not ownerPlayer
+            or player.Parent ~= Players
+            or not state.warehousePurchased
+            or state.stage ~= "Complete"
+            or not world.layoutPrompt.Enabled
+            or not atPrompt(player, world.layoutPrompt, 18)
+        then
+            return reject(
+                "Only the Owner or Manager can edit the warehouse during a completed shift."
+            )
+        end
+        local saveStatus = ProfileService.getSaveStatus(ownerPlayer)
+        if saveStatus == "lock lost" or saveStatus == "save pending" then
+            return reject("Layout editing is paused until the store save is ready.")
+        end
+
+        local items = state.warehouseLayout.items
+        local action = request.action
+        local message
+        if action == "PlaceShelf" then
+            if #items >= LayoutService.MAX_SHELVES then
+                return reject("The warehouse has reached its shelf limit.")
+            end
+            if state.cash < LayoutService.SHELF_COST then
+                return reject(
+                    string.format(
+                        "You need $%d to place a storage shelf.",
+                        LayoutService.SHELF_COST
+                    )
+                )
+            end
+            local valid, reason =
+                LayoutService.canPlace(items, request.x, request.z, request.rotation)
+            if not valid then
+                return reject(reason)
+            end
+            local item = {
+                id = HttpService:GenerateGUID(false),
+                kind = "Shelf",
+                x = request.x,
+                z = request.z,
+                rotation = request.rotation,
+            }
+            state.cash -= LayoutService.SHELF_COST
+            table.insert(items, item)
+            message = "Storage shelf placed for $50."
+        elseif action == "MoveShelf" then
+            local _, item = LayoutService.find(items, request.id)
+            if not item then
+                return reject("Select a saved warehouse shelf first.")
+            end
+            local valid, reason =
+                LayoutService.canPlace(items, request.x, request.z, request.rotation, item.id)
+            if not valid then
+                return reject(reason)
+            end
+            item.x = request.x
+            item.z = request.z
+            item.rotation = request.rotation
+            message = "Warehouse shelf moved."
+        elseif action == "RemoveShelf" then
+            local index = LayoutService.find(items, request.id)
+            if not index then
+                return reject("Select a saved warehouse shelf first.")
+            end
+            table.remove(items, index)
+            state.cash = math.min(state.cash + LayoutService.SHELF_REFUND, 1000000000)
+            message = "Shelf removed. $25 was refunded."
+        else
+            return reject("That warehouse layout action is not supported.")
+        end
+
+        world.setStorageLayout(state.warehouseLayout)
+        ProfileService.saveProgress(ownerPlayer, state, "layoutChanged")
+        broadcast(message)
+        layoutRequestEvent:FireClient(player, {
+            action = "Updated",
+            layout = state.warehouseLayout,
+            message = message,
+        })
+    end)
+
     memberActionEvent.OnServerEvent:Connect(function(player, action, targetUserId, role)
         if player ~= ownerPlayer or not ownerReady or player.Parent ~= Players then
             return
@@ -1142,6 +1259,7 @@ function ShiftService.init(event, membershipRemotes)
             world.setMarketStyle(state.marketStylePurchased)
             marketStylePreviewing = false
             world.setWarehousePurchased(state.warehousePurchased)
+            world.setStorageLayout(state.warehouseLayout)
             world.setDeliveryState(
                 state.shipmentReadyAt,
                 state.shipmentQuantity,
@@ -1217,6 +1335,7 @@ function ShiftService.init(event, membershipRemotes)
     Players.PlayerRemoving:Connect(function(player)
         interactionTimes[player] = nil
         membershipTimes[player] = nil
+        layoutActionTimes[player] = nil
         storeMembers[player.UserId] = nil
         joinRequests[player.UserId] = nil
         broadcastMemberState()

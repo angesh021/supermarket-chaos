@@ -145,6 +145,12 @@ Currency and stock changes occur only after server-side validation. Transactions
 - `ShiftService` exposes a computed per-shift estimate only to store members; the existing HUD status line displays it without an additional panel.
 - See `operations/PHASE28_SHIFT_PAYROLL.md`; Studio transaction and save/rejoin checks remain pending.
 
+## Phase 7 warehouse layout editor
+- `LayoutService` owns pure validation for version-1 records, a bounded two-stud warehouse grid, a six-shelf cap, 0/90-degree orientations, fixture overlap and the fixed layout-board clearance.
+- Owner/Manager opens the editor from a physical warehouse prompt. The client previews and proposes edits, while `ShiftService` rechecks membership, stage, warehouse ownership, profile lock, proximity, rate, action ID and payload before creating/moving/removing a shelf.
+- Placement/removal cash changes and compact layout records persist via the existing serialized profile path. Schema v18 migrates old profiles to an empty layout; `WorldBuilder` rebuilds from validated records.
+- See `operations/PHASE29_WAREHOUSE_LAYOUT_EDITOR.md`; client preview, Studio authorization, collision and DataStore recovery checks remain pending.
+
 ## Open technical decisions
 See `docs/decisions/README.md` for accepted ownership policy. Remaining decisions include multi-store/guest permissions, production Studio place configuration, analytics implementation/privacy review, and any changes to persistence recovery. Verify platform APIs against official documentation when implementation starts.
 # Cooperative ownership and cashier extension

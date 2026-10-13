@@ -11,6 +11,8 @@ globals:
     any: true
   Instance:
     any: true
+  RaycastParams:
+    any: true
   UDim:
     any: true
   UDim2:
