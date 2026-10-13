@@ -57,5 +57,6 @@
 | [Market Table verification](operations/PHASE48_MARKET_TABLE_RESTAURANT.md) | Persistent restaurant, meal prep and meal sales |
 | [Pixel & Plug verification](operations/PHASE49_ELECTRONICS_STORE.md) | Persistent electronics storefront, headphone stock and sales |
 | [Little Sprout verification](operations/PHASE50_SPECIALTY_RETAIL.md) | Persistent specialty garden retailer, herb stock and sales |
+| [Plaza customization verification](operations/PHASE51_PLAZA_CUSTOMIZATION.md) | Preview and install a persistent palette across plaza storefronts and paths |
 
 Keep this index and linked documents current as implementation changes. See [AGENTS.md](../AGENTS.md) for repository rules.

@@ -38,6 +38,7 @@ Economy.GARDEN_RESTOCK_COST = 120
 Economy.GARDEN_RESTOCK_QUANTITY = 3
 Economy.GARDEN_SHELF_CAPACITY = 12
 Economy.GARDEN_ITEM_PRICE = 75
+Economy.PLAZA_STYLE_COST = 750
 Economy.ONLINE_ORDER_PRODUCTS = {
     { "citrusPop", "berryBites", "goldenApples" },
     { "sunriseCereal", "citrusPop", "goldenApples" },
@@ -274,6 +275,8 @@ function Economy.newState(profile, playerSeed)
         gardenStorePurchased = upgrades.gardenStore or false,
         gardenStock = savedShift.gardenStock or 0,
         gardenSales = savedShift.gardenSales or 0,
+        plazaStylePurchased = upgrades.plazaStyleId ~= nil and upgrades.plazaStyleId ~= "",
+        plazaStyleId = upgrades.plazaStyleId or "",
     }
 end
 
@@ -483,6 +486,22 @@ function Economy.sellGardenItem(state)
     state.cash += Economy.GARDEN_ITEM_PRICE
     state.gardenSales += 1
     return true, string.format("Potted herb sold! +$%d.", Economy.GARDEN_ITEM_PRICE)
+end
+
+function Economy.buyPlazaStyle(state, styleId)
+    if state.stage ~= "Complete" or not state.gardenStorePurchased or state.plazaStylePurchased then
+        return false, "A plaza refresh is available after Little Sprout, between shifts."
+    end
+    if styleId ~= "coastal" and styleId ~= "urban" and styleId ~= "harvest" then
+        return false, "Choose a valid plaza style preview first."
+    end
+    if state.cash < Economy.PLAZA_STYLE_COST then
+        return false, string.format("You need $%d to refresh the plaza.", Economy.PLAZA_STYLE_COST)
+    end
+    state.cash -= Economy.PLAZA_STYLE_COST
+    state.plazaStylePurchased = true
+    state.plazaStyleId = styleId
+    return true, string.format("%s plaza style installed!", string.upper(styleId))
 end
 
 function Economy.getNextOnlineOrder(state)

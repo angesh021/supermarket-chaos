@@ -69,6 +69,8 @@ G0 was approved on 2026-10-12. The user authorized continued phase implementatio
 - [ ] Studio verification of restaurant prerequisite, storefront layout, stock cap, payout, role permissions, v30-to-v31 migration and save/rejoin; see `operations/PHASE49_ELECTRONICS_STORE.md`.
 - [x] Phase 50 Stage 4 increment: add persistent Little Sprout Garden specialty retail after Pixel & Plug, potted-herb stock/sales, Cashier/Stocker role boundaries and v32 migration; see `operations/PHASE50_SPECIALTY_RETAIL.md`.
 - [ ] Studio verification of electronics prerequisite, garden storefront, stock cap, payout, role permissions, v31-to-v32 migration and save/rejoin; see `operations/PHASE50_SPECIALTY_RETAIL.md`.
+- [x] Phase 51 Stage 4 increment: add a previewable, persistent plaza-wide Coastal Walk, City Lights or Harvest Lane palette after the specialty retailer; see `operations/PHASE51_PLAZA_CUSTOMIZATION.md`.
+- [ ] Studio verification of palette preview/cancel/install, all storefront/path recolors, role permissions, v32-to-v33 migration and save/rejoin; see `operations/PHASE51_PLAZA_CUSTOMIZATION.md`.
 - [ ] Studio verification of satisfaction thresholds, patience timing, event pauses, cashier parity and rejoin; see `operations/PHASE38_LOYALTY_AND_PATIENCE.md`.
 - [x] Phase 33: score customer satisfaction from preference fulfillment/price tiers and expose the bounded rating in the HUD; see `operations/PHASE33_CUSTOMER_SATISFACTION.md`.
 - [ ] Studio verification of cleaner hire/migration, save/rejoin, automatic cleanup and player/employee races.

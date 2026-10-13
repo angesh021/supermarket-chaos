@@ -2302,6 +2302,29 @@ function WorldBuilder.build()
     local gardenMenuLabel
     local gardenRestockPrompt
     local gardenSalePrompt
+    local plazaStylePurchased = false
+    local plazaStyleId = ""
+    local plazaStylePreviewId = nil
+    local PLAZA_STYLES = {
+        coastal = {
+            name = "Coastal Walk",
+            awning = COLORS.teal,
+            roof = COLORS.cream,
+            path = COLORS.gray,
+        },
+        urban = {
+            name = "City Lights",
+            awning = COLORS.coral,
+            roof = COLORS.deepTeal,
+            path = COLORS.gray,
+        },
+        harvest = {
+            name = "Harvest Lane",
+            awning = COLORS.green,
+            roof = COLORS.wood,
+            path = COLORS.cream,
+        },
+    }
     part(
         exterior,
         "Cafe Plaza Walkway",
@@ -2541,6 +2564,43 @@ function WorldBuilder.build()
         gardenMenuSurface.Enabled = false
         gardenMenuLabel = gardenMenuSurface:FindFirstChildOfClass("TextLabel")
     end
+    local plazaStylePad = part(
+        exterior,
+        "Plaza Style Installation Pad",
+        Vector3.new(4.5, 0.5, 4.5),
+        CFrame.new(-52.5, 0.45, -51),
+        COLORS.green,
+        Enum.Material.Neon
+    )
+    local plazaStylePrompt =
+        prompt(plazaStylePad, "Install Plaza Style ($750)", "Plaza Refresh", "PlazaStyle", 10)
+    plazaStylePrompt.Enabled = false
+    local plazaStylePreviewPad = part(
+        exterior,
+        "Plaza Style Preview Pad",
+        Vector3.new(4.5, 0.35, 4.5),
+        CFrame.new(-58, 0.38, -51),
+        COLORS.gold,
+        Enum.Material.Neon
+    )
+    local plazaStylePreviewPrompt = prompt(
+        plazaStylePreviewPad,
+        "Preview Next Style",
+        "Plaza Style Preview",
+        "PreviewPlazaStyle",
+        10
+    )
+    plazaStylePreviewPrompt.ActionText = "Next Style / Cancel"
+    plazaStylePreviewPrompt.Enabled = false
+    local plazaStyleSign = label(
+        exterior,
+        "Plaza Style Sign",
+        "PLAZA REFRESH\nPREVIEW / INSTALL $750",
+        Vector3.new(8, 2.6, 0.35),
+        CFrame.new(-55.2, 4.2, -47.9),
+        COLORS.deepTeal,
+        COLORS.warmWhite
+    )
     local warehousePad = part(
         exterior,
         "Warehouse Expansion Pad",
@@ -3188,6 +3248,76 @@ function WorldBuilder.build()
         gardenBuildPrompt.Enabled = false
     end
 
+    local function applyPlazaStyle(styleId)
+        local selected = PLAZA_STYLES[styleId]
+        local models = { cafeModel, restaurantModel, electronicsStoreModel, gardenStoreModel }
+        for _, model in ipairs(models) do
+            if model then
+                local baseAwning = COLORS.coral
+                local baseRoof = COLORS.teal
+                local baseSign = COLORS.deepTeal
+                if string.find(model.Name, "Pixel and Plug") then
+                    baseAwning = COLORS.teal
+                    baseRoof = COLORS.gray
+                elseif string.find(model.Name, "Little Sprout") then
+                    baseRoof = COLORS.green
+                    baseSign = COLORS.green
+                end
+                for _, item in ipairs(model:GetDescendants()) do
+                    if item:IsA("BasePart") then
+                        if string.find(item.Name, "Awning") then
+                            item.Color = selected and selected.awning or baseAwning
+                        elseif string.find(item.Name, "Roof") then
+                            item.Color = selected and selected.roof or baseRoof
+                        elseif
+                            string.find(item.Name, "Menu Board")
+                            or string.find(item.Name, "Store Sign")
+                        then
+                            item.Color = selected and selected.awning or baseSign
+                        end
+                    end
+                end
+            end
+        end
+        for _, item in ipairs(exterior:GetChildren()) do
+            if item:IsA("BasePart") and string.find(item.Name, "Walkway") then
+                item.Color = selected and selected.path or COLORS.gray
+            end
+        end
+        plazaStylePad.Color = selected and selected.awning or COLORS.green
+        local surface = plazaStyleSign:FindFirstChildOfClass("SurfaceGui")
+        local signText = surface and surface:FindFirstChildOfClass("TextLabel")
+        if signText then
+            signText.Text = if plazaStylePurchased
+                then string.upper(selected and selected.name or "Plaza") .. "\nINSTALLED"
+                elseif selected then string.upper(selected.name) .. "\nPREVIEW"
+                else "PLAZA REFRESH\nPREVIEW / INSTALL $750"
+        end
+        plazaStylePrompt.Enabled = not plazaStylePurchased
+            and gardenStorePurchased
+            and currentStage == "Complete"
+        plazaStylePreviewPrompt.Enabled = not plazaStylePurchased
+            and gardenStorePurchased
+            and currentStage == "Complete"
+    end
+
+    local function setPlazaStyle(purchased, styleId)
+        plazaStylePurchased = purchased == true
+        plazaStyleId = plazaStylePurchased and PLAZA_STYLES[styleId] and styleId or ""
+        plazaStylePreviewId = nil
+        applyPlazaStyle(plazaStylePurchased and plazaStyleId or nil)
+    end
+
+    local function setPlazaStylePreview(styleId)
+        plazaStylePreviewId = PLAZA_STYLES[styleId] and styleId or nil
+        applyPlazaStyle(plazaStylePurchased and plazaStyleId or plazaStylePreviewId)
+    end
+
+    local function getPlazaStyleName(styleId)
+        local style = PLAZA_STYLES[styleId]
+        return style and style.name or "Coastal Walk"
+    end
+
     local function addWarehouse()
         if warehouseModel then
             return
@@ -3613,6 +3743,12 @@ function WorldBuilder.build()
             and gardenStock > 0
             and currentStage ~= "Loading"
             and currentStage ~= "OwnerOffline"
+        plazaStylePrompt.Enabled = not plazaStylePurchased
+            and gardenStorePurchased
+            and currentStage == "Complete"
+        plazaStylePreviewPrompt.Enabled = not plazaStylePurchased
+            and gardenStorePurchased
+            and currentStage == "Complete"
     end
 
     local function setStage(stage)
@@ -4045,6 +4181,11 @@ function WorldBuilder.build()
         setMarketStyle = setMarketStyle,
         setMarketStylePreview = setMarketStylePreview,
         getMarketStyleName = getMarketStyleName,
+        plazaStylePrompt = plazaStylePrompt,
+        plazaStylePreviewPrompt = plazaStylePreviewPrompt,
+        setPlazaStyle = setPlazaStyle,
+        setPlazaStylePreview = setPlazaStylePreview,
+        getPlazaStyleName = getPlazaStyleName,
         cafeBuildPrompt = cafeBuildPrompt,
         cafeRestockPrompt = cafeRestockPrompt,
         cafeServePrompt = cafeServePrompt,

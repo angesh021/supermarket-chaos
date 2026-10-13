@@ -284,6 +284,11 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Consequences:** Profile schema v32 stores garden ownership, bounded stock and sales. Owner/Manager build, Stocker restock and Cashier sell; sales do not affect supermarket customer progression.
 - **Verification:** See `docs/operations/PHASE50_SPECIALTY_RETAIL.md`.
 
+## ADR-0049: Add plaza-wide style customization
+- **Decision:** Let the owner preview and install one of three fixed color palettes across all plaza shops and paths after completing the four-business progression.
+- **Consequences:** Profile schema v33 stores only the allow-listed style ID. Preview state is not persisted; Owner/Manager purchase uses the server's shared cash and transaction flow.
+- **Verification:** See `docs/operations/PHASE51_PLAZA_CUSTOMIZATION.md`.
+
 ## ADR-0009 — Keep product inventory and supplier orders SKU-specific
 - **Status:** Accepted — 2026-10-12.
 - **Context:** The retail loop needs visible department variety and product-specific stock behavior while keeping stock and money authoritative.

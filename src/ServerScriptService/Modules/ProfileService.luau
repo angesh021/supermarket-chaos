@@ -6,7 +6,7 @@ local ProfileService = {}
 local LayoutService = require(script.Parent.LayoutService)
 local RetailLayoutService = require(script.Parent.RetailLayoutService)
 
-local SCHEMA_VERSION = 32
+local SCHEMA_VERSION = 33
 local SESSION_LEASE_SECONDS = 180
 local MAX_RETRIES = 3
 local STORE_NAME = "SupermarketChaos_PlayerProfiles_v1"
@@ -67,6 +67,7 @@ local function defaultProfile()
             restaurant = false,
             electronicsStore = false,
             gardenStore = false,
+            plazaStyleId = "",
             marketStyleId = "",
         },
         hiredEmployees = {
@@ -229,6 +230,7 @@ local function normalizeProfile(value)
                 value.ownedUpgrades.electronicsStore
             ) ~= "boolean")
             or (value.ownedUpgrades.gardenStore ~= nil and type(value.ownedUpgrades.gardenStore) ~= "boolean")
+            or (value.ownedUpgrades.plazaStyleId ~= nil and value.ownedUpgrades.plazaStyleId ~= "" and value.ownedUpgrades.plazaStyleId ~= "coastal" and value.ownedUpgrades.plazaStyleId ~= "urban" and value.ownedUpgrades.plazaStyleId ~= "harvest")
             or (value.ownedUpgrades.marketStyleId ~= nil and value.ownedUpgrades.marketStyleId ~= "" and value.ownedUpgrades.marketStyleId ~= "coastal" and value.ownedUpgrades.marketStyleId ~= "urban" and value.ownedUpgrades.marketStyleId ~= "harvest")
             or (
                 value.ownedUpgrades.marketStyle ~= nil
@@ -249,6 +251,14 @@ local function normalizeProfile(value)
         profile.ownedUpgrades.restaurant = value.ownedUpgrades.restaurant == true
         profile.ownedUpgrades.electronicsStore = value.ownedUpgrades.electronicsStore == true
         profile.ownedUpgrades.gardenStore = value.ownedUpgrades.gardenStore == true
+        local savedPlazaStyleId = value.ownedUpgrades.plazaStyleId
+        if
+            savedPlazaStyleId == "coastal"
+            or savedPlazaStyleId == "urban"
+            or savedPlazaStyleId == "harvest"
+        then
+            profile.ownedUpgrades.plazaStyleId = savedPlazaStyleId
+        end
         local savedStyleId = value.ownedUpgrades.marketStyleId
         if savedStyleId == "coastal" or savedStyleId == "urban" or savedStyleId == "harvest" then
             profile.ownedUpgrades.marketStyleId = savedStyleId
@@ -277,6 +287,9 @@ local function normalizeProfile(value)
     if profile.ownedUpgrades.gardenStore and not profile.ownedUpgrades.electronicsStore then
         return nil,
             "Stored garden store ownership exists without the electronics store prerequisite."
+    end
+    if profile.ownedUpgrades.plazaStyleId ~= "" and not profile.ownedUpgrades.gardenStore then
+        return nil, "Stored plaza style exists without plaza customization ownership."
     end
     if
         profile.ownedUpgrades.bakery
@@ -694,6 +707,7 @@ local function copyProfile(profile)
             restaurant = profile.ownedUpgrades.restaurant,
             electronicsStore = profile.ownedUpgrades.electronicsStore,
             gardenStore = profile.ownedUpgrades.gardenStore,
+            plazaStyleId = profile.ownedUpgrades.plazaStyleId,
             marketStyleId = profile.ownedUpgrades.marketStyleId,
         },
         hiredEmployees = {
@@ -985,6 +999,7 @@ function ProfileService.saveProgress(player, state, eventName)
     profile.ownedUpgrades.restaurant = state.restaurantPurchased
     profile.ownedUpgrades.electronicsStore = state.electronicsStorePurchased
     profile.ownedUpgrades.gardenStore = state.gardenStorePurchased
+    profile.ownedUpgrades.plazaStyleId = state.plazaStyleId
     profile.ownedUpgrades.marketStyleId = state.marketStyleId
     profile.warehouseLayout = state.warehouseLayout
     profile.retailLayout = RetailLayoutService.normalize(

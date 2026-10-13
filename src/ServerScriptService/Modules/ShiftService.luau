@@ -66,6 +66,8 @@ local ROLE_ACTIONS = {
         BuildGardenStore = true,
         RestockGarden = true,
         SellGarden = true,
+        PlazaStyle = true,
+        PreviewPlazaStyle = true,
         FulfillOnlineOrder = true,
         SelfCheckout = true,
         EditLayout = true,
@@ -355,6 +357,10 @@ function ShiftService.init(event, membershipRemotes)
     local marketStylePreviewIndex = 0
     local marketStylePreviewIds = { "coastal", "urban", "harvest" }
     local marketStyleSelectedId = "coastal"
+    local plazaStylePreviewing = false
+    local plazaStylePreviewIndex = 0
+    local plazaStylePreviewIds = { "coastal", "urban", "harvest" }
+    local plazaStyleSelectedId = "coastal"
     world.setStage("Loading")
     ProfileService.startAutosave(function()
         broadcast()
@@ -740,6 +746,12 @@ function ShiftService.init(event, membershipRemotes)
             marketStyleSelectedId = state.marketStyleId ~= "" and state.marketStyleId or "coastal"
             world.setMarketStylePreview(nil)
         end
+        if state.stage ~= "Complete" and plazaStylePreviewing then
+            plazaStylePreviewing = false
+            plazaStylePreviewIndex = 0
+            plazaStyleSelectedId = state.plazaStyleId ~= "" and state.plazaStyleId or "coastal"
+            world.setPlazaStylePreview(nil)
+        end
         world.setStage(state.stage)
         world.setRetailLayout(state.retailLayout)
         world.setCustomerProduct(
@@ -805,6 +817,7 @@ function ShiftService.init(event, membershipRemotes)
             state.electronicsSales
         )
         world.setGardenStoreState(state.gardenStorePurchased, state.gardenStock, state.gardenSales)
+        world.setPlazaStyle(state.plazaStylePurchased, state.plazaStyleId)
         broadcast()
         scheduleOnlineOrderWorker()
         scheduleStocker()
@@ -1288,6 +1301,37 @@ function ShiftService.init(event, membershipRemotes)
         broadcast(
             world.getMarketStyleName(marketStyleSelectedId)
                 .. " preview applied. Preview the next style or install this one at the refresh pad."
+        )
+    end)
+
+    bind("PlazaStyle", world.plazaStylePrompt, 13, function()
+        local ok, message = Economy.buyPlazaStyle(state, plazaStyleSelectedId)
+        if ok then
+            plazaStylePreviewing = false
+            plazaStylePreviewIndex = 0
+            world.setPlazaStylePreview(nil)
+            world.setPlazaStyle(state.plazaStylePurchased, state.plazaStyleId)
+            commit("plazaStyle")
+        end
+        broadcast(message)
+    end)
+
+    bind("PreviewPlazaStyle", world.plazaStylePreviewPrompt, 13, function()
+        plazaStylePreviewIndex += 1
+        if plazaStylePreviewIndex > #plazaStylePreviewIds then
+            plazaStylePreviewIndex = 0
+            plazaStylePreviewing = false
+            plazaStyleSelectedId = state.plazaStyleId ~= "" and state.plazaStyleId or "coastal"
+            world.setPlazaStylePreview(nil)
+            broadcast("Plaza style preview canceled. The current look is restored.")
+            return
+        end
+        plazaStylePreviewing = true
+        plazaStyleSelectedId = plazaStylePreviewIds[plazaStylePreviewIndex]
+        world.setPlazaStylePreview(plazaStyleSelectedId)
+        broadcast(
+            world.getPlazaStyleName(plazaStyleSelectedId)
+                .. " preview applied. Preview the next style or install this one."
         )
     end)
 
@@ -1903,6 +1947,17 @@ function ShiftService.init(event, membershipRemotes)
                 state.restaurantStock,
                 state.restaurantSales
             )
+            world.setElectronicsStoreState(
+                state.electronicsStorePurchased,
+                state.electronicsStock,
+                state.electronicsSales
+            )
+            world.setGardenStoreState(
+                state.gardenStorePurchased,
+                state.gardenStock,
+                state.gardenSales
+            )
+            world.setPlazaStyle(state.plazaStylePurchased, state.plazaStyleId)
             world.setCashierHired(state.cashierHired)
             world.setStockerHired(state.stockerHired)
             world.setCleanerHired(state.cleanerHired)
