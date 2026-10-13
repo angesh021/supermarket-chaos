@@ -44,3 +44,10 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Decision:** A persistent Cleaner flag unlocks a five-second spill response. It calls the same server-owned cleanup transition as a player; the first valid cleanup changes the stage and makes any racing response a no-op.
 - **Consequences:** Profile schema v6 adds only a validated employee boolean. No employee remote, independent reward code, wage loop, or client-driven automation is introduced.
 - **Verification:** See `docs/operations/PHASE10_EMPLOYEES.md`; Studio migration, purchase, persistence, and race checks remain pending.
+
+## ADR-0009 — Keep product inventory and supplier orders SKU-specific
+- **Status:** Accepted — 2026-10-12.
+- **Context:** The retail loop needs visible department variety and product-specific stock behavior while keeping stock and money authoritative.
+- **Decision:** Add Citrus Pop and Berry Bites to a server-only catalog. Persist separate shelf/backroom quantities and tag the one pending delivery with a product ID. Checkout chooses products from server shift state and available shelf stock.
+- **Consequences:** Profile schema v7 migrates old warehouses with 12 Berry Bites backstock and assigns old untagged shipments to Citrus Pop. Berry Bites orders cost `$45`, supply 24 packs, and stock in groups of four; the existing Citrus Pop values remain unchanged. Client messages/HUD display only sanitized store data.
+- **Verification:** See `docs/operations/PHASE11_PRODUCTS.md`; Studio purchase, save/rejoin, permission and race checks remain pending.

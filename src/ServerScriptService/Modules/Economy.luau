@@ -15,6 +15,23 @@ Economy.BACKSTOCK_CAPACITY = 500
 Economy.STARTING_STOCK = 3
 Economy.CUSTOMERS_PER_SHIFT = 3
 Economy.SPILL_CLEAN_REWARD = 5
+Economy.BERRY_BITES_STOCK_PER_RESTOCK = 4
+Economy.BERRY_BITES_SHELF_CAPACITY = 24
+
+Economy.PRODUCTS = {
+    citrusPop = {
+        displayName = "Citrus Pop",
+        salePrice = 25,
+        deliveryCost = 60,
+        deliveryQuantity = 24,
+    },
+    berryBites = {
+        displayName = "Berry Bites",
+        salePrice = 18,
+        deliveryCost = 45,
+        deliveryQuantity = 24,
+    },
+}
 
 Economy.CHAOS_EVENTS = {
     CheckoutSpill = {
@@ -30,10 +47,12 @@ function Economy.newState(profile)
     local savedShift = profile.shift or {}
     local upgrades = profile.ownedUpgrades or {}
     local warehouseInventory = profile.warehouseInventory or {}
+    local shipmentQuantity = warehouseInventory.shipmentQuantity or 0
     return {
         stage = savedShift.stage or "Cart",
         cash = profile.balance or 0,
         stock = savedShift.stock or 0,
+        berryStock = savedShift.berryStock or 0,
         sales = savedShift.sales or 0,
         cartRecovered = savedShift.cartRecovered or false,
         shiftClosed = savedShift.shiftClosed or false,
@@ -43,8 +62,11 @@ function Economy.newState(profile)
         stockerHired = (profile.hiredEmployees and profile.hiredEmployees.stocker) or false,
         cleanerHired = (profile.hiredEmployees and profile.hiredEmployees.cleaner) or false,
         backstock = warehouseInventory.citrusPop or 12,
+        berryBackstock = warehouseInventory.berryBites or (upgrades.warehouse and 12 or 0),
         shipmentReadyAt = warehouseInventory.shipmentReadyAt or 0,
-        shipmentQuantity = warehouseInventory.shipmentQuantity or 0,
+        shipmentQuantity = shipmentQuantity,
+        shipmentProductId = warehouseInventory.shipmentProductId == "berryBites" and "berryBites"
+            or (shipmentQuantity > 0 and "citrusPop" or ""),
     }
 end
 
@@ -75,27 +97,65 @@ function Economy.stockProduct(state)
     return true, "Citrus Pop stocked. A customer is ready at checkout."
 end
 
-function Economy.orderDelivery(state, now)
+function Economy.stockBerryBites(state)
+    if
+        state.stage == "Cart"
+        or state.stage == "Upgrade"
+        or state.stage == "Loading"
+        or state.stage == "OwnerOffline"
+    then
+        return false, "Wait until store operations are underway before restocking Berry Bites."
+    end
+    if not state.warehousePurchased then
+        return false, "Unlock the warehouse before restocking Berry Bites."
+    end
+    if state.berryBackstock < Economy.BERRY_BITES_STOCK_PER_RESTOCK then
+        return false, "The backroom is out of Berry Bites. Order a delivery from the warehouse."
+    end
+    if
+        state.berryStock + Economy.BERRY_BITES_STOCK_PER_RESTOCK
+        > Economy.BERRY_BITES_SHELF_CAPACITY
+    then
+        return false, "The Berry Bites shelf is full."
+    end
+    state.berryBackstock -= Economy.BERRY_BITES_STOCK_PER_RESTOCK
+    state.berryStock += Economy.BERRY_BITES_STOCK_PER_RESTOCK
+    return true, "Berry Bites restocked from the warehouse."
+end
+
+function Economy.orderDelivery(state, now, productId)
+    productId = productId or "citrusPop"
+    local product = Economy.PRODUCTS[productId]
+    if not product then
+        return false, "That product is not in the warehouse catalog."
+    end
     if not state.warehousePurchased then
         return false, "Unlock the warehouse before ordering stock."
     end
     if state.shipmentQuantity > 0 or state.shipmentReadyAt > 0 then
         return false, "A delivery is already on the way."
     end
-    if state.backstock + Economy.DELIVERY_QUANTITY > Economy.BACKSTOCK_CAPACITY then
+    local currentBackstock = productId == "citrusPop" and state.backstock or state.berryBackstock
+    if currentBackstock + product.deliveryQuantity > Economy.BACKSTOCK_CAPACITY then
         return false, "There is not enough backroom space for another delivery."
     end
-    if state.cash < Economy.DELIVERY_COST then
+    if state.cash < product.deliveryCost then
         return false,
-            string.format("You need $%d to order a Citrus Pop delivery.", Economy.DELIVERY_COST)
+            string.format("You need $%d to order %s.", product.deliveryCost, product.displayName)
     end
     if type(now) ~= "number" or now ~= now or now % 1 ~= 0 or now < 1 then
         return false, "The delivery time could not be confirmed. Try again."
     end
-    state.cash -= Economy.DELIVERY_COST
-    state.shipmentQuantity = Economy.DELIVERY_QUANTITY
+    state.cash -= product.deliveryCost
+    state.shipmentQuantity = product.deliveryQuantity
     state.shipmentReadyAt = now + 15
-    return true, "Delivery ordered for $60. It will arrive at the warehouse loading dock shortly."
+    state.shipmentProductId = productId
+    return true,
+        string.format(
+            "%s delivery ordered for $%d. It will arrive shortly.",
+            product.displayName,
+            product.deliveryCost
+        )
 end
 
 function Economy.receiveDelivery(state, now)
@@ -105,15 +165,40 @@ function Economy.receiveDelivery(state, now)
     if type(now) ~= "number" or now ~= now or now % 1 ~= 0 or now < state.shipmentReadyAt then
         return false, "The delivery is still on its way."
     end
-    if state.backstock + state.shipmentQuantity > Economy.BACKSTOCK_CAPACITY then
+    local productId = state.shipmentProductId == "berryBites" and "berryBites" or "citrusPop"
+    local currentBackstock = productId == "citrusPop" and state.backstock or state.berryBackstock
+    if currentBackstock + state.shipmentQuantity > Economy.BACKSTOCK_CAPACITY then
         return false, "The backroom is full. Clear space before receiving this delivery."
     end
     local quantity = state.shipmentQuantity
-    state.backstock += quantity
+    if productId == "citrusPop" then
+        state.backstock += quantity
+    else
+        state.berryBackstock += quantity
+    end
     state.shipmentQuantity = 0
     state.shipmentReadyAt = 0
+    state.shipmentProductId = ""
     return true,
-        string.format("Delivery received: %d Citrus Pop cans added to backroom stock.", quantity)
+        string.format(
+            "Delivery received: %d %s added to backroom stock.",
+            quantity,
+            Economy.PRODUCTS[productId].displayName
+        )
+end
+
+function Economy.getNextCheckoutProductId(state)
+    local preferredProduct = state.sales == 1 and "berryBites" or "citrusPop"
+    if preferredProduct == "berryBites" and state.berryStock > 0 then
+        return preferredProduct
+    end
+    if state.stock > 0 then
+        return "citrusPop"
+    end
+    if state.berryStock > 0 then
+        return "berryBites"
+    end
+    return nil
 end
 
 function Economy.sellProduct(state)
@@ -123,23 +208,41 @@ function Economy.sellProduct(state)
     if state.sales >= Economy.CUSTOMERS_PER_SHIFT then
         return false, "The checkout queue is already clear."
     end
-    if state.stock <= 0 then
-        return false, "The shelf is empty. Stock Citrus Pop first."
+    local productId = Economy.getNextCheckoutProductId(state)
+    if not productId then
+        return false, "The shelves are empty. Restock a product before serving this customer."
     end
-    state.stock -= 1
+    local product = Economy.PRODUCTS[productId]
+    if productId == "citrusPop" then
+        state.stock -= 1
+    else
+        state.berryStock -= 1
+    end
     state.sales += 1
-    state.cash += Economy.SALE_REWARD
+    state.cash += product.salePrice
     if state.sales == Economy.CHAOS_EVENTS.CheckoutSpill.triggerSales then
         state.stage = "Spill"
-        return true, "Sale complete! +$25. A customer dropped groceries—clean up the spill!"
+        return true,
+            string.format(
+                "Sale complete! +$%d for %s. A customer dropped groceries—clean up the spill!",
+                product.salePrice,
+                product.displayName
+            )
     end
     if state.sales >= Economy.CUSTOMERS_PER_SHIFT then
         state.stage = "CloseShift"
-        return true, "Sale complete! +$25. All customers served. Close out your shift."
+        return true,
+            string.format(
+                "Sale complete! +$%d for %s. All customers served. Close out your shift.",
+                product.salePrice,
+                product.displayName
+            )
     end
     return true,
         string.format(
-            "Sale complete! +$25. %d customers remain in the queue.",
+            "Sale complete! +$%d for %s. %d customers remain in the queue.",
+            product.salePrice,
+            product.displayName,
             Economy.CUSTOMERS_PER_SHIFT - state.sales
         )
 end
@@ -173,6 +276,7 @@ function Economy.restartShift(state)
     end
     state.stage = "Cart"
     state.stock = 0
+    state.berryStock = 0
     state.sales = 0
     state.cartRecovered = false
     state.shiftClosed = false
@@ -238,6 +342,9 @@ function Economy.buyWarehouse(state)
     end
     state.cash -= Economy.WAREHOUSE_COST
     state.warehousePurchased = true
+    if state.berryBackstock == 0 then
+        state.berryBackstock = 12
+    end
     return true, "Warehouse annex purchased! Your retail empire is expanding."
 end
 

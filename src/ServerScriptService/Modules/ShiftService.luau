@@ -36,10 +36,12 @@ local ROLE_ACTIONS = {
         HireCleaner = true,
         Warehouse = true,
         OrderDelivery = true,
+        OrderBerryDelivery = true,
         ReceiveDelivery = true,
+        StockBerryBites = true,
     },
     Cashier = { Checkout = true },
-    Stocker = { Stock = true },
+    Stocker = { Stock = true, StockBerryBites = true },
     Maintenance = { Cart = true, Spill = true },
 }
 local ASSIGNABLE_ROLES = { Manager = true, Cashier = true, Stocker = true, Maintenance = true }
@@ -64,17 +66,25 @@ local function snapshot(message, recipient)
     local objective = OBJECTIVES[current.stage] or "Your store is starting up."
     if current.stage == "Checkout" then
         local remaining = math.max(0, Economy.CUSTOMERS_PER_SHIFT - current.sales)
+        local productId = Economy.getNextCheckoutProductId(current)
+        local nextProduct = productId and Economy.PRODUCTS[productId].displayName
+            or "restock a shelf"
         objective = string.format(
-            "Checkout: serve the queue (%d customer%s left).",
+            "Checkout: serve the queue (%d customer%s left). Next up: %s.",
             remaining,
-            remaining == 1 and "" or "s"
+            remaining == 1 and "" or "s",
+            nextProduct
         )
     elseif current.stage == "Spill" then
         local remaining = math.max(0, Economy.CUSTOMERS_PER_SHIFT - current.sales)
+        local productId = Economy.getNextCheckoutProductId(current)
+        local nextProduct = productId and Economy.PRODUCTS[productId].displayName
+            or "restock a shelf"
         objective = string.format(
-            "Clean the checkout spill, then serve %d more customer%s.",
+            "Clean the checkout spill, then serve %d more customer%s. Next up: %s.",
             remaining,
-            remaining == 1 and "" or "s"
+            remaining == 1 and "" or "s",
+            nextProduct
         )
     end
     if not isOwner and not isHelper then
@@ -91,6 +101,7 @@ local function snapshot(message, recipient)
         objective = objective,
         cash = hasStoreAccess and current.cash or 0,
         stock = hasStoreAccess and current.stock or 0,
+        berryStock = hasStoreAccess and current.berryStock or 0,
         sales = hasStoreAccess and current.sales or 0,
         message = message or "",
         upgradePurchased = current.upgradePurchased,
@@ -100,6 +111,10 @@ local function snapshot(message, recipient)
         saveStatus = isOwner and ProfileService.getSaveStatus(recipient) or "view only",
         warehousePurchased = hasStoreAccess and current.warehousePurchased or false,
         backstock = hasStoreAccess and current.backstock or 0,
+        berryBackstock = hasStoreAccess and current.berryBackstock or 0,
+        nextProductName = hasStoreAccess and Economy.PRODUCTS[Economy.getNextCheckoutProductId(
+            current
+        ) or "citrusPop"].displayName or "",
     }
 end
 
@@ -262,6 +277,10 @@ function ShiftService.init(event, membershipRemotes)
             local ok, message = Economy.stockProduct(state)
             if ok then
                 world.setStockVisual(state.stock)
+                world.setBerryStockVisual(state.berryStock)
+                world.setBerryStockAvailable(
+                    state.berryBackstock >= Economy.BERRY_BITES_STOCK_PER_RESTOCK
+                )
                 commit("stock")
                 broadcast("Stock clerk restocked Citrus Pop automatically. " .. message)
             end
@@ -304,6 +323,10 @@ function ShiftService.init(event, membershipRemotes)
                 local ok, message = Economy.sellProduct(state)
                 if ok then
                     world.setStockVisual(state.stock)
+                    world.setBerryStockVisual(state.berryStock)
+                    world.setBerryStockAvailable(
+                        state.berryBackstock >= Economy.BERRY_BITES_STOCK_PER_RESTOCK
+                    )
                     commit("sale")
                     broadcast("Cashier served the customer automatically. " .. message)
                 end
@@ -357,8 +380,16 @@ function ShiftService.init(event, membershipRemotes)
                 return
             end
             if ownerReady then
-                world.setDeliveryState(state.shipmentReadyAt, state.shipmentQuantity)
-                broadcast("A Citrus Pop delivery has arrived at the warehouse loading dock.")
+                world.setDeliveryState(
+                    state.shipmentReadyAt,
+                    state.shipmentQuantity,
+                    state.shipmentProductId
+                )
+                broadcast(
+                    "A "
+                        .. Economy.PRODUCTS[state.shipmentProductId].displayName
+                        .. " delivery has arrived at the warehouse loading dock."
+                )
             end
         end)
     end
@@ -367,6 +398,13 @@ function ShiftService.init(event, membershipRemotes)
         ProfileService.saveProgress(ownerPlayer, state, eventName)
         TelemetryService.record(ownerPlayer, eventName)
         world.setStage(state.stage)
+        world.setCustomerProduct(
+            Economy.PRODUCTS[Economy.getNextCheckoutProductId(state) or "citrusPop"].displayName
+        )
+        world.setBerryStockAvailable(
+            state.warehousePurchased
+                and state.berryBackstock >= Economy.BERRY_BITES_STOCK_PER_RESTOCK
+        )
         world.setCustomerCount(math.max(0, Economy.CUSTOMERS_PER_SHIFT - state.sales))
         broadcast()
         scheduleStocker()
@@ -397,6 +435,18 @@ function ShiftService.init(event, membershipRemotes)
         broadcast(message)
     end)
 
+    bind("StockBerryBites", world.berryStockPrompt, 12, function()
+        local ok, message = Economy.stockBerryBites(state)
+        if ok then
+            world.setBerryStockVisual(state.berryStock)
+            world.setBerryStockAvailable(
+                state.berryBackstock >= Economy.BERRY_BITES_STOCK_PER_RESTOCK
+            )
+            commit("berryStock")
+        end
+        broadcast(message)
+    end)
+
     bind("Checkout", world.registerPrompt, 12, function()
         if not world.isCheckoutReady() then
             broadcast(
@@ -407,6 +457,7 @@ function ShiftService.init(event, membershipRemotes)
         local ok, message = Economy.sellProduct(state)
         if ok then
             world.setStockVisual(state.stock)
+            world.setBerryStockVisual(state.berryStock)
             commit("sale")
         end
         broadcast(message)
@@ -448,10 +499,27 @@ function ShiftService.init(event, membershipRemotes)
     end)
 
     bind("OrderDelivery", world.orderDeliveryPrompt(), 12, function()
-        local ok, message = Economy.orderDelivery(state, os.time())
+        local ok, message = Economy.orderDelivery(state, os.time(), "citrusPop")
         if ok then
-            world.setDeliveryState(state.shipmentReadyAt, state.shipmentQuantity)
+            world.setDeliveryState(
+                state.shipmentReadyAt,
+                state.shipmentQuantity,
+                state.shipmentProductId
+            )
             commit("deliveryOrdered")
+        end
+        broadcast(message)
+    end)
+
+    bind("OrderBerryDelivery", world.berryDeliveryPrompt(), 12, function()
+        local ok, message = Economy.orderDelivery(state, os.time(), "berryBites")
+        if ok then
+            world.setDeliveryState(
+                state.shipmentReadyAt,
+                state.shipmentQuantity,
+                state.shipmentProductId
+            )
+            commit("berryDeliveryOrdered")
         end
         broadcast(message)
     end)
@@ -459,7 +527,11 @@ function ShiftService.init(event, membershipRemotes)
     bind("ReceiveDelivery", world.deliveryPrompt(), 12, function()
         local ok, message = Economy.receiveDelivery(state, os.time())
         if ok then
-            world.setDeliveryState(state.shipmentReadyAt, state.shipmentQuantity)
+            world.setDeliveryState(
+                state.shipmentReadyAt,
+                state.shipmentQuantity,
+                state.shipmentProductId
+            )
             commit("deliveryReceived")
         end
         broadcast(message)
@@ -469,6 +541,7 @@ function ShiftService.init(event, membershipRemotes)
         local ok, message = Economy.restartShift(state)
         if ok then
             world.setStockVisual(0)
+            world.setBerryStockVisual(0)
             world.setCustomerVisible(false)
             world.setStage(state.stage)
             startCart()
@@ -648,11 +721,23 @@ function ShiftService.init(event, membershipRemotes)
                 world.addUpgrade()
             end
             world.setWarehousePurchased(state.warehousePurchased)
-            world.setDeliveryState(state.shipmentReadyAt, state.shipmentQuantity)
+            world.setDeliveryState(
+                state.shipmentReadyAt,
+                state.shipmentQuantity,
+                state.shipmentProductId
+            )
             world.setCashierHired(state.cashierHired)
             world.setStockerHired(state.stockerHired)
             world.setCleanerHired(state.cleanerHired)
             world.setStockVisual(state.stock)
+            world.setBerryStockVisual(state.berryStock)
+            world.setBerryStockAvailable(
+                state.warehousePurchased
+                    and state.berryBackstock >= Economy.BERRY_BITES_STOCK_PER_RESTOCK
+            )
+            world.setCustomerProduct(
+                Economy.PRODUCTS[Economy.getNextCheckoutProductId(state) or "citrusPop"].displayName
+            )
             world.setStage(state.stage)
             world.setCustomerCount(math.max(0, Economy.CUSTOMERS_PER_SHIFT - state.sales))
             if state.stage == "Cart" then

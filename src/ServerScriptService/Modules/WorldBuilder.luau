@@ -624,6 +624,7 @@ function WorldBuilder.build()
     end
 
     local shelf = createShelf(interior, "Citrus Pop Shelf", -10, -1, 6, "CITRUS POP")
+    local berryShelf = createShelf(interior, "Berry Bites Shelf", 10, -1, 6, "BERRY BITES")
     createShelf(interior, "Pantry Shelf", 0, -1, 6, "SNACKS")
     createShelf(interior, "Breakfast and Pantry Shelf", -10, -9, 6, "PANTRY")
     createShelf(interior, "Cereal and Household Shelf", 0, -9, 6, "GROCERY")
@@ -872,6 +873,8 @@ function WorldBuilder.build()
         return result == Enum.PlaybackState.Completed and flowVersion == customerFlowVersion
     end
 
+    local customerProductName = "Citrus Pop"
+    local customerProductPosition = Vector3.new(-10, 0.45, 4)
     local function runCustomerVisit(entry, queuePosition, queueNumber, flowVersion)
         if queueNumber > 1 then
             task.wait((queueNumber - 1) * 1.1)
@@ -888,10 +891,10 @@ function WorldBuilder.build()
             end
         end
         entry.label.Text = "BROWSING"
-        if not moveCustomer(entry, Vector3.new(-10, 0.45, 4), 0.7, flowVersion) then
+        if not moveCustomer(entry, customerProductPosition, 0.7, flowVersion) then
             return
         end
-        entry.label.Text = "PICKING CITRUS POP"
+        entry.label.Text = "PICKING " .. string.upper(customerProductName)
         task.wait(0.55)
         if not moveCustomer(entry, Vector3.new(5, 0.45, 4), 0.75, flowVersion) then
             return
@@ -907,9 +910,13 @@ function WorldBuilder.build()
     end
 
     local function runCustomerAdvance(entry, queuePosition, queueNumber, flowVersion)
-        entry.label.Text = "MOVING UP"
+        entry.label.Text = "PICKING " .. string.upper(customerProductName)
+        if not moveCustomer(entry, customerProductPosition, 0.55, flowVersion) then
+            return
+        end
+        task.wait(0.35)
+        entry.label.Text = "MOVING TO CHECKOUT"
         local waypoints = {
-            Vector3.new(0, 0.45, 13),
             Vector3.new(5, 0.45, 8),
             Vector3.new(5, 0.45, 4),
             queuePosition,
@@ -1125,6 +1132,26 @@ function WorldBuilder.build()
         end
     end
 
+    local stockedBerryBags = {}
+    local function setBerryStockVisual(count)
+        for _, bag in ipairs(stockedBerryBags) do
+            bag:Destroy()
+        end
+        stockedBerryBags = {}
+        for index = 1, count do
+            local x = 10 + (index - (count + 1) / 2) * 0.62
+            local bag = part(
+                interior,
+                "Stocked Berry Bites Pack",
+                Vector3.new(0.5, 0.65, 0.5),
+                CFrame.new(x, 3.73, -0.62),
+                index % 2 == 0 and COLORS.coral or COLORS.orange,
+                Enum.Material.SmoothPlastic
+            )
+            table.insert(stockedBerryBags, bag)
+        end
+    end
+
     local hiringBoard = label(
         interior,
         "Staff Hiring Board",
@@ -1222,6 +1249,10 @@ function WorldBuilder.build()
     end
     local cleanerHired = false
     local stockPrompt = prompt(shelf.PrimaryPart, "Stock Shelf", "Citrus Pop", "Stock", 9)
+    local berryStockPrompt =
+        prompt(berryShelf.PrimaryPart, "Stock Shelf", "Berry Bites", "StockBerryBites", 9)
+    berryStockPrompt.Enabled = false
+    local berryStockAvailable = false
     local shiftBoard = label(
         interior,
         "Shift Board",
@@ -1442,6 +1473,8 @@ function WorldBuilder.build()
     local deliveryCrate
     local deliveryPrompt
     local orderDeliveryPrompt
+    local berryDeliveryOrderPrompt
+    local deliveryProductId = "citrusPop"
     local deliveryReadyAt = 0
     local deliveryQuantity = 0
     label(
@@ -1472,8 +1505,11 @@ function WorldBuilder.build()
     orderDeliveryPrompt =
         prompt(orderBoard, "Order Delivery ($60)", "Warehouse Board", "OrderDelivery", 10)
     orderDeliveryPrompt.Enabled = false
+    berryDeliveryOrderPrompt =
+        prompt(orderBoard, "Order Berry Bites ($45)", "Warehouse Board", "OrderBerryDelivery", 10)
+    berryDeliveryOrderPrompt.Enabled = false
     deliveryCrate = Instance.new("Model")
-    deliveryCrate.Name = "Citrus Pop Delivery Crate"
+    deliveryCrate.Name = "Warehouse Delivery Crate"
     deliveryCrate.Parent = exterior
     local crate = part(
         deliveryCrate,
@@ -1597,19 +1633,37 @@ function WorldBuilder.build()
         warehousePrompt.Enabled = false
     end
 
-    local function setDeliveryState(readyAt, quantity)
+    local function setDeliveryState(readyAt, quantity, productId)
         deliveryReadyAt = readyAt or 0
         deliveryQuantity = quantity or 0
+        deliveryProductId = productId == "berryBites" and "berryBites" or "citrusPop"
         if not warehousePurchased or not deliveryBoardLabel then
             return
         end
         if deliveryQuantity > 0 and os.time() < deliveryReadyAt then
-            deliveryBoardLabel.Text = "DELIVERY EN ROUTE\nARRIVES SHORTLY"
+            deliveryBoardLabel.Text = string.upper(
+                deliveryProductId == "berryBites" and "BERRY BITES" or "CITRUS POP"
+            ) .. " DELIVERY EN ROUTE\nARRIVES SHORTLY"
         elseif deliveryQuantity > 0 then
-            deliveryBoardLabel.Text =
-                string.format("DELIVERY ARRIVED\n%d CANS TO COLLECT", deliveryQuantity)
+            local unitName = deliveryProductId == "berryBites" and "PACKS" or "CANS"
+            deliveryBoardLabel.Text = string.format(
+                "%s ARRIVED\n%d %s TO COLLECT",
+                string.upper(deliveryProductId == "berryBites" and "BERRY BITES" or "CITRUS POP"),
+                deliveryQuantity,
+                unitName
+            )
         else
-            deliveryBoardLabel.Text = "ORDER 24 CANS  •  $60\nWAREHOUSE SUPPLY"
+            deliveryBoardLabel.Text = "CITRUS POP  $60\nBERRY BITES  $45"
+        end
+        if crateLabel then
+            local shipmentName = deliveryProductId == "berryBites" and "BERRY BITES" or "CITRUS POP"
+            local unitName = deliveryProductId == "berryBites" and "PACKS" or "CANS"
+            local shipmentTextLabel = crateSurface
+                and crateSurface:FindFirstChildOfClass("TextLabel")
+            if shipmentTextLabel then
+                shipmentTextLabel.Text =
+                    string.format("%s\n%d %s", shipmentName, deliveryQuantity, unitName)
+            end
         end
         if deliveryCrate then
             for _, item in ipairs(deliveryCrate:GetDescendants()) do
@@ -1623,10 +1677,15 @@ function WorldBuilder.build()
             deliveryCrateSurface.Enabled = deliveryQuantity > 0 and os.time() >= deliveryReadyAt
         end
         if deliveryPrompt then
+            deliveryPrompt.ObjectText = deliveryProductId == "berryBites" and "Berry Bites Shipment"
+                or "Citrus Pop Shipment"
             deliveryPrompt.Enabled = deliveryQuantity > 0 and os.time() >= deliveryReadyAt
         end
         if orderDeliveryPrompt then
             orderDeliveryPrompt.Enabled = deliveryQuantity == 0
+        end
+        if berryDeliveryOrderPrompt then
+            berryDeliveryOrderPrompt.Enabled = deliveryQuantity == 0
         end
     end
 
@@ -1634,6 +1693,11 @@ function WorldBuilder.build()
         currentStage = stage
         cartPrompt.Enabled = stage == "Cart"
         stockPrompt.Enabled = stage == "Stock"
+        berryStockPrompt.Enabled = berryStockAvailable
+            and stage ~= "Cart"
+            and stage ~= "Upgrade"
+            and stage ~= "Loading"
+            and stage ~= "OwnerOffline"
         register.Enabled = stage == "Checkout" and checkoutReady
         closePrompt.Enabled = stage == "CloseShift"
         spillPrompt.Enabled = stage == "Spill"
@@ -1646,6 +1710,9 @@ function WorldBuilder.build()
         warehousePrompt.Enabled = stage == "Complete" and not warehousePurchased
         if orderDeliveryPrompt then
             orderDeliveryPrompt.Enabled = warehousePurchased and deliveryQuantity == 0
+        end
+        if berryDeliveryOrderPrompt then
+            berryDeliveryOrderPrompt.Enabled = warehousePurchased and deliveryQuantity == 0
         end
         if deliveryPrompt then
             deliveryPrompt.Enabled = warehousePurchased
@@ -1667,6 +1734,23 @@ function WorldBuilder.build()
         end,
         stockPrompt = stockPrompt,
         setStockVisual = setStockVisual,
+        berryStockPrompt = berryStockPrompt,
+        setBerryStockVisual = setBerryStockVisual,
+        setBerryStockAvailable = function(available)
+            berryStockAvailable = available == true
+            berryStockPrompt.Enabled = berryStockAvailable
+                and warehousePurchased
+                and currentStage ~= "Cart"
+                and currentStage ~= "Upgrade"
+                and currentStage ~= "Loading"
+                and currentStage ~= "OwnerOffline"
+        end,
+        setCustomerProduct = function(displayName)
+            customerProductName = displayName or "Citrus Pop"
+            customerProductPosition = customerProductName == "Berry Bites"
+                    and Vector3.new(10, 0.45, 4)
+                or Vector3.new(-10, 0.45, 4)
+        end,
         setCustomerVisible = setCustomerVisible,
         setCustomerCount = setCustomerCount,
         registerPrompt = register,
@@ -1683,6 +1767,9 @@ function WorldBuilder.build()
         warehousePrompt = warehousePrompt,
         orderDeliveryPrompt = function()
             return orderDeliveryPrompt
+        end,
+        berryDeliveryPrompt = function()
+            return berryDeliveryOrderPrompt
         end,
         deliveryPrompt = function()
             return deliveryPrompt

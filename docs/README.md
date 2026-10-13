@@ -18,5 +18,6 @@
 | [Customer queue verification](operations/PHASE8_CUSTOMERS.md) | Checkout queue acceptance and Studio procedure |
 | [Chaos event verification](operations/PHASE9_CHAOS.md) | Spill event acceptance and Studio procedure |
 | [Cleaner employee verification](operations/PHASE10_EMPLOYEES.md) | Persistent cleaner acceptance and Studio procedure |
+| [Multi-product verification](operations/PHASE11_PRODUCTS.md) | Separate SKU stock, sales, delivery and migration checks |
 
 Keep this index and linked documents current as implementation changes. See [AGENTS.md](../AGENTS.md) for repository rules.

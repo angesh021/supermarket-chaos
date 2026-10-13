@@ -4,7 +4,7 @@ local HttpService = game:GetService("HttpService")
 
 local ProfileService = {}
 
-local SCHEMA_VERSION = 6
+local SCHEMA_VERSION = 7
 local SESSION_LEASE_SECONDS = 180
 local MAX_RETRIES = 3
 local STORE_NAME = "SupermarketChaos_PlayerProfiles_v1"
@@ -32,6 +32,7 @@ local function defaultProfile()
         shift = {
             stage = "Cart",
             stock = 0,
+            berryStock = 0,
             sales = 0,
             cartRecovered = false,
             shiftClosed = false,
@@ -47,7 +48,9 @@ local function defaultProfile()
         },
         warehouseInventory = {
             citrusPop = 12,
+            berryBites = 0,
             shipmentReadyAt = 0,
+            shipmentProductId = "",
         },
         completedShifts = 0,
         lifetimeSales = 0,
@@ -157,16 +160,27 @@ local function normalizeProfile(value)
         local inventory = value.warehouseInventory
         if
             (inventory.citrusPop ~= nil and not validCounter(inventory.citrusPop))
+            or (inventory.berryBites ~= nil and not validCounter(inventory.berryBites))
             or (inventory.shipmentReadyAt ~= nil and not validTimestamp(inventory.shipmentReadyAt))
             or (inventory.shipmentQuantity ~= nil and not validCounter(inventory.shipmentQuantity))
+            or (
+                inventory.shipmentProductId ~= nil
+                and inventory.shipmentProductId ~= ""
+                and inventory.shipmentProductId ~= "citrusPop"
+                and inventory.shipmentProductId ~= "berryBites"
+            )
         then
             return nil, "Stored warehouse inventory contains an invalid counter."
         end
         local citrusPop = nonNegativeInteger(inventory.citrusPop, 12)
+        local berryBites =
+            nonNegativeInteger(inventory.berryBites, profile.ownedUpgrades.warehouse and 12 or 0)
         local shipmentQuantity = nonNegativeInteger(inventory.shipmentQuantity, 0)
         local shipmentReadyAt = nonNegativeInteger(inventory.shipmentReadyAt, 0)
         if
             citrusPop > 500
+            or berryBites > 500
+            or (berryBites > 0 and profile.ownedUpgrades.warehouse ~= true)
             or shipmentQuantity > 60
             or (shipmentQuantity == 0) ~= (shipmentReadyAt == 0)
         then
@@ -176,8 +190,14 @@ local function normalizeProfile(value)
             return nil, "Stored shipment exists without an owned warehouse."
         end
         profile.warehouseInventory.citrusPop = citrusPop
+        profile.warehouseInventory.berryBites = berryBites
         profile.warehouseInventory.shipmentReadyAt = shipmentReadyAt
         profile.warehouseInventory.shipmentQuantity = shipmentQuantity
+        profile.warehouseInventory.shipmentProductId = shipmentQuantity > 0
+                and (inventory.shipmentProductId == "berryBites" and "berryBites" or "citrusPop")
+            or ""
+    elseif profile.ownedUpgrades.warehouse then
+        profile.warehouseInventory.berryBites = 12
     end
     if value.shift ~= nil and type(value.shift) ~= "table" then
         return nil, "Stored shift data is malformed."
@@ -198,8 +218,15 @@ local function normalizeProfile(value)
             end
             profile.shift.stage = stage
         end
-        if not validCounter(value.shift.stock) or not validCounter(value.shift.sales) then
+        if
+            not validCounter(value.shift.stock)
+            or not validCounter(value.shift.berryStock)
+            or not validCounter(value.shift.sales)
+        then
             return nil, "Stored shift counters are invalid."
+        end
+        if nonNegativeInteger(value.shift.berryStock, 0) > 24 then
+            return nil, "Stored Berry Bites shelf stock is outside the supported limit."
         end
         if
             (value.shift.cartRecovered ~= nil and type(value.shift.cartRecovered) ~= "boolean")
@@ -208,6 +235,7 @@ local function normalizeProfile(value)
             return nil, "Stored shift flags are malformed."
         end
         profile.shift.stock = nonNegativeInteger(value.shift.stock, 0)
+        profile.shift.berryStock = nonNegativeInteger(value.shift.berryStock, 0)
         profile.shift.sales = nonNegativeInteger(value.shift.sales, 0)
         profile.shift.cartRecovered = value.shift.cartRecovered == true
         profile.shift.shiftClosed = value.shift.shiftClosed == true
@@ -222,6 +250,7 @@ local function copyProfile(profile)
         shift = {
             stage = profile.shift.stage,
             stock = profile.shift.stock,
+            berryStock = profile.shift.berryStock,
             sales = profile.shift.sales,
             cartRecovered = profile.shift.cartRecovered,
             shiftClosed = profile.shift.shiftClosed,
@@ -237,8 +266,10 @@ local function copyProfile(profile)
         },
         warehouseInventory = {
             citrusPop = profile.warehouseInventory.citrusPop,
+            berryBites = profile.warehouseInventory.berryBites,
             shipmentReadyAt = profile.warehouseInventory.shipmentReadyAt,
             shipmentQuantity = profile.warehouseInventory.shipmentQuantity or 0,
+            shipmentProductId = profile.warehouseInventory.shipmentProductId or "",
         },
         completedShifts = profile.completedShifts,
         lifetimeSales = profile.lifetimeSales,
@@ -436,6 +467,7 @@ function ProfileService.saveProgress(player, state, eventName)
     profile.balance = state.cash
     profile.shift.stage = state.stage
     profile.shift.stock = state.stock
+    profile.shift.berryStock = state.berryStock
     profile.shift.sales = state.sales
     profile.shift.cartRecovered = state.cartRecovered
     profile.shift.shiftClosed = state.shiftClosed
@@ -445,8 +477,10 @@ function ProfileService.saveProgress(player, state, eventName)
     profile.hiredEmployees.stocker = state.stockerHired
     profile.hiredEmployees.cleaner = state.cleanerHired
     profile.warehouseInventory.citrusPop = state.backstock
+    profile.warehouseInventory.berryBites = state.berryBackstock
     profile.warehouseInventory.shipmentReadyAt = state.shipmentReadyAt
     profile.warehouseInventory.shipmentQuantity = state.shipmentQuantity
+    profile.warehouseInventory.shipmentProductId = state.shipmentProductId
     if eventName == "sale" then
         profile.lifetimeSales += 1
     elseif eventName == "shiftClosed" then

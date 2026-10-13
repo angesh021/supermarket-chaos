@@ -48,6 +48,12 @@ Currency and stock changes occur only after server-side validation. Transactions
 - `WorldBuilder` presents at most three customers on a fixed, server-scripted enter/browse/queue/exit route. Shift sales reconstruct how many remain; a 12-second route fallback moves them to safe checkout positions. Customer models never grant currency; only the existing server sale transaction does.
 - Profile schema v6 adds a validated `cleaner` employee boolean. Schemas v1–v5 default to no Cleaner; hiring takes the server-defined $120 once. A five-second server timer rechecks owner, save lock, employee flag and `Spill` stage before using the shared cleanup transition.
 
+## Phase 7 multi-product increment
+- Profile schema v7 persists Berry Bites shelf and backroom counters plus a product ID for the single pending warehouse shipment. Prior profiles normalize to zero shelf stock and 12 Berry Bites backstock if they already own the warehouse; legacy untagged shipments migrate as Citrus Pop.
+- `Economy.PRODUCTS` defines server-owned Citrus Pop (`$25` sale, `$60`/24-can shipment) and Berry Bites (`$18` sale, `$45`/24-pack shipment). Berry Bites restocks in groups of four with a 24-pack shelf cap. Both SKUs share the 500-unit per-SKU backroom cap and one-pending-shipment rule.
+- Checkout chooses the next SKU from server shift progress and available shelf stock, and the customer route/shelf visuals follow that choice. No client product/price argument is accepted.
+- Owner/Manager can order either SKU; Owner/Manager/Stocker can stock Berry Bites. Existing prompt checks still enforce owner profile readiness, membership, role, distance and cooldown. See `operations/PHASE11_PRODUCTS.md` for acceptance and Studio verification.
+
 ## Open technical decisions
 See `docs/decisions/README.md` for accepted ownership policy. Remaining decisions include multi-store/guest permissions, production Studio place configuration, analytics implementation/privacy review, and any changes to persistence recovery. Verify platform APIs against official documentation when implementation starts.
 # Cooperative ownership and cashier extension

@@ -33,4 +33,4 @@ Run in the private development experience for universe `10770581249`. This featu
 
 - Backstock capacity is 500 cans, one 24-can shipment can be pending at a time, and an order costs $60.
 - Delivery timing is server-time based. On rejoin, an elapsed shipment timestamp is immediately collectable.
-- This increment supports only Citrus Pop. It does not yet include multiple SKUs, a delivery vehicle/NPC, supplier pricing or warehouse layout management.
+- This checklist covers the original Citrus Pop delivery path. Berry Bites inventory, its different price/quantity presentation, and the schema v7 product migration are covered by `PHASE11_PRODUCTS.md`. A delivery vehicle/NPC, supplier selection and warehouse layout management remain future work.
