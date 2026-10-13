@@ -53,6 +53,8 @@ local ROLE_ACTIONS = {
         FloorExpansion = true,
         BuildBakery = true,
         BuildFreezer = true,
+        BuildSelfCheckout = true,
+        SelfCheckout = true,
         EditLayout = true,
         EditRetailLayout = true,
         MarketStyle = true,
@@ -76,7 +78,7 @@ local ROLE_ACTIONS = {
         StockCinnamonTwists = true,
         StockFrozenMeals = true,
     },
-    Cashier = { Checkout = true },
+    Cashier = { Checkout = true, SelfCheckout = true },
     Stocker = {
         Stock = true,
         StockBerryBites = true,
@@ -355,6 +357,8 @@ function ShiftService.init(event, membershipRemotes)
     end
 
     local commit
+    local saleTransactionInProgress = false
+    local performSale
     local stockerScheduleVersion = 0
     local function scheduleStocker()
         stockerScheduleVersion += 1
@@ -440,6 +444,9 @@ function ShiftService.init(event, membershipRemotes)
                 then
                     return
                 end
+                if saleTransactionInProgress then
+                    return
+                end
                 if not world.isCheckoutReady() then
                     readinessChecks += 1
                     if readinessChecks >= 24 then
@@ -450,19 +457,8 @@ function ShiftService.init(event, membershipRemotes)
                     end
                     return
                 end
-                local ok, message =
-                    Economy.sellProduct(state, os.time(), world.getCheckoutWaitSeconds())
+                local ok, message = performSale()
                 if ok then
-                    world.setStockVisual(state.stock)
-                    world.setBerryStockVisual(state.berryStock)
-                    world.setGoldenAppleStockVisual(state.goldenAppleStock)
-                    world.setCerealStockVisual(state.cerealStock)
-                    world.setCinnamonTwistStockVisual(state.cinnamonTwistStock)
-                    world.setFrozenMealStockVisual(state.frozenMealStock)
-                    world.setBerryStockAvailable(
-                        state.berryBackstock >= Economy.BERRY_BITES_STOCK_PER_RESTOCK
-                    )
-                    commit("sale")
                     broadcast("Cashier served the customer automatically. " .. message)
                 end
             end)
@@ -730,6 +726,32 @@ function ShiftService.init(event, membershipRemotes)
         scheduleCustomerRushExpiry()
     end
 
+    performSale = function()
+        if saleTransactionInProgress then
+            return false, "Checkout is finishing the previous customer's sale."
+        end
+        if not world.isCheckoutReady() then
+            return false,
+                "The customer is still shopping. Checkout will open when they reach the till."
+        end
+
+        saleTransactionInProgress = true
+        local ok, message = Economy.sellProduct(state, os.time(), world.getCheckoutWaitSeconds())
+        if ok then
+            world.setStockVisual(state.stock)
+            world.setStockAvailable(
+                state.backstock >= Economy.CITRUS_POP_STOCK_PER_RESTOCK
+                    and state.stock + Economy.CITRUS_POP_STOCK_PER_RESTOCK
+                        <= Economy.CITRUS_POP_SHELF_CAPACITY
+            )
+            world.setBerryStockVisual(state.berryStock)
+            world.setGoldenAppleStockVisual(state.goldenAppleStock)
+            commit("sale")
+        end
+        saleTransactionInProgress = false
+        return ok, message
+    end
+
     bind("Cart", world.cartPrompt, 12, function()
         local activeTween = world.cartTween()
         if activeTween then
@@ -834,24 +856,12 @@ function ShiftService.init(event, membershipRemotes)
     end
 
     bind("Checkout", world.registerPrompt, 12, function()
-        if not world.isCheckoutReady() then
-            broadcast(
-                "The customer is still shopping. Checkout will open when they reach the till."
-            )
-            return
-        end
-        local ok, message = Economy.sellProduct(state, os.time(), world.getCheckoutWaitSeconds())
-        if ok then
-            world.setStockVisual(state.stock)
-            world.setStockAvailable(
-                state.backstock >= Economy.CITRUS_POP_STOCK_PER_RESTOCK
-                    and state.stock + Economy.CITRUS_POP_STOCK_PER_RESTOCK
-                        <= Economy.CITRUS_POP_SHELF_CAPACITY
-            )
-            world.setBerryStockVisual(state.berryStock)
-            world.setGoldenAppleStockVisual(state.goldenAppleStock)
-            commit("sale")
-        end
+        local _, message = performSale()
+        broadcast(message)
+    end)
+
+    bind("SelfCheckout", world.selfCheckoutPrompt, 12, function()
+        local _, message = performSale()
         broadcast(message)
     end)
 
@@ -953,6 +963,15 @@ function ShiftService.init(event, membershipRemotes)
                 state.shipmentProductId
             )
             commit("freezerBuilt")
+        end
+        broadcast(message)
+    end)
+
+    bind("BuildSelfCheckout", world.selfCheckoutBuildPrompt, 12, function()
+        local ok, message = Economy.buySelfCheckout(state)
+        if ok then
+            world.setSelfCheckoutPurchased(true)
+            commit("selfCheckoutBuilt")
         end
         broadcast(message)
     end)
@@ -1558,6 +1577,7 @@ function ShiftService.init(event, membershipRemotes)
             if state.floorExpansionPurchased then
                 world.addFloorExpansion()
             end
+            world.setSelfCheckoutPurchased(state.selfCheckoutPurchased)
             world.setMarketStyle(state.marketStylePurchased, state.marketStyleId)
             marketStylePreviewing = false
             marketStylePreviewIndex = 0

@@ -17,6 +17,7 @@ Economy.AISLE_EXPANSION_COST = 220
 Economy.FLOOR_EXPANSION_COST = 500
 Economy.BAKERY_DEPARTMENT_COST = 350
 Economy.FREEZER_DEPARTMENT_COST = 400
+Economy.SELF_CHECKOUT_COST = 300
 Economy.MARKET_STYLE_PRESETS = {
     coastal = { name = "Coastal Market", cost = 180 },
     urban = { name = "City Grocer", cost = 180 },
@@ -193,6 +194,7 @@ function Economy.newState(profile, playerSeed)
         floorExpansionPurchased = upgrades.floorExpansion or false,
         bakeryPurchased = upgrades.bakery or false,
         freezerPurchased = upgrades.freezer or false,
+        selfCheckoutPurchased = upgrades.selfCheckout or false,
         warehouseLayout = warehouseLayout,
         retailLayout = RetailLayoutService.normalize(
             profile.retailLayout,
@@ -1431,6 +1433,24 @@ function Economy.buyFreezerDepartment(state)
     state.freezerPurchased = true
     state.frozenMealBackstock = math.max(state.frozenMealBackstock or 0, 6)
     return true, "Freezer section built! Freezer Meals are ready for stocking."
+end
+
+function Economy.buySelfCheckout(state)
+    if
+        state.stage ~= "Complete"
+        or not state.floorExpansionPurchased
+        or not state.warehousePurchased
+        or state.selfCheckoutPurchased
+    then
+        return false, "Self-checkout is available after building the rear wing and warehouse."
+    end
+    if state.cash < Economy.SELF_CHECKOUT_COST then
+        return false,
+            string.format("You need $%d to install self-checkout.", Economy.SELF_CHECKOUT_COST)
+    end
+    state.cash -= Economy.SELF_CHECKOUT_COST
+    state.selfCheckoutPurchased = true
+    return true, "Self-checkout installed! Shoppers can now use the second checkout lane."
 end
 
 return Economy

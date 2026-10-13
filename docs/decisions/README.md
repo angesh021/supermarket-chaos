@@ -244,6 +244,11 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Consequences:** Invalid/flood requests cannot amplify rejection traffic; valid server-authoritative layout actions and profile storage remain unchanged.
 - **Verification:** See `docs/operations/PHASE42_LAYOUT_REMOTE_HARDENING.md`.
 
+## ADR-0041: Add a server-owned self-checkout lane
+- **Decision:** Add a persistent second terminal after rear-wing/warehouse ownership, alternate customers by server index, and use the existing atomic sale transition for both lanes.
+- **Consequences:** Profile schema v26 stores one validated purchase flag; client lane choice and transaction authority are not introduced.
+- **Verification:** See `docs/operations/PHASE43_SELF_CHECKOUT.md`.
+
 ## ADR-0009 — Keep product inventory and supplier orders SKU-specific
 - **Status:** Accepted — 2026-10-12.
 - **Context:** The retail loop needs visible department variety and product-specific stock behavior while keeping stock and money authoritative.

@@ -6,7 +6,7 @@ local ProfileService = {}
 local LayoutService = require(script.Parent.LayoutService)
 local RetailLayoutService = require(script.Parent.RetailLayoutService)
 
-local SCHEMA_VERSION = 25
+local SCHEMA_VERSION = 26
 local SESSION_LEASE_SECONDS = 180
 local MAX_RETRIES = 3
 local STORE_NAME = "SupermarketChaos_PlayerProfiles_v1"
@@ -53,6 +53,7 @@ local function defaultProfile()
             floorExpansion = false,
             bakery = false,
             freezer = false,
+            selfCheckout = false,
             marketStyleId = "",
         },
         hiredEmployees = {
@@ -205,6 +206,7 @@ local function normalizeProfile(value)
             ) ~= "boolean")
             or (value.ownedUpgrades.bakery ~= nil and type(value.ownedUpgrades.bakery) ~= "boolean")
             or (value.ownedUpgrades.freezer ~= nil and type(value.ownedUpgrades.freezer) ~= "boolean")
+            or (value.ownedUpgrades.selfCheckout ~= nil and type(value.ownedUpgrades.selfCheckout) ~= "boolean")
             or (value.ownedUpgrades.marketStyleId ~= nil and value.ownedUpgrades.marketStyleId ~= "" and value.ownedUpgrades.marketStyleId ~= "coastal" and value.ownedUpgrades.marketStyleId ~= "urban" and value.ownedUpgrades.marketStyleId ~= "harvest")
             or (
                 value.ownedUpgrades.marketStyle ~= nil
@@ -220,6 +222,7 @@ local function normalizeProfile(value)
         profile.ownedUpgrades.floorExpansion = value.ownedUpgrades.floorExpansion == true
         profile.ownedUpgrades.bakery = value.ownedUpgrades.bakery == true
         profile.ownedUpgrades.freezer = value.ownedUpgrades.freezer == true
+        profile.ownedUpgrades.selfCheckout = value.ownedUpgrades.selfCheckout == true
         local savedStyleId = value.ownedUpgrades.marketStyleId
         if savedStyleId == "coastal" or savedStyleId == "urban" or savedStyleId == "harvest" then
             profile.ownedUpgrades.marketStyleId = savedStyleId
@@ -247,6 +250,12 @@ local function normalizeProfile(value)
         and (not profile.ownedUpgrades.bakery or not profile.ownedUpgrades.floorExpansion)
     then
         return nil, "Stored freezer section exists without its bakery and rear wing prerequisites."
+    end
+    if
+        profile.ownedUpgrades.selfCheckout
+        and (not profile.ownedUpgrades.floorExpansion or not profile.ownedUpgrades.warehouse)
+    then
+        return nil, "Stored self-checkout exists without its rear wing and warehouse prerequisites."
     end
     local normalizedLayout, layoutError =
         LayoutService.normalize(value.warehouseLayout, profile.ownedUpgrades.warehouse)
@@ -565,6 +574,7 @@ local function copyProfile(profile)
             floorExpansion = profile.ownedUpgrades.floorExpansion,
             bakery = profile.ownedUpgrades.bakery,
             freezer = profile.ownedUpgrades.freezer,
+            selfCheckout = profile.ownedUpgrades.selfCheckout,
             marketStyleId = profile.ownedUpgrades.marketStyleId,
         },
         hiredEmployees = {
@@ -840,6 +850,7 @@ function ProfileService.saveProgress(player, state, eventName)
     profile.ownedUpgrades.floorExpansion = state.floorExpansionPurchased
     profile.ownedUpgrades.bakery = state.bakeryPurchased
     profile.ownedUpgrades.freezer = state.freezerPurchased
+    profile.ownedUpgrades.selfCheckout = state.selfCheckoutPurchased
     profile.ownedUpgrades.marketStyleId = state.marketStyleId
     profile.warehouseLayout = state.warehouseLayout
     profile.retailLayout = RetailLayoutService.normalize(

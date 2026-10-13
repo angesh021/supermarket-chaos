@@ -894,11 +894,81 @@ function WorldBuilder.build()
             )
         end
     end
+    local selfCheckoutModel = Instance.new("Model")
+    selfCheckoutModel.Name = "Self Checkout Terminal"
+    selfCheckoutModel.Parent = checkoutModel
+    local function selfCheckoutPart(name, size, cframe, color, material, transparency)
+        local item = part(selfCheckoutModel, name, size, cframe, color, material, transparency)
+        item.CanCollide = false
+        return item
+    end
+    selfCheckoutPart(
+        "Self Checkout Terminal Base",
+        Vector3.new(2.5, 0.4, 1.8),
+        CFrame.new(10.8, 3.03, 7.95),
+        COLORS.wood,
+        Enum.Material.WoodPlanks,
+        1
+    )
+    local selfCheckoutScanner = selfCheckoutPart(
+        "Self Checkout Scanner",
+        Vector3.new(0.65, 0.12, 0.62),
+        CFrame.new(10.85, 3.3, 7.5),
+        COLORS.green,
+        Enum.Material.Neon,
+        1
+    )
+    local selfCheckoutDisplay = selfCheckoutPart(
+        "Self Checkout Screen",
+        Vector3.new(0.95, 0.72, 0.14),
+        CFrame.new(10.8, 3.75, 7.15),
+        COLORS.ink,
+        Enum.Material.SmoothPlastic,
+        1
+    )
+    local selfCheckoutGui = Instance.new("SurfaceGui")
+    selfCheckoutGui.Name = "SelfCheckoutDisplayGui"
+    selfCheckoutGui.Face = Enum.NormalId.Back
+    selfCheckoutGui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+    selfCheckoutGui.PixelsPerStud = 48
+    selfCheckoutGui.Enabled = false
+    selfCheckoutGui.Parent = selfCheckoutDisplay
+    local selfCheckoutText = Instance.new("TextLabel")
+    selfCheckoutText.Size = UDim2.fromScale(1, 1)
+    selfCheckoutText.BackgroundTransparency = 1
+    selfCheckoutText.Text = "SELF CHECKOUT\nREADY"
+    selfCheckoutText.TextColor3 = COLORS.warmWhite
+    selfCheckoutText.Font = Enum.Font.GothamBold
+    selfCheckoutText.TextScaled = true
+    selfCheckoutText.Parent = selfCheckoutGui
+    local selfCheckoutSign = label(
+        selfCheckoutModel,
+        "Self Checkout Lane Sign",
+        "SELF CHECKOUT  •  LANE 02",
+        Vector3.new(4.2, 0.85, 0.24),
+        CFrame.new(10.8, 5.35, 7.4),
+        COLORS.green,
+        COLORS.warmWhite
+    )
+    selfCheckoutSign.Transparency = 1
+    local selfCheckoutSignGui = selfCheckoutSign:FindFirstChildOfClass("SurfaceGui")
+    if selfCheckoutSignGui then
+        selfCheckoutSignGui.Enabled = false
+    end
+    local selfCheckoutPrompt = prompt(
+        selfCheckoutScanner,
+        "Serve Customer",
+        "Self-Checkout • Lane 02",
+        "SelfCheckout",
+        9
+    )
+    selfCheckoutPrompt.Enabled = false
     checkoutModel.PrimaryPart = counter
     checkoutModel:PivotTo(CFrame.new(14, 1.7, 8))
     local currentStage = "Loading"
     local aisleExpansionPurchased = false
     local floorExpansionPurchased = false
+    local selfCheckoutPurchased = false
     local floorExpansionModel
     local customerModels = {}
     local customerColors = {
@@ -909,12 +979,18 @@ function WorldBuilder.build()
         { COLORS.paleGreen, COLORS.wood, COLORS.coral },
     }
     local customerPositions = {}
+    local selfCheckoutQueuePositions = {}
     local queueOffsets = {
         Vector3.new(3.5, -1.25, -4),
         Vector3.new(3.5, -1.25, 0),
         Vector3.new(3.5, -1.25, 4),
         Vector3.new(3.5, -1.25, 7),
         Vector3.new(0, -1.25, 7),
+    }
+    local selfCheckoutQueueOffsets = {
+        Vector3.new(-3.5, -1.25, -4),
+        Vector3.new(-3.5, -1.25, 0),
+        Vector3.new(-3.5, -1.25, 4),
     }
     local cashierModel
     local function checkoutLocalPosition(offset)
@@ -924,6 +1000,9 @@ function WorldBuilder.build()
         checkoutModel:PivotTo(CFrame.new(x, 1.7, z) * CFrame.Angles(0, math.rad(rotation), 0))
         for index, offset in ipairs(queueOffsets) do
             customerPositions[index] = checkoutLocalPosition(offset)
+        end
+        for index, offset in ipairs(selfCheckoutQueueOffsets) do
+            selfCheckoutQueuePositions[index] = checkoutLocalPosition(offset)
         end
         if moveModels then
             for index, entry in ipairs(customerModels) do
@@ -994,6 +1073,30 @@ function WorldBuilder.build()
     local customerTotal = 0
     local checkoutReady = false
     local checkoutReadyAt = 0
+    local function customerLaneFor(index)
+        return selfCheckoutPurchased and index % 2 == 1 and "SelfCheckout" or "Checkout"
+    end
+    local function customerQueuePosition(index, served)
+        local lane = customerLaneFor(index)
+        local lanePosition = 1
+        for previousIndex = served + 1, index - 1 do
+            if customerLaneFor(previousIndex) == lane then
+                lanePosition += 1
+            end
+        end
+        local positions = lane == "SelfCheckout" and selfCheckoutQueuePositions or customerPositions
+        return positions[lanePosition] or positions[#positions]
+    end
+    local function updateCheckoutPrompts()
+        local stageAllowsCheckout = currentStage == "Checkout" or currentStage == "CustomerRush"
+        local activeIndex = customerTotal - (remainingCustomers or 0) + 1
+        local selfCheckoutActive = selfCheckoutPurchased
+            and remainingCustomers ~= nil
+            and remainingCustomers > 0
+            and activeIndex % 2 == 1
+        register.Enabled = stageAllowsCheckout and checkoutReady and not selfCheckoutActive
+        selfCheckoutPrompt.Enabled = stageAllowsCheckout and checkoutReady and selfCheckoutActive
+    end
     local function cancelCustomerFlow()
         customerFlowVersion += 1
         for _, tween in pairs(customerFlowTweens) do
@@ -1093,7 +1196,7 @@ function WorldBuilder.build()
         return true
     end
 
-    local function runCustomerVisit(entry, queuePosition, queueNumber, flowVersion)
+    local function runCustomerVisit(entry, queuePosition, queueNumber, flowVersion, checkoutLane)
         if queueNumber > 1 then
             task.wait((queueNumber - 1) * 1.1)
         end
@@ -1124,10 +1227,11 @@ function WorldBuilder.build()
                 return
             end
         end
+        local laneOffset = checkoutLane == "SelfCheckout" and -3.5 or -5
         if
             not moveCustomer(
                 entry,
-                checkoutLocalPosition(Vector3.new(-5, -1.25, -4)),
+                checkoutLocalPosition(Vector3.new(laneOffset, -1.25, -4)),
                 0.75,
                 flowVersion
             )
@@ -1141,11 +1245,11 @@ function WorldBuilder.build()
         if queueNumber == 1 then
             checkoutReady = true
             checkoutReadyAt = os.clock()
-            register.Enabled = currentStage == "Checkout" or currentStage == "CustomerRush"
+            updateCheckoutPrompts()
         end
     end
 
-    local function runCustomerAdvance(entry, queuePosition, queueNumber, flowVersion)
+    local function runCustomerAdvance(entry, queuePosition, queueNumber, flowVersion, checkoutLane)
         entry.label.Text = string.upper(customerPreferenceName)
             .. " • "
             .. string.upper(customerBasketName)
@@ -1159,9 +1263,10 @@ function WorldBuilder.build()
                 return
             end
         end
+        local laneOffset = checkoutLane == "SelfCheckout" and -3.5 or -5
         local waypoints = {
-            checkoutLocalPosition(Vector3.new(-5, -1.25, 0)),
-            checkoutLocalPosition(Vector3.new(-5, -1.25, -4)),
+            checkoutLocalPosition(Vector3.new(laneOffset, -1.25, 0)),
+            checkoutLocalPosition(Vector3.new(laneOffset, -1.25, -4)),
             queuePosition,
         }
         for _, waypoint in ipairs(waypoints) do
@@ -1173,14 +1278,15 @@ function WorldBuilder.build()
         if queueNumber == 1 then
             checkoutReady = true
             checkoutReadyAt = os.clock()
-            register.Enabled = currentStage == "Checkout" or currentStage == "CustomerRush"
+            updateCheckoutPrompts()
         end
     end
 
-    local function runCustomerExit(entry, flowVersion)
+    local function runCustomerExit(entry, flowVersion, checkoutLane)
         entry.label.Text = "THANK YOU!"
+        local laneOffset = checkoutLane == "SelfCheckout" and -3.5 or -5
         local waypoints = {
-            checkoutLocalPosition(Vector3.new(-5, -1.25, -4)),
+            checkoutLocalPosition(Vector3.new(laneOffset, -1.25, -4)),
             Vector3.new(0, 0.45, 13),
             Vector3.new(0, 0.45, 22),
         }
@@ -1207,7 +1313,7 @@ function WorldBuilder.build()
             local visible = index > served and index <= customerTotal
             if visible then
                 local queueNumber = index - served
-                local targetPosition = customerPositions[queueNumber]
+                local targetPosition = customerQueuePosition(index, served)
                 entry.model:PivotTo(entry.homePivot + (targetPosition - entry.homePosition))
                 entry.label.Text = customerQueueStatus(queueNumber)
             end
@@ -1220,8 +1326,7 @@ function WorldBuilder.build()
         end
         checkoutReady = (remainingCustomers or 0) > 0
         checkoutReadyAt = checkoutReady and os.clock() or 0
-        register.Enabled = (currentStage == "Checkout" or currentStage == "CustomerRush")
-            and checkoutReady
+        updateCheckoutPrompts()
     end
 
     local function setCustomerCount(count, targetCount)
@@ -1243,7 +1348,7 @@ function WorldBuilder.build()
             customerTotal = 0
             checkoutReady = false
             checkoutReadyAt = 0
-            register.Enabled = false
+            updateCheckoutPrompts()
             for _, entry in ipairs(customerModels) do
                 for _, item in ipairs(entry.model:GetDescendants()) do
                     if item:IsA("BasePart") then
@@ -1264,7 +1369,7 @@ function WorldBuilder.build()
         customerTotal = target
         checkoutReady = false
         checkoutReadyAt = 0
-        register.Enabled = false
+        updateCheckoutPrompts()
         cancelCustomerFlow()
         local flowVersion = customerFlowVersion
         local served = target - remaining
@@ -1289,7 +1394,7 @@ function WorldBuilder.build()
             local servedIndex = previousTotal - previousRemaining + 1
             local servedEntry = customerModels[servedIndex]
             if servedEntry then
-                task.spawn(runCustomerExit, servedEntry, flowVersion)
+                task.spawn(runCustomerExit, servedEntry, flowVersion, customerLaneFor(servedIndex))
             end
         elseif not previousRemaining then
             for index = 1, served do
@@ -1306,16 +1411,16 @@ function WorldBuilder.build()
         for index = served + 1, target do
             local entry = customerModels[index]
             local queueNumber = index - served
-            local homePosition = customerPositions[index]
+            local lane = customerLaneFor(index)
+            local queuePosition = customerQueuePosition(index, served)
             if previousRemaining == nil or index > previousTotal then
                 local spawnPosition = Vector3.new((index - 2) * 1.7, 0.45, 22)
                 entry.model:PivotTo(entry.homePivot + (spawnPosition - entry.homePosition))
             end
-            local queuePosition = customerPositions[queueNumber] or homePosition
             if previousRemaining == nil or index > previousTotal then
-                task.spawn(runCustomerVisit, entry, queuePosition, queueNumber, flowVersion)
+                task.spawn(runCustomerVisit, entry, queuePosition, queueNumber, flowVersion, lane)
             else
-                task.spawn(runCustomerAdvance, entry, queuePosition, queueNumber, flowVersion)
+                task.spawn(runCustomerAdvance, entry, queuePosition, queueNumber, flowVersion, lane)
             end
         end
         if remaining > 0 then
@@ -1820,6 +1925,14 @@ function WorldBuilder.build()
     local floorExpansionPrompt =
         prompt(floorExpansionPad, "Build Rear Wing ($500)", "Store Expansion", "FloorExpansion", 10)
     floorExpansionPrompt.Enabled = false
+    local selfCheckoutBuildPrompt = prompt(
+        floorExpansionPad,
+        "Install Self-Checkout ($300)",
+        "Second Checkout Lane",
+        "BuildSelfCheckout",
+        10
+    )
+    selfCheckoutBuildPrompt.Enabled = false
     local bakeryExpansionPad = part(
         interior,
         "Bakery Department Pad",
@@ -2749,7 +2862,7 @@ function WorldBuilder.build()
             and stage ~= "Spill"
             and stage ~= "CloseShift"
             and stage ~= "Complete"
-        register.Enabled = (stage == "Checkout" or stage == "CustomerRush") and checkoutReady
+        updateCheckoutPrompts()
         closePrompt.Enabled = stage == "CloseShift"
         spillPrompt.Enabled = stage == "Spill"
         powerPrompt.Enabled = stage == "PowerOutage"
@@ -2763,16 +2876,25 @@ function WorldBuilder.build()
         floorExpansionPrompt.Enabled = stage == "Complete"
             and aisleExpansionPurchased
             and not floorExpansionPurchased
+        selfCheckoutBuildPrompt.Enabled = stage == "Complete"
+            and floorExpansionPurchased
+            and warehousePurchased
+            and not selfCheckoutPurchased
         local floorSignSurface = floorExpansionSign:FindFirstChildOfClass("SurfaceGui")
         local floorSignText = floorSignSurface
             and floorSignSurface:FindFirstChildOfClass("TextLabel")
         if floorSignText then
-            floorSignText.Text = floorExpansionPurchased and "REAR MARKET WING\nBUILT"
-                or (floorExpansionPrompt.Enabled and "REAR MARKET WING\n$500")
-                or (aisleExpansionPurchased and "REAR MARKET WING\nNEXT" or "REAR WING\nLOCKED")
+            floorSignText.Text = selfCheckoutPurchased and "SELF CHECKOUT\nINSTALLED"
+                or (selfCheckoutBuildPrompt.Enabled and "SELF CHECKOUT\n$300")
+                or (
+                    floorExpansionPurchased and "REAR MARKET WING\nBUILT"
+                    or (floorExpansionPrompt.Enabled and "REAR MARKET WING\n$500")
+                    or (aisleExpansionPurchased and "REAR MARKET WING\nNEXT" or "REAR WING\nLOCKED")
+                )
         end
-        floorExpansionPad.Transparency = floorExpansionPurchased and 1 or 0
-        floorExpansionPad.CanCollide = not floorExpansionPurchased
+        local expansionPadVisible = not floorExpansionPurchased or selfCheckoutBuildPrompt.Enabled
+        floorExpansionPad.Transparency = expansionPadVisible and 0 or 1
+        floorExpansionPad.CanCollide = expansionPadVisible
         bakeryDepartmentPrompt.Enabled = stage == "Complete"
             and floorExpansionPurchased
             and warehousePurchased
@@ -3026,6 +3148,19 @@ function WorldBuilder.build()
         setCustomerVisible = setCustomerVisible,
         setCustomerCount = setCustomerCount,
         registerPrompt = register,
+        selfCheckoutPrompt = selfCheckoutPrompt,
+        selfCheckoutBuildPrompt = selfCheckoutBuildPrompt,
+        setSelfCheckoutPurchased = function(purchased)
+            selfCheckoutPurchased = purchased == true
+            for _, item in ipairs(selfCheckoutModel:GetDescendants()) do
+                if item:IsA("BasePart") then
+                    item.Transparency = selfCheckoutPurchased and 0 or 1
+                elseif item:IsA("SurfaceGui") then
+                    item.Enabled = selfCheckoutPurchased
+                end
+            end
+            updateCheckoutPrompts()
+        end,
         isCheckoutReady = function()
             return checkoutReady
         end,
