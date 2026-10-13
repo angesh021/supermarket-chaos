@@ -145,6 +145,12 @@ Currency and stock changes occur only after server-side validation. Transactions
 - Customer browse targets are recalculated from the saved product fixture position. Unknown IDs, arbitrary instances, invalid grid coordinates and cross-location requests are rejected.
 - See `operations/PHASE63_EXPANSION_DEPARTMENT_LAYOUT.md`; Studio movement, routing, migration, permissions and mobile checks remain pending.
 
+## Phase 64 purchased retail fixtures
+
+- Retail layout v4 stores transforms for the owned extra shelf bay and household aisle. Profile schema is unchanged and older retail layouts receive default fixture records.
+- The server validates purchase ownership and placement against merchandise shelves, checkout queue, rear departments and the other purchased fixture before pivoting the existing world model.
+- See `operations/PHASE64_MOVABLE_CORE_FIXTURES.md`; Studio movement, migration, multiplayer and touch checks remain pending.
+
 ## Phase 4 employee payroll
 - `Economy.getShiftPayroll` totals fixed wages from server-owned employee hire flags. Automation pause state does not alter employment.
 - `Economy.closeShift` credits the existing shift bonus and deducts the computed wages exactly once after validating the closeout stage/flag. Existing profile serialization persists only the resulting balance; schema v17 is unchanged.

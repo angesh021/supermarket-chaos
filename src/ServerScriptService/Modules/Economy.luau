@@ -239,7 +239,9 @@ function Economy.newState(profile, playerSeed, companyWallet)
             profile.retailLayout,
             upgrades.floorExpansion == true,
             upgrades.bakery == true,
-            upgrades.freezer == true
+            upgrades.freezer == true,
+            upgrades.shelfBay == true,
+            upgrades.aisleExpansion == true
         ) or RetailLayoutService.default(),
         cashierHired = (profile.hiredEmployees and profile.hiredEmployees.cashier) or false,
         stockerHired = (profile.hiredEmployees and profile.hiredEmployees.stocker) or false,
@@ -1902,8 +1904,14 @@ function Economy.buyBakeryDepartment(state)
                 Economy.BAKERY_DEPARTMENT_COST
             )
     end
-    local compatibleLayout, layoutError =
-        RetailLayoutService.normalize(state.retailLayout, state.floorExpansionPurchased, true)
+    local compatibleLayout, layoutError = RetailLayoutService.normalize(
+        state.retailLayout,
+        state.floorExpansionPurchased,
+        true,
+        state.freezerPurchased,
+        state.upgradePurchased,
+        state.aisleExpansionPurchased
+    )
     if not compatibleLayout then
         return false,
             "Move the rear shelf out of the bakery build zone first. " .. tostring(layoutError)
@@ -1935,7 +1943,9 @@ function Economy.buyFreezerDepartment(state)
         state.retailLayout,
         state.floorExpansionPurchased,
         state.bakeryPurchased,
-        true
+        true,
+        state.upgradePurchased,
+        state.aisleExpansionPurchased
     )
     if not compatibleLayout then
         return false,

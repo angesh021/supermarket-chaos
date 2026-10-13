@@ -344,6 +344,11 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Consequences:** Server-built fixture models carry their current prompts, signs, stock visuals and pricing tags; coordinates remain bounded to the expanded store floor and persist per location.
 - **Verification:** See `docs/operations/PHASE63_EXPANSION_DEPARTMENT_LAYOUT.md`.
 
+## ADR-0061: Move purchased core store fixtures
+- **Decision:** Persist and server-validate movement of the purchased shelf bay and household aisle in retail layout version 4.
+- **Consequences:** Fixture models and signs move together; all existing merchandise, department and checkout collision checks account for owned fixtures.
+- **Verification:** See `docs/operations/PHASE64_MOVABLE_CORE_FIXTURES.md`.
+
 ## ADR-0009 — Keep product inventory and supplier orders SKU-specific
 - **Status:** Accepted — 2026-10-12.
 - **Context:** The retail loop needs visible department variety and product-specific stock behavior while keeping stock and money authoritative.

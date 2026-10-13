@@ -1,7 +1,7 @@
 -- Pure validation for movable customer-facing department shelves.
 local RetailLayoutService = {}
 
-RetailLayoutService.VERSION = 3
+RetailLayoutService.VERSION = 4
 RetailLayoutService.CORE_PRODUCT_IDS = {
     "citrusPop",
     "berryBites",
@@ -17,6 +17,7 @@ RetailLayoutService.PRODUCT_IDS = {
     "cinnamonTwists",
     "frozenMeals",
 }
+RetailLayoutService.FIXTURE_IDS = { "shelfBay", "householdAisle" }
 
 local DEFAULT_SHELVES = {
     citrusPop = { x = -10, z = -1, rotation = 0 },
@@ -28,6 +29,10 @@ local DEFAULT_CHECKOUT = { x = 14, z = 8, rotation = 0 }
 local DEFAULT_EXPANSION_DEPARTMENTS = {
     cinnamonTwists = { x = 16, z = -29, rotation = 0 },
     frozenMeals = { x = 6, z = -29, rotation = 0 },
+}
+local DEFAULT_FIXTURES = {
+    shelfBay = { x = -16, z = -8, rotation = 0 },
+    householdAisle = { x = 16, z = -8, rotation = 0 },
 }
 
 local function finiteNumber(value)
@@ -61,6 +66,15 @@ function RetailLayoutService.isCoreProductId(value)
     return false
 end
 
+function RetailLayoutService.isFixtureId(value)
+    for _, fixtureId in ipairs(RetailLayoutService.FIXTURE_IDS) do
+        if fixtureId == value then
+            return true
+        end
+    end
+    return false
+end
+
 local function validGrid(value, minimum, maximum)
     return finiteNumber(value)
         and value % 1 == 0
@@ -75,6 +89,10 @@ local function halfFootprint(productId, rotation)
         return width / 2, 1.1
     end
     return 1.1, width / 2
+end
+
+local function retailFixtureHalfFootprint(rotation)
+    return rotation == 0 and 4 or 1.2, rotation == 0 and 1.2 or 4
 end
 
 local function overlaps(x, z, productId, rotation, otherX, otherZ, otherProductId, otherRotation)
@@ -161,7 +179,15 @@ local function checkoutEnvelope(x, z, rotation)
     return minX, maxX, minZ, maxZ
 end
 
-local function canPlaceCheckout(shelves, x, z, rotation)
+local function canPlaceCheckout(
+    shelves,
+    x,
+    z,
+    rotation,
+    fixtures,
+    shelfBayPurchased,
+    householdAislePurchased
+)
     if not validGrid(x, -14, 14) or not validGrid(z, 6, 12) then
         return false, "Choose a snapped checkout position inside the marked front-floor zone."
     end
@@ -181,6 +207,21 @@ local function canPlaceCheckout(shelves, x, z, rotation)
             and maxZ > shelf.z - halfZ - 0.25
         then
             return false, "Keep the checkout lane and queue clear of department shelves."
+        end
+    end
+    for fixtureId, placement in pairs(fixtures or {}) do
+        local owned = fixtureId == "shelfBay" and shelfBayPurchased == true
+            or fixtureId == "householdAisle" and householdAislePurchased == true
+        if owned then
+            local fixtureHalfX, fixtureHalfZ = retailFixtureHalfFootprint(placement.rotation)
+            if
+                minX < placement.x + fixtureHalfX + 0.25
+                and maxX > placement.x - fixtureHalfX - 0.25
+                and minZ < placement.z + fixtureHalfZ + 0.25
+                and maxZ > placement.z - fixtureHalfZ - 0.25
+            then
+                return false, "Keep checkout and its queue clear of purchased fixtures."
+            end
         end
     end
     -- The produce island occupies the front-left of the store. The layout station is at the far left.
@@ -222,16 +263,35 @@ function RetailLayoutService.default()
                 rotation = DEFAULT_EXPANSION_DEPARTMENTS.frozenMeals.rotation,
             },
         },
+        fixtures = {
+            shelfBay = {
+                x = DEFAULT_FIXTURES.shelfBay.x,
+                z = DEFAULT_FIXTURES.shelfBay.z,
+                rotation = DEFAULT_FIXTURES.shelfBay.rotation,
+            },
+            householdAisle = {
+                x = DEFAULT_FIXTURES.householdAisle.x,
+                z = DEFAULT_FIXTURES.householdAisle.z,
+                rotation = DEFAULT_FIXTURES.householdAisle.rotation,
+            },
+        },
     }
 end
 
-function RetailLayoutService.normalize(value, expansionPurchased, bakeryPurchased, freezerPurchased)
+function RetailLayoutService.normalize(
+    value,
+    expansionPurchased,
+    bakeryPurchased,
+    freezerPurchased,
+    shelfBayPurchased,
+    householdAislePurchased
+)
     if value == nil then
         return RetailLayoutService.default()
     end
     if
         type(value) ~= "table"
-        or (value.version ~= 1 and value.version ~= 2 and value.version ~= RetailLayoutService.VERSION)
+        or (value.version ~= 1 and value.version ~= 2 and value.version ~= 3 and value.version ~= RetailLayoutService.VERSION)
         or type(value.shelves) ~= "table"
     then
         return nil, "Stored retail layout is malformed."
@@ -283,6 +343,41 @@ function RetailLayoutService.normalize(value, expansionPurchased, bakeryPurchase
             rotation = source.rotation,
         }
     end
+    if value.fixtures ~= nil and type(value.fixtures) ~= "table" then
+        return nil, "Stored retail fixtures are malformed."
+    end
+    local storedFixtures = type(value.fixtures) == "table" and value.fixtures or {}
+    local fixtureCount = 0
+    for fixtureId in pairs(storedFixtures) do
+        fixtureCount += 1
+        if not RetailLayoutService.isFixtureId(fixtureId) then
+            return nil, "Stored retail layout contains an unknown movable fixture."
+        end
+    end
+    if fixtureCount > #RetailLayoutService.FIXTURE_IDS then
+        return nil, "Stored retail layout contains too many movable fixtures."
+    end
+    for _, fixtureId in ipairs(RetailLayoutService.FIXTURE_IDS) do
+        local source = storedFixtures[fixtureId] or DEFAULT_FIXTURES[fixtureId]
+        if
+            type(source) ~= "table"
+            or not finiteNumber(source.x)
+            or not finiteNumber(source.z)
+            or (source.rotation ~= 0 and source.rotation ~= 90)
+        then
+            return nil, "Stored movable fixture position is malformed."
+        end
+        for key in pairs(source) do
+            if key ~= "x" and key ~= "z" and key ~= "rotation" then
+                return nil, "Stored movable fixture contains an unsupported field."
+            end
+        end
+        normalized.fixtures[fixtureId] = {
+            x = source.x,
+            z = source.z,
+            rotation = source.rotation,
+        }
+    end
     for _, productId in ipairs(RetailLayoutService.CORE_PRODUCT_IDS) do
         local source = value.shelves[productId]
         if type(source) ~= "table" then
@@ -323,8 +418,15 @@ function RetailLayoutService.normalize(value, expansionPurchased, bakeryPurchase
         return nil, "Stored checkout position or rotation is invalid."
     end
     normalized.checkout = { x = checkout.x, z = checkout.z, rotation = checkout.rotation }
-    local checkoutValid, checkoutReason =
-        canPlaceCheckout(normalized.shelves, checkout.x, checkout.z, checkout.rotation)
+    local checkoutValid, checkoutReason = canPlaceCheckout(
+        normalized.shelves,
+        checkout.x,
+        checkout.z,
+        checkout.rotation,
+        normalized.fixtures,
+        shelfBayPurchased,
+        householdAislePurchased
+    )
     if not checkoutValid then
         -- Keep older/default profiles loadable if a former shelf placement occupies the new envelope.
         if value.version == 1 then
@@ -345,7 +447,10 @@ function RetailLayoutService.normalize(value, expansionPurchased, bakeryPurchase
             expansionPurchased,
             bakeryPurchased,
             freezerPurchased,
-            normalized.departments
+            normalized.departments,
+            normalized.fixtures,
+            shelfBayPurchased,
+            householdAislePurchased
         )
         if not shelfValid then
             return nil, shelfReason
@@ -365,8 +470,74 @@ function RetailLayoutService.normalize(value, expansionPurchased, bakeryPurchase
                 expansionPurchased,
                 bakeryPurchased,
                 freezerPurchased,
-                productId
+                productId,
+                shelfBayPurchased,
+                householdAislePurchased
             )
+            if not valid then
+                return nil, reason
+            end
+        end
+    end
+    for _, fixtureId in ipairs(RetailLayoutService.FIXTURE_IDS) do
+        local purchased = fixtureId == "shelfBay" and shelfBayPurchased == true
+            or fixtureId == "householdAisle" and householdAislePurchased == true
+        if purchased then
+            local placement = normalized.fixtures[fixtureId]
+            local valid, reason = RetailLayoutService.canPlaceFixture(
+                normalized,
+                fixtureId,
+                placement.x,
+                placement.z,
+                placement.rotation,
+                bakeryPurchased,
+                freezerPurchased,
+                shelfBayPurchased,
+                householdAislePurchased,
+                fixtureId
+            )
+            if not valid and value.version < RetailLayoutService.VERSION then
+                local originalX, originalZ = placement.x, placement.z
+                local candidates = {}
+                for x = -18, 18, 2 do
+                    for z = -16, -2, 2 do
+                        table.insert(candidates, {
+                            x = x,
+                            z = z,
+                            distance = math.abs(x - originalX) + math.abs(z - originalZ),
+                        })
+                    end
+                end
+                table.sort(candidates, function(left, right)
+                    if left.distance == right.distance then
+                        if left.x == right.x then
+                            return left.z < right.z
+                        end
+                        return left.x < right.x
+                    end
+                    return left.distance < right.distance
+                end)
+                for _, candidate in ipairs(candidates) do
+                    local candidateValid = RetailLayoutService.canPlaceFixture(
+                        normalized,
+                        fixtureId,
+                        candidate.x,
+                        candidate.z,
+                        placement.rotation,
+                        bakeryPurchased,
+                        freezerPurchased,
+                        shelfBayPurchased,
+                        householdAislePurchased,
+                        fixtureId
+                    )
+                    if candidateValid then
+                        placement.x = candidate.x
+                        placement.z = candidate.z
+                        valid = true
+                        break
+                    end
+                end
+            end
             if not valid then
                 return nil, reason
             end
@@ -393,7 +564,9 @@ function RetailLayoutService.canPlaceDepartment(
     expansionPurchased,
     bakeryPurchased,
     freezerPurchased,
-    excludedProductId
+    excludedProductId,
+    shelfBayPurchased,
+    householdAislePurchased
 )
     if not RetailLayoutService.isExpansionProductId(productId) then
         return false, "Choose a built bakery or freezer department."
@@ -447,6 +620,19 @@ function RetailLayoutService.canPlaceDepartment(
             return false, "Keep expansion departments clear of other product shelves."
         end
     end
+    for fixtureId, placement in pairs(layout.fixtures or {}) do
+        local fixtureOwned = fixtureId == "shelfBay" and shelfBayPurchased == true
+            or fixtureId == "householdAisle" and householdAislePurchased == true
+        if fixtureOwned then
+            local fixtureHalfX, fixtureHalfZ = retailFixtureHalfFootprint(placement.rotation)
+            if
+                math.abs(x - placement.x) < halfX + fixtureHalfX + 0.25
+                and math.abs(z - placement.z) < halfZ + fixtureHalfZ + 0.25
+            then
+                return false, "Keep expansion departments clear of the purchased shelf fixtures."
+            end
+        end
+    end
     for otherProductId, other in pairs(fixtureLayout) do
         local otherOwned = otherProductId == "cinnamonTwists" and bakeryPurchased
             or otherProductId == "frozenMeals" and freezerPurchased
@@ -463,6 +649,95 @@ function RetailLayoutService.canPlaceDepartment(
     return true
 end
 
+function RetailLayoutService.canPlaceFixture(
+    layout,
+    fixtureId,
+    x,
+    z,
+    rotation,
+    bakeryPurchased,
+    freezerPurchased,
+    shelfBayPurchased,
+    householdAislePurchased,
+    excludedFixtureId
+)
+    if not RetailLayoutService.isFixtureId(fixtureId) then
+        return false, "Choose a purchased shelf bay or household aisle."
+    end
+    local owned = fixtureId == "shelfBay" and shelfBayPurchased == true
+        or fixtureId == "householdAisle" and householdAislePurchased == true
+    if not owned then
+        return false, "Build this fixture before moving it."
+    end
+    if
+        not finiteNumber(x)
+        or not finiteNumber(z)
+        or x % 1 ~= 0
+        or z % 1 ~= 0
+        or x < -18
+        or x > 18
+        or x % 2 ~= 0
+        or z < -16
+        or z > -2
+        or (z + 16) % 2 ~= 0
+        or (rotation ~= 0 and rotation ~= 90)
+    then
+        return false, "Choose a snapped position and 0 or 90 degree rotation on the main floor."
+    end
+    local halfX, halfZ = retailFixtureHalfFootprint(rotation)
+    if x - halfX < -20.5 or x + halfX > 20.5 or z - halfZ < -18.5 or z + halfZ > 16.5 then
+        return false, "Keep the fixture inside the main store floor."
+    end
+    local minX, maxX, minZ, maxZ =
+        checkoutEnvelope(layout.checkout.x, layout.checkout.z, layout.checkout.rotation)
+    if
+        x - halfX < maxX + 0.25
+        and x + halfX > minX - 0.25
+        and z - halfZ < maxZ + 0.25
+        and z + halfZ > minZ - 0.25
+    then
+        return false, "Keep the fixture clear of checkout and its customer queue."
+    end
+    for _, productId in ipairs(RetailLayoutService.CORE_PRODUCT_IDS) do
+        local shelf = layout.shelves[productId]
+        local shelfHalfX, shelfHalfZ = halfFootprint(productId, shelf.rotation)
+        if
+            math.abs(x - shelf.x) < halfX + shelfHalfX + 0.25
+            and math.abs(z - shelf.z) < halfZ + shelfHalfZ + 0.25
+        then
+            return false, "Keep fixtures clear of product department shelves."
+        end
+    end
+    for productId, placement in pairs(layout.departments or {}) do
+        local departmentOwned = productId == "cinnamonTwists" and bakeryPurchased == true
+            or productId == "frozenMeals" and freezerPurchased == true
+        if departmentOwned then
+            local departmentHalfX, departmentHalfZ =
+                departmentFootprint(productId, placement.rotation)
+            if
+                math.abs(x - placement.x) < halfX + departmentHalfX + 0.25
+                and math.abs(z - placement.z) < halfZ + departmentHalfZ + 0.25
+            then
+                return false, "Keep fixtures clear of the bakery and freezer departments."
+            end
+        end
+    end
+    for otherFixtureId, placement in pairs(layout.fixtures or {}) do
+        local otherOwned = otherFixtureId == "shelfBay" and shelfBayPurchased == true
+            or otherFixtureId == "householdAisle" and householdAislePurchased == true
+        if otherOwned and otherFixtureId ~= excludedFixtureId then
+            local otherHalfX, otherHalfZ = retailFixtureHalfFootprint(placement.rotation)
+            if
+                math.abs(x - placement.x) < halfX + otherHalfX + 0.25
+                and math.abs(z - placement.z) < halfZ + otherHalfZ + 0.25
+            then
+                return false, "Keep purchased fixtures from overlapping."
+            end
+        end
+    end
+    return true
+end
+
 function RetailLayoutService.canPlace(
     shelves,
     productId,
@@ -473,7 +748,10 @@ function RetailLayoutService.canPlace(
     expansionPurchased,
     bakeryPurchased,
     freezerPurchased,
-    departments
+    departments,
+    fixtures,
+    shelfBayPurchased,
+    householdAislePurchased
 )
     local valid, reason =
         canPlace(shelves, productId, x, z, rotation, productId, expansionPurchased)
@@ -494,6 +772,20 @@ function RetailLayoutService.canPlace(
             end
         end
     end
+    for fixtureId, placement in pairs(fixtures or {}) do
+        local fixtureOwned = fixtureId == "shelfBay" and shelfBayPurchased == true
+            or fixtureId == "householdAisle" and householdAislePurchased == true
+        if fixtureOwned then
+            local halfX, halfZ = retailFixtureHalfFootprint(placement.rotation)
+            local shelfHalfX, shelfHalfZ = halfFootprint(productId, rotation)
+            if
+                math.abs(x - placement.x) < halfX + shelfHalfX + 0.25
+                and math.abs(z - placement.z) < halfZ + shelfHalfZ + 0.25
+            then
+                return false, "Keep product shelves clear of purchased fixtures."
+            end
+        end
+    end
     if type(checkout) == "table" then
         local minX, maxX, minZ, maxZ = checkoutEnvelope(checkout.x, checkout.z, checkout.rotation)
         local halfX, halfZ = halfFootprint(productId, rotation)
@@ -509,8 +801,24 @@ function RetailLayoutService.canPlace(
     return true
 end
 
-function RetailLayoutService.canPlaceCheckout(shelves, x, z, rotation)
-    return canPlaceCheckout(shelves, x, z, rotation)
+function RetailLayoutService.canPlaceCheckout(
+    shelves,
+    x,
+    z,
+    rotation,
+    fixtures,
+    shelfBayPurchased,
+    householdAislePurchased
+)
+    return canPlaceCheckout(
+        shelves,
+        x,
+        z,
+        rotation,
+        fixtures,
+        shelfBayPurchased,
+        householdAislePurchased
+    )
 end
 
 return RetailLayoutService

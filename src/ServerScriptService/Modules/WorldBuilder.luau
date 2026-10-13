@@ -900,6 +900,8 @@ function WorldBuilder.build(locationId, origin)
     local retailDepartmentShelves = {}
     local retailShelfPositions = {}
     local retailShelfPivotHeights = {}
+    local retailBuildFixtures = {}
+    local retailFixturePivotHeights = {}
     local bakeryPurchased = false
     local freezerPurchased = false
     local bakeryModel
@@ -4919,6 +4921,24 @@ function WorldBuilder.build(locationId, origin)
                     end
                 end
             end
+            for fixtureId, fixturePosition in pairs(layout.fixtures or {}) do
+                local model = retailBuildFixtures[fixtureId]
+                if model and type(fixturePosition) == "table" then
+                    local x = fixturePosition.x
+                    local z = fixturePosition.z
+                    local rotation = fixturePosition.rotation
+                    if
+                        type(x) == "number"
+                        and type(z) == "number"
+                        and (rotation == 0 or rotation == 90)
+                    then
+                        local pivotHeight = retailFixturePivotHeights[fixtureId] or 1.2
+                        model:PivotTo(
+                            CFrame.new(x, pivotHeight, z) * CFrame.Angles(0, math.rad(rotation), 0)
+                        )
+                    end
+                end
+            end
             updateCustomerBasketPositions()
         end,
         marketStylePrompt = stylePrompt,
@@ -5072,8 +5092,11 @@ function WorldBuilder.build(locationId, origin)
             end
             local newShelf = createShelf(interior, "Purchased Shelf Bay", -16, -8, 6)
             newShelf:SetAttribute("PlayerPurchased", true)
+            newShelf:SetAttribute("RetailFixtureId", "shelfBay")
+            retailBuildFixtures.shelfBay = newShelf
+            retailFixturePivotHeights.shelfBay = 1.2
             local sign = label(
-                interior,
+                newShelf,
                 "New Department Sign",
                 "MORE TO CHOOSE",
                 Vector3.new(8, 1.2, 0.35),
@@ -5090,8 +5113,11 @@ function WorldBuilder.build(locationId, origin)
             local aisleExpansionModel =
                 createShelf(interior, "Purchased Household Aisle", 16, -8, 6, "HOUSEHOLD")
             aisleExpansionModel:SetAttribute("PlayerPurchased", true)
+            aisleExpansionModel:SetAttribute("RetailFixtureId", "householdAisle")
+            retailBuildFixtures.householdAisle = aisleExpansionModel
+            retailFixturePivotHeights.householdAisle = 1.2
             local sign = label(
-                interior,
+                aisleExpansionModel,
                 "Household Aisle Department Sign",
                 "HOME & EVERYDAY",
                 Vector3.new(7, 1.1, 0.3),

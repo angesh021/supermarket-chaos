@@ -2,7 +2,7 @@
 
 **Start Small. Build Big. Survive the Chaos.**
 
-Roblox cooperative supermarket management game. Phase 63 adds persistent move/rotation controls for purchased bakery and freezer departments; Phase 62 adds an independently managed Uptown branch with a shared company wallet. Roblox Studio multiplayer, layout and persistence verification remain pending. See [project status](docs/PROJECT_STATUS.md), the [Phase 63 checklist](docs/operations/PHASE63_EXPANSION_DEPARTMENT_LAYOUT.md), the [documentation index](docs/README.md), and [master specification](MASTER_SPECIFICATION.md).
+Roblox cooperative supermarket management game. Phase 64 adds persistent move/rotation controls for purchased shelf bay and household aisle fixtures; Phase 63 adds movable bakery and freezer departments. Roblox Studio multiplayer, layout and persistence verification remain pending. See [project status](docs/PROJECT_STATUS.md), the [Phase 64 checklist](docs/operations/PHASE64_MOVABLE_CORE_FIXTURES.md), the [documentation index](docs/README.md), and [master specification](MASTER_SPECIFICATION.md).
 
 GitHub repository supplied by the project owner: [angesh021/supermarket-chaos](https://github.com/angesh021/supermarket-chaos).
 

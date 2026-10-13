@@ -1118,6 +1118,8 @@ function ShiftService.init(event, membershipRemotes, options)
             bakeryPurchased = state.bakeryPurchased,
             freezerPurchased = state.freezerPurchased,
             floorExpansionOwned = state.floorExpansionPurchased,
+            shelfBayPurchased = state.upgradePurchased,
+            householdAislePurchased = state.aisleExpansionPurchased,
         })
     end)
 
@@ -1974,6 +1976,14 @@ function ShiftService.init(event, membershipRemotes, options)
             }
         elseif request.action == "MoveCheckout" then
             allowedKeys = { action = true, x = true, z = true, rotation = true }
+        elseif request.action == "MoveFixture" then
+            allowedKeys = {
+                action = true,
+                fixtureId = true,
+                x = true,
+                z = true,
+                rotation = true,
+            }
         end
         if not allowedKeys or not hasOnlyKeys(request, allowedKeys) then
             return reject("That retail layout request is invalid.")
@@ -2003,7 +2013,10 @@ function ShiftService.init(event, membershipRemotes, options)
                 state.retailLayout.shelves,
                 request.x,
                 request.z,
-                request.rotation
+                request.rotation,
+                state.retailLayout.fixtures,
+                state.upgradePurchased,
+                state.aisleExpansionPurchased
             )
             if not valid then
                 return reject(reason)
@@ -2018,6 +2031,48 @@ function ShiftService.init(event, membershipRemotes, options)
                 ProfileService.saveProgress(ownerPlayer, state, "checkoutLayoutChanged", locationId)
             local resultMessage = saved and "Checkout lane and customer queue moved and saved."
                 or "Checkout lane and customer queue moved for this session; the save was not confirmed."
+            broadcast(resultMessage)
+            retailLayoutRequestEvent:FireClient(player, {
+                action = "Updated",
+                locationId = locationId,
+                layout = state.retailLayout,
+                message = resultMessage,
+            })
+            return
+        end
+
+        if request.action == "MoveFixture" then
+            local fixtureId = request.fixtureId
+            if type(fixtureId) ~= "string" or not RetailLayoutService.isFixtureId(fixtureId) then
+                return reject("Choose one of the purchased shelf fixtures.")
+            end
+            local fixture = state.retailLayout.fixtures[fixtureId]
+            if not fixture then
+                return reject("Build this fixture before moving it.")
+            end
+            local valid, reason = RetailLayoutService.canPlaceFixture(
+                state.retailLayout,
+                fixtureId,
+                request.x,
+                request.z,
+                request.rotation,
+                state.bakeryPurchased,
+                state.freezerPurchased,
+                state.upgradePurchased,
+                state.aisleExpansionPurchased,
+                fixtureId
+            )
+            if not valid then
+                return reject(reason)
+            end
+            fixture.x = request.x
+            fixture.z = request.z
+            fixture.rotation = request.rotation
+            world.setRetailLayout(state.retailLayout)
+            local saved =
+                ProfileService.saveProgress(ownerPlayer, state, "retailLayoutChanged", locationId)
+            local resultMessage = saved and "Store fixture moved and saved."
+                or "Store fixture moved for this session; the save was not confirmed."
             broadcast(resultMessage)
             retailLayoutRequestEvent:FireClient(player, {
                 action = "Updated",
@@ -2048,7 +2103,9 @@ function ShiftService.init(event, membershipRemotes, options)
                 state.floorExpansionPurchased,
                 state.bakeryPurchased,
                 state.freezerPurchased,
-                productId
+                productId,
+                state.upgradePurchased,
+                state.aisleExpansionPurchased
             )
             if not valid then
                 return reject(reason)
@@ -2070,7 +2127,10 @@ function ShiftService.init(event, membershipRemotes, options)
                 state.floorExpansionPurchased,
                 state.bakeryPurchased,
                 state.freezerPurchased,
-                state.retailLayout.departments
+                state.retailLayout.departments,
+                state.retailLayout.fixtures,
+                state.upgradePurchased,
+                state.aisleExpansionPurchased
             )
             if not valid then
                 return reject(reason)

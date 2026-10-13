@@ -392,7 +392,9 @@ local function normalizeProfile(value)
         value.retailLayout,
         profile.ownedUpgrades.floorExpansion,
         profile.ownedUpgrades.bakery,
-        profile.ownedUpgrades.freezer
+        profile.ownedUpgrades.freezer,
+        profile.ownedUpgrades.shelfBay,
+        profile.ownedUpgrades.aisleExpansion
     )
     if not normalizedRetailLayout then
         return nil, retailLayoutError
@@ -968,6 +970,13 @@ local function copyProfile(profile)
             rotation = placement.rotation,
         }
     end
+    for fixtureId, placement in pairs(profile.retailLayout.fixtures or {}) do
+        copy.retailLayout.fixtures[fixtureId] = {
+            x = placement.x,
+            z = placement.z,
+            rotation = placement.rotation,
+        }
+    end
     copy.locations = cloneData(profile.locations)
     return copy
 end
@@ -1274,7 +1283,9 @@ local function applyStateToProfile(profile, state, eventName)
         state.retailLayout,
         state.floorExpansionPurchased,
         state.bakeryPurchased,
-        state.freezerPurchased
+        state.freezerPurchased,
+        state.upgradePurchased,
+        state.aisleExpansionPurchased
     )
     profile.customerSatisfaction = math.min(math.max(state.customerSatisfaction or 75, 0), 100)
     profile.hiredEmployees.cashier = state.cashierHired
