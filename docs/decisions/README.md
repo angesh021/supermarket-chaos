@@ -48,7 +48,7 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 ## ADR-0010 — Bound and recover the checkout power outage
 - **Status:** Accepted — 2026-10-12.
 - **Context:** The master spec calls for manageable chaos events with eligibility, duration, objectives, cleanup and safe recovery.
-- **Decision:** Trigger one checkout outage after the second sale. Persist the active stage and a 30-second server deadline. Owner, Manager or Maintenance can restore power early at a physical breaker; the server restores it automatically at the deadline if no one acts.
+- **Decision:** Persist the active outage stage and a 30-second server deadline. Since Phase 31, the server-derived shift plan schedules it after sale 1 or 2. Owner, Manager or Maintenance can restore power early at a physical breaker; the server restores it automatically at the deadline if no one acts.
 - **Consequences:** Profile schema v8 adds one timestamp and allows `PowerOutage`; previous profiles migrate to zero/no outage. The event does not grant an extra reward, destroy stock, or punish players if unattended. Lighting and checkout readiness are presentation controlled by the server stage.
 - **Verification:** See `docs/operations/PHASE12_POWER_OUTAGE.md`; Studio timing, save/rejoin and role tests remain pending.
 
@@ -177,6 +177,13 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Decision:** Draw Everyday, Value shopper, Family shop, and Treat stop preferences with respective 40/25/20/15 weights using completed-shift count and sale number. Keep stock resolution, price response, and checkout totals in Economy; send only display strings to the world presentation layer.
 - **Consequences:** No new profile schema or remote is required. A deterministic weighted sample may not match the nominal ratios in a small number of visits. Customer archetypes currently influence product preference only; deeper budget, patience and loyalty behavior remains future work.
 - **Verification:** See `docs/operations/PHASE30_CUSTOMER_PREFERENCES.md`; Studio and DataStore checks remain pending.
+
+## ADR-0029 — Derive a repeatable chaos schedule per shift
+- **Status:** Accepted — 2026-10-12.
+- **Context:** Spill and power outage always occurred in the same order, making repeat shifts predictable, while saving a client-authored plan would create an unnecessary authority boundary.
+- **Decision:** Derive one of four bounded spill/outage plans from the server-known owner UserId and validated completed-shift count. Recompute the same plan after rejoin; continue persisting only active event stage and existing deadlines.
+- **Consequences:** No extra profile field, remote argument, or randomness dependency is introduced. Schedules vary across shifts but remain reproducible; they currently cover only spill and outage. Power outage may now be active after sale 1 or 2, so saved-stage validation accepts either.
+- **Verification:** See `docs/operations/PHASE31_CHAOS_DIRECTOR.md`; Studio schedule, recovery, multiplayer and rejoin checks remain pending.
 
 ## ADR-0009 — Keep product inventory and supplier orders SKU-specific
 - **Status:** Accepted — 2026-10-12.

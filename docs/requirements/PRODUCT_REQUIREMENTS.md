@@ -103,7 +103,7 @@ Instrument funnel events for first interaction, first stock, first sale, first u
 - Customers use reproducible weighted shopping preferences derived from saved completed shifts and the next sale number. The server fulfills preferences against available catalog stock and prices; billboards show the preference and basket. See `operations/PHASE30_CUSTOMER_PREFERENCES.md`.
 
 ### Phase 4 Power Outage increment
-- After the second completed sale, trigger a bounded checkout outage with a visible breaker objective and a 30-second server recovery deadline.
+- The server-derived shift plan may trigger a bounded checkout outage after sale 1 or 2, with a visible breaker objective and a 30-second server recovery deadline. See `operations/PHASE31_CHAOS_DIRECTOR.md`.
 - Persist the outage stage/deadline so rejoining cannot skip the event or leave the shift stuck.
 - Permit Owner, Manager and Maintenance to restore power early; Cashier automation pauses until the outage resolves.
 - Manual breaker use and timer fallback must restore service without an extra reward, sale, or inventory change. See `operations/PHASE12_POWER_OUTAGE.md`.

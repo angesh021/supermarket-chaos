@@ -106,7 +106,22 @@ Economy.CHAOS_EVENTS = {
     },
 }
 
-function Economy.newState(profile)
+local function makeChaosPlan(playerSeed, completedShifts)
+    local seed = math.floor(playerSeed or 0) % 997
+    local shift = math.floor(completedShifts or 0) % 997
+    local stride = seed % 2 == 0 and 1 or 3
+    local planIndex = (seed + shift * stride) % 4
+    local plans = {
+        { spillAt = 1, powerOutageAt = 2 },
+        { spillAt = 2, powerOutageAt = 1 },
+        { spillAt = 1, powerOutageAt = nil },
+        { spillAt = nil, powerOutageAt = 2 },
+    }
+    local selected = plans[planIndex + 1]
+    return { spillAt = selected.spillAt, powerOutageAt = selected.powerOutageAt }
+end
+
+function Economy.newState(profile, playerSeed)
     profile = profile or {}
     local savedShift = profile.shift or {}
     local upgrades = profile.ownedUpgrades or {}
@@ -115,6 +130,7 @@ function Economy.newState(profile)
     local warehouseLayout = profile.warehouseLayout or { version = 1, items = {} }
     local savedPrices = profile.productPrices or {}
     local shipmentQuantity = warehouseInventory.shipmentQuantity or 0
+    local completedShifts = math.max(0, math.floor(profile.completedShifts or 0))
     return {
         stage = savedShift.stage or "Cart",
         cash = profile.balance or 0,
@@ -123,7 +139,9 @@ function Economy.newState(profile)
         goldenAppleStock = savedShift.goldenAppleStock or 0,
         cerealStock = savedShift.cerealStock or 0,
         sales = savedShift.sales or 0,
-        completedShifts = math.max(0, math.floor(profile.completedShifts or 0)),
+        completedShifts = completedShifts,
+        playerSeed = playerSeed or 0,
+        chaosPlan = makeChaosPlan(playerSeed, completedShifts),
         cartRecovered = savedShift.cartRecovered or false,
         shiftClosed = savedShift.shiftClosed or false,
         powerOutageUntil = savedShift.powerOutageUntil or 0,
@@ -597,7 +615,7 @@ function Economy.sellProduct(state, now)
     end
     if
         (
-            state.sales + 1 == Economy.CHAOS_EVENTS.PowerOutage.triggerSales
+            state.sales + 1 == (state.chaosPlan.powerOutageAt or -1)
             or (
                 state.customerRushUntil == 0
                 and state.sales + 1 == Economy.CHAOS_EVENTS.CustomerRush.triggerSales
@@ -619,7 +637,7 @@ function Economy.sellProduct(state, now)
     end
     state.sales += 1
     state.cash += basket.total
-    if state.sales == Economy.CHAOS_EVENTS.CheckoutSpill.triggerSales then
+    if state.sales == state.chaosPlan.spillAt then
         state.stage = "Spill"
         return true,
             string.format(
@@ -628,7 +646,7 @@ function Economy.sellProduct(state, now)
                 basket.displayName
             )
     end
-    if state.sales == Economy.CHAOS_EVENTS.PowerOutage.triggerSales then
+    if state.sales == state.chaosPlan.powerOutageAt then
         state.powerOutageUntil = now + Economy.CHAOS_EVENTS.PowerOutage.duration
         state.stage = "PowerOutage"
         return true,
@@ -766,6 +784,7 @@ function Economy.restartShift(state)
     state.cerealStock = 0
     state.powerOutageUntil = 0
     state.sales = 0
+    state.chaosPlan = makeChaosPlan(state.playerSeed, state.completedShifts)
     state.cartRecovered = false
     state.shiftClosed = false
     return true, "New shift started. Stop the runaway cart near the entrance."

@@ -369,7 +369,7 @@ local function normalizeProfile(value)
         end
         local savedSales = nonNegativeInteger(value.shift.sales, 0)
         if
-            (profile.shift.stage == "PowerOutage" and savedSales ~= 2)
+            (profile.shift.stage == "PowerOutage" and (savedSales < 1 or savedSales > 2))
             or (profile.shift.stage == "CustomerRush" and (savedSales < 3 or savedSales > 4))
         then
             return nil, "Stored chaos event does not match the saved shift progress."
