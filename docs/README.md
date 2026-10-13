@@ -58,5 +58,6 @@
 | [Pixel & Plug verification](operations/PHASE49_ELECTRONICS_STORE.md) | Persistent electronics storefront, headphone stock and sales |
 | [Little Sprout verification](operations/PHASE50_SPECIALTY_RETAIL.md) | Persistent specialty garden retailer, herb stock and sales |
 | [Plaza customization verification](operations/PHASE51_PLAZA_CUSTOMIZATION.md) | Preview and install a persistent palette across plaza storefronts and paths |
+| [Shared plaza traffic verification](operations/PHASE52_SHARED_PLAZA_TRAFFIC.md) | Bounded procedural visitors browse owned shops and exit |
 
 Keep this index and linked documents current as implementation changes. See [AGENTS.md](../AGENTS.md) for repository rules.

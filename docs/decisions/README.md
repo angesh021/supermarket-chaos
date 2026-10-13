@@ -289,6 +289,11 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Consequences:** Profile schema v33 stores only the allow-listed style ID. Preview state is not persisted; Owner/Manager purchase uses the server's shared cash and transaction flow.
 - **Verification:** See `docs/operations/PHASE51_PLAZA_CUSTOMIZATION.md`.
 
+## ADR-0050: Add bounded shared plaza visitors
+- **Decision:** Add at most four server-created procedural visitors that browse owned plaza storefronts and leave through the shared path.
+- **Consequences:** Traffic is visual-only and does not touch money, stock, sales or persistence. A bounded pool limits added world instances.
+- **Verification:** See `docs/operations/PHASE52_SHARED_PLAZA_TRAFFIC.md`.
+
 ## ADR-0009 — Keep product inventory and supplier orders SKU-specific
 - **Status:** Accepted — 2026-10-12.
 - **Context:** The retail loop needs visible department variety and product-specific stock behavior while keeping stock and money authoritative.

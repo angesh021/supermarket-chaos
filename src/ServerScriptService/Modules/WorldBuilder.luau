@@ -3318,6 +3318,139 @@ function WorldBuilder.build()
         return style and style.name or "Coastal Walk"
     end
 
+    local plazaVisitors = {}
+    local visitorColors = {
+        { COLORS.blue, COLORS.deepTeal, COLORS.orange },
+        { COLORS.coral, COLORS.gray, COLORS.deepTeal },
+        { COLORS.green, COLORS.blue, COLORS.gold },
+        { COLORS.orange, COLORS.deepTeal, COLORS.cream },
+    }
+    for index = 1, 4 do
+        local colors = visitorColors[index]
+        local visitor = createLowPolyPerson(
+            exterior,
+            "Plaza Visitor " .. index,
+            Vector3.new(-80, 0.45, 22),
+            colors[1],
+            colors[2],
+            colors[3]
+        )
+        local head = visitor:FindFirstChild("Head")
+        local billboard = Instance.new("BillboardGui")
+        billboard.Name = "PlazaVisitorNameplate"
+        billboard.Adornee = head
+        billboard.Size = UDim2.fromOffset(170, 38)
+        billboard.StudsOffset = Vector3.new(0, 1.25, 0)
+        billboard.AlwaysOnTop = true
+        billboard.Enabled = false
+        billboard.Parent = head
+        local caption = Instance.new("TextLabel")
+        caption.Size = UDim2.fromScale(1, 1)
+        caption.BackgroundColor3 = COLORS.deepTeal
+        caption.BackgroundTransparency = 0.08
+        caption.Text = "PLAZA VISITOR"
+        caption.TextColor3 = COLORS.warmWhite
+        caption.Font = Enum.Font.GothamBold
+        caption.TextScaled = true
+        caption.Parent = billboard
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(0, 8)
+        corner.Parent = caption
+        for _, item in ipairs(visitor:GetDescendants()) do
+            if item:IsA("BasePart") then
+                item.Transparency = 1
+            end
+        end
+        table.insert(plazaVisitors, { model = visitor, billboard = billboard, caption = caption })
+    end
+
+    local function movePlazaVisitor(entry, destination)
+        local startPivot = entry.model:GetPivot()
+        local startPosition = startPivot.Position
+        local flatDestination = Vector3.new(destination.X, 0.45, destination.Z)
+        local delta = flatDestination - startPosition
+        local distance = delta.Magnitude
+        if distance < 0.1 then
+            return
+        end
+        local targetPivot = CFrame.lookAt(flatDestination, flatDestination + delta.Unit)
+        local duration = distance / 6
+        local startedAt = os.clock()
+        while entry.model.Parent == exterior do
+            local alpha = math.min((os.clock() - startedAt) / duration, 1)
+            entry.model:PivotTo(startPivot:Lerp(targetPivot, alpha))
+            if alpha >= 1 then
+                return
+            end
+            task.wait(0.05)
+        end
+    end
+
+    for index, entry in ipairs(plazaVisitors) do
+        task.spawn(function()
+            while exterior.Parent do
+                local openBusinesses = {}
+                if cafePurchased then
+                    table.insert(
+                        openBusinesses,
+                        { name = "CORNER CAFÉ", front = Vector3.new(-65, 0.45, 7) }
+                    )
+                end
+                if restaurantPurchased then
+                    table.insert(
+                        openBusinesses,
+                        { name = "MARKET TABLE", front = Vector3.new(-65, 0.45, -32) }
+                    )
+                end
+                if electronicsStorePurchased then
+                    table.insert(
+                        openBusinesses,
+                        { name = "PIXEL & PLUG", front = Vector3.new(-65, 0.45, -72) }
+                    )
+                end
+                if gardenStorePurchased then
+                    table.insert(
+                        openBusinesses,
+                        { name = "LITTLE SPROUT", front = Vector3.new(-65, 0.45, -112) }
+                    )
+                end
+                if #openBusinesses == 0 then
+                    entry.billboard.Enabled = false
+                    for _, item in ipairs(entry.model:GetDescendants()) do
+                        if item:IsA("BasePart") then
+                            item.Transparency = 1
+                        end
+                    end
+                    task.wait(4)
+                    continue
+                end
+
+                local target = openBusinesses[(index - 1) % #openBusinesses + 1]
+                for _, item in ipairs(entry.model:GetDescendants()) do
+                    if item:IsA("BasePart") then
+                        item.Transparency = 0
+                    end
+                end
+                entry.model:PivotTo(CFrame.new(-80, 0.45, 22))
+                entry.caption.Text = "VISITING " .. target.name
+                entry.billboard.Enabled = true
+                movePlazaVisitor(entry, Vector3.new(-80, 0.45, target.front.Z + 6))
+                movePlazaVisitor(entry, target.front)
+                entry.caption.Text = "BROWSING " .. target.name
+                task.wait(2.5)
+                movePlazaVisitor(entry, Vector3.new(-80, 0.45, target.front.Z + 6))
+                movePlazaVisitor(entry, Vector3.new(-80, 0.45, 22))
+                entry.billboard.Enabled = false
+                for _, item in ipairs(entry.model:GetDescendants()) do
+                    if item:IsA("BasePart") then
+                        item.Transparency = 1
+                    end
+                end
+                task.wait(8 + index * 2)
+            end
+        end)
+    end
+
     local function addWarehouse()
         if warehouseModel then
             return

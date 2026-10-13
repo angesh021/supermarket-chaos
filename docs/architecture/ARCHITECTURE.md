@@ -204,6 +204,11 @@ See `docs/decisions/README.md` for accepted ownership policy. Remaining decision
 - After the specialty retailer is owned, Owner/Manager can preview and install one of three allow-listed palette IDs for `$750` during a completed shift.
 - `WorldBuilder` applies the selected palette to all four plaza storefronts and the connector paths. Preview state remains ephemeral and is reset on cancellation, install or leaving the completed-shift stage.
 - Profile schema v33 persists only the selected palette ID. Clients cannot submit arbitrary colors or part references.
+
+## Phase 52 shared plaza traffic
+- `WorldBuilder` creates a fixed pool of four anchored procedural visitors and uses short server-side pivot interpolation between plaza path points and currently owned storefronts.
+- Each visitor browses one open business and exits; the pool and route destinations are hard-bounded. World destruction ends each route loop.
+- Visitors are visual-only. They do not call `Economy`, sell products, modify stock or alter persistent data.
 # Cooperative ownership and cashier extension
 - One owner profile remains the persistence boundary. Per-server membership grants temporary action permissions but does not load a guest's profile into the owner's economy.
 - Server role map: Owner (all), Manager (all shift actions including staff hiring), Cashier (checkout), Stocker (stock), Maintenance (cart recovery).
