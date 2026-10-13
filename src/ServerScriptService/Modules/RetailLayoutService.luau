@@ -2,7 +2,8 @@
 local RetailLayoutService = {}
 
 RetailLayoutService.VERSION = 6
-RetailLayoutService.MAX_CONSTRUCTED_AISLES = 4
+RetailLayoutService.BASE_CONSTRUCTED_AISLES = 4
+RetailLayoutService.MAX_CONSTRUCTED_AISLES = 6
 RetailLayoutService.CORE_PRODUCT_IDS = {
     "citrusPop",
     "berryBites",
@@ -296,7 +297,8 @@ function RetailLayoutService.normalize(
     bakeryPurchased,
     freezerPurchased,
     shelfBayPurchased,
-    householdAislePurchased
+    householdAislePurchased,
+    retailPlotPurchased
 )
     if value == nil then
         return RetailLayoutService.default()
@@ -434,6 +436,9 @@ function RetailLayoutService.normalize(
     end
     if aisleCount > RetailLayoutService.MAX_CONSTRUCTED_AISLES then
         return nil, "Stored retail layout contains too many constructed aisles."
+    end
+    if aisleCount > RetailLayoutService.BASE_CONSTRUCTED_AISLES and retailPlotPurchased ~= true then
+        return nil, "Stored retail layout contains aisles without the purchased expansion plot."
     end
     for _, productId in ipairs(RetailLayoutService.CORE_PRODUCT_IDS) do
         local source = value.shelves[productId]
@@ -613,7 +618,8 @@ function RetailLayoutService.normalize(
             freezerPurchased,
             shelfBayPurchased,
             householdAislePurchased,
-            aisleId
+            aisleId,
+            retailPlotPurchased
         )
         if not valid then
             return nil, reason
@@ -847,7 +853,8 @@ function RetailLayoutService.canPlaceConstructedAisle(
     freezerPurchased,
     shelfBayPurchased,
     householdAislePurchased,
-    excludedAisleId
+    excludedAisleId,
+    retailPlotPurchased
 )
     if not RetailLayoutService.isConstructedAisleId(aisleId) then
         return false, "That constructed aisle ID is invalid."
@@ -863,8 +870,13 @@ function RetailLayoutService.canPlaceConstructedAisle(
     then
         return false, "Choose a snapped position and 0 or 90 degree rotation inside the store."
     end
-    local rearWing = z <= -20
-    if rearWing then
+    local retailPlot = z <= -42
+    local rearWing = z <= -20 and not retailPlot
+    if retailPlot then
+        if not retailPlotPurchased or z < -60 then
+            return false, "Purchase the retail expansion plot before placing an aisle there."
+        end
+    elseif rearWing then
         if not expansionPurchased or z < -34 then
             return false, "Build the rear wing before placing an aisle in that zone."
         end
@@ -872,8 +884,8 @@ function RetailLayoutService.canPlaceConstructedAisle(
         return false, "Choose a snapped position inside the marked retail floor."
     end
     local halfX, halfZ = rotation == 0 and 4 or 1.2, rotation == 0 and 1.2 or 4
-    local minimumFloorZ = rearWing and -39.5 or -18.5
-    local maximumFloorZ = rearWing and -18.5 or 16.5
+    local minimumFloorZ = retailPlot and -63.5 or (rearWing and -39.5 or -18.5)
+    local maximumFloorZ = retailPlot and -41.5 or (rearWing and -18.5 or 16.5)
     if
         x - halfX < -20.5
         or x + halfX > 20.5

@@ -29,6 +29,10 @@ Use the development experience and start with a profile whose balance/upgrades y
 9. Leave and rejoin after closeout, then complete the next shift. Confirm cash persists and the same ownership-derived cost applies exactly once per shift.
 10. Repeat on the Uptown branch and verify its active location's assets determine its charge while company cash remains shared.
 
+## Phase 75 extension
+
+Phase 75 adds `$1` plot upkeep and permits up to six aisles, each at `$1`. The current maximum facility upkeep is therefore `$15` per shift, including the plot and all six constructed aisles. The server enforces that total cap; the earlier `$12` maximum applied before the plot and two additional aisle slots existed.
+
 ## Verification status
 
 Static formatting, lint, Rojo mapping and whitespace checks are recorded after implementation in `docs/PROJECT_STATUS.md`. Studio closeout, concurrent requests, cash-boundary behavior and save/rejoin have not been run locally.

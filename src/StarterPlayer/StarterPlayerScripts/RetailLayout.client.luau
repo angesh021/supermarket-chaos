@@ -142,6 +142,7 @@ local selectedFixtureId
 local selectedConstructedAisleId
 local selectedCheckout = false
 local floorExpansionOwned = false
+local retailPlotOwned = false
 local shelfBayOwned = false
 local rotation = 0
 local moveMode = false
@@ -572,7 +573,9 @@ RunService.RenderStepped:Connect(function()
     local zMinimum, zMaximum = movableFixture and -16 or -9, -1
     if constructedAisle then
         zMinimum, zMaximum = -16, 14
-        if floorExpansionOwned and hit.Position.Z < -17 then
+        if retailPlotOwned and hit.Position.Z < -41 then
+            zMinimum, zMaximum = -58, -46
+        elseif floorExpansionOwned and hit.Position.Z < -17 then
             zMinimum, zMaximum = -34, -20
         end
     end
@@ -581,6 +584,8 @@ RunService.RenderStepped:Connect(function()
     if selectedCheckout then
         x, validX = snap(hit.Position.X, -14, 14)
         z, validZ = snap(hit.Position.Z, 6, 12)
+    elseif constructedAisle and retailPlotOwned and hit.Position.Z < -41 then
+        z, validZ = snap(hit.Position.Z, -58, -46)
     elseif constructedAisle and floorExpansionOwned and hit.Position.Z < -17 then
         z, validZ = snap(hit.Position.Z, -34, -20)
     elseif
@@ -599,7 +604,7 @@ RunService.RenderStepped:Connect(function()
         or (rotation == 0 and width / 2 or depth / 2)
     local halfZ = selectedCheckout and (rotation == 0 and 5.75 or 4.5)
         or (rotation == 0 and depth / 2 or width / 2)
-    local minimumFloorZ = z < -17 and -39.5 or -18.5
+    local minimumFloorZ = z < -41 and -63.5 or (z < -17 and -39.5 or -18.5)
     local inside = validX
         and validZ
         and x - halfX >= -20.5
@@ -608,6 +613,8 @@ RunService.RenderStepped:Connect(function()
         and z + halfZ <= 16.5
     if selectedCheckout then
         inside = inside and x >= -14 and x <= 14 and z >= 6 and z <= 12
+    elseif constructedAisle and z < -41 then
+        inside = inside and retailPlotOwned and z >= -58 and z <= -46
     elseif constructedAisle and z < -17 then
         inside = inside and floorExpansionOwned and z >= -34 and z <= -20
     elseif constructedAisle then
@@ -635,6 +642,7 @@ layoutEvent.OnClientEvent:Connect(function(message)
         buildingAisle = false
         buildingAisleProductId = nil
         floorExpansionOwned = message.floorExpansionOwned == true
+        retailPlotOwned = message.retailPlotPurchased == true
         shelfBayOwned = message.shelfBayPurchased == true
         buildAisleButton.Visible = shelfBayOwned
         expansionButtons.cinnamonTwists.Visible = message.bakeryPurchased == true

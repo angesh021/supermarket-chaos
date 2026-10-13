@@ -6,7 +6,7 @@ local ProfileService = {}
 local LayoutService = require(script.Parent.LayoutService)
 local RetailLayoutService = require(script.Parent.RetailLayoutService)
 
-local SCHEMA_VERSION = 40
+local SCHEMA_VERSION = 41
 local SESSION_LEASE_SECONDS = 180
 local MAX_RETRIES = 3
 local STORE_NAME = "SupermarketChaos_PlayerProfiles_v1"
@@ -141,6 +141,7 @@ local function defaultProfile()
             marketStyle = false,
             aisleExpansion = false,
             floorExpansion = false,
+            retailPlot = false,
             bakery = false,
             freezer = false,
             selfCheckout = false,
@@ -309,6 +310,7 @@ local function normalizeProfile(value)
             or (value.ownedUpgrades.floorExpansion ~= nil and type(
                 value.ownedUpgrades.floorExpansion
             ) ~= "boolean")
+            or (value.ownedUpgrades.retailPlot ~= nil and type(value.ownedUpgrades.retailPlot) ~= "boolean")
             or (value.ownedUpgrades.bakery ~= nil and type(value.ownedUpgrades.bakery) ~= "boolean")
             or (value.ownedUpgrades.freezer ~= nil and type(value.ownedUpgrades.freezer) ~= "boolean")
             or (value.ownedUpgrades.selfCheckout ~= nil and type(value.ownedUpgrades.selfCheckout) ~= "boolean")
@@ -341,6 +343,7 @@ local function normalizeProfile(value)
         profile.ownedUpgrades.marketStyle = value.ownedUpgrades.marketStyle == true
         profile.ownedUpgrades.aisleExpansion = value.ownedUpgrades.aisleExpansion == true
         profile.ownedUpgrades.floorExpansion = value.ownedUpgrades.floorExpansion == true
+        profile.ownedUpgrades.retailPlot = value.ownedUpgrades.retailPlot == true
         profile.ownedUpgrades.bakery = value.ownedUpgrades.bakery == true
         profile.ownedUpgrades.freezer = value.ownedUpgrades.freezer == true
         profile.ownedUpgrades.selfCheckout = value.ownedUpgrades.selfCheckout == true
@@ -412,6 +415,12 @@ local function normalizeProfile(value)
         return nil, "Stored freezer section exists without its bakery and rear wing prerequisites."
     end
     if
+        profile.ownedUpgrades.retailPlot
+        and (not profile.ownedUpgrades.floorExpansion or not profile.ownedUpgrades.freezer)
+    then
+        return nil, "Stored retail plot exists without its rear wing and freezer prerequisites."
+    end
+    if
         profile.ownedUpgrades.selfCheckout
         and (not profile.ownedUpgrades.floorExpansion or not profile.ownedUpgrades.warehouse)
     then
@@ -429,7 +438,8 @@ local function normalizeProfile(value)
         profile.ownedUpgrades.bakery,
         profile.ownedUpgrades.freezer,
         profile.ownedUpgrades.shelfBay,
-        profile.ownedUpgrades.aisleExpansion
+        profile.ownedUpgrades.aisleExpansion,
+        profile.ownedUpgrades.retailPlot
     )
     if not normalizedRetailLayout then
         return nil, retailLayoutError
@@ -836,6 +846,7 @@ local function normalizeProfile(value)
         if
             (
                 value.schemaVersion ~= SCHEMA_VERSION
+                and value.schemaVersion ~= 40
                 and value.schemaVersion ~= 39
                 and value.schemaVersion ~= 38
                 and value.schemaVersion ~= 37
@@ -869,6 +880,7 @@ local function normalizeProfile(value)
             expectedSnapshot.shift.bookshopStock = nil
             expectedSnapshot.shift.bookshopSales = nil
             expectedSnapshot.ownedUpgrades.bookshop = nil
+            expectedSnapshot.ownedUpgrades.retailPlot = nil
         end
         adaptExpectedRetailLayout(expectedSnapshot, value.locations.neighborhood)
         if not sameData(value.locations.neighborhood, expectedSnapshot) then
@@ -901,6 +913,7 @@ local function normalizeProfile(value)
                 expectedBranch.shift.bookshopStock = nil
                 expectedBranch.shift.bookshopSales = nil
                 expectedBranch.ownedUpgrades.bookshop = nil
+                expectedBranch.ownedUpgrades.retailPlot = nil
             end
             adaptExpectedRetailLayout(expectedBranch, branch)
             if not sameData(branch, expectedBranch) then
@@ -952,6 +965,7 @@ local function copyProfile(profile)
             marketStyle = profile.ownedUpgrades.marketStyle,
             aisleExpansion = profile.ownedUpgrades.aisleExpansion,
             floorExpansion = profile.ownedUpgrades.floorExpansion,
+            retailPlot = profile.ownedUpgrades.retailPlot,
             bakery = profile.ownedUpgrades.bakery,
             freezer = profile.ownedUpgrades.freezer,
             selfCheckout = profile.ownedUpgrades.selfCheckout,
@@ -1341,6 +1355,7 @@ local function applyStateToProfile(profile, state, eventName)
     profile.ownedUpgrades.marketStyle = state.marketStylePurchased
     profile.ownedUpgrades.aisleExpansion = state.aisleExpansionPurchased
     profile.ownedUpgrades.floorExpansion = state.floorExpansionPurchased
+    profile.ownedUpgrades.retailPlot = state.retailPlotPurchased
     profile.ownedUpgrades.bakery = state.bakeryPurchased
     profile.ownedUpgrades.freezer = state.freezerPurchased
     profile.ownedUpgrades.selfCheckout = state.selfCheckoutPurchased
@@ -1362,7 +1377,8 @@ local function applyStateToProfile(profile, state, eventName)
         state.bakeryPurchased,
         state.freezerPurchased,
         state.upgradePurchased,
-        state.aisleExpansionPurchased
+        state.aisleExpansionPurchased,
+        state.retailPlotPurchased
     )
     profile.customerSatisfaction = math.min(math.max(state.customerSatisfaction or 75, 0), 100)
     profile.hiredEmployees.cashier = state.cashierHired

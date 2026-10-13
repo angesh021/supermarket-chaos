@@ -77,6 +77,7 @@
 | [Riverside Bookshop](operations/PHASE69_RIVERSIDE_BOOKSHOP.md) | Open, stock and operate the persistent neighborhood bookshop |
 | [Merchandised grocery aisles](operations/PHASE70_MERCHANDISED_GROCERY_AISLES.md) | Assign a product category to each constructed aisle and show its inventory |
 | [Merchandised aisle customer routing](operations/PHASE71_MERCHANDISED_AISLE_ROUTING.md) | Route customers to a stocked constructed aisle and recover to the primary shelf |
+| [Persistent retail expansion plot](operations/PHASE75_RETAIL_EXPANSION_PLOT.md) | Buy a saved rear room and unlock two more server-validated grocery aisles |
 | [Commercial district review](operations/PHASE58_COMMERCIAL_DISTRICT.md) | Connected avenue, neighborhood storefronts and Studio visual checks |
 
 Keep this index and linked documents current as implementation changes. See [AGENTS.md](../AGENTS.md) for repository rules.

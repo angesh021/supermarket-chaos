@@ -29,6 +29,8 @@ G0 was approved on 2026-10-12. The user authorized continued phase implementatio
 - [x] Phase 72 visual increment: add overhead wayfinding headers to server-built grocery and storage shelves; keep labels attached to movable fixtures and use the existing department palette. See `operations/PHASE72_AISLE_WAYFINDING.md`.
 - [x] Phase 73 visual increment: add procedural hand baskets and grocery props to scripted store customers and plaza visitors without changing authoritative baskets or sales. See `operations/PHASE73_SHOPPER_BASKETS.md`.
 - [x] Phase 74 CI increment: run the pinned StyLua, Selene and Rojo build plus repository structure checks on pushes and pull requests with read-only permissions; no Roblox publishing or commerce job. See `operations/PHASE74_REPRODUCIBLE_CI.md`.
+- [x] Phase 75 construction increment: add a persistent `$900` rear retail plot after the rear wing, warehouse and freezer; schema v41 migrates locations with the plot unowned, and server-validated plot space permits two additional merchandised grocery aisles with recurring upkeep. See `operations/PHASE75_RETAIL_EXPANSION_PLOT.md`.
+- [ ] Studio verification of plot purchase, v40 migration, aisle 5–6 bounds/collisions, shopper routing, location isolation, upkeep and save/rejoin; see `operations/PHASE75_RETAIL_EXPANSION_PLOT.md`.
 - [x] Phase 15: add a persistent, server-purchased Coastal Market storefront palette and v10 migration; see `operations/PHASE15_STOREFRONT_STYLE.md`.
 - [x] Phase 19: add a temporary preview/cancel action before the existing palette purchase; see `operations/PHASE19_STOREFRONT_PREVIEW.md`.
 
@@ -147,7 +149,7 @@ G0 was approved on 2026-10-12. The user authorized continued phase implementatio
 - [x] Phase 17: add Golden Apples as a produce SKU with v11 inventory migration, server-priced shipment/checkout, stocking visuals and customer baskets; see `operations/PHASE17_GOLDEN_APPLES.md`.
 - [x] Phase 4 customer increment: server-derived five-pattern shopping baskets with atomic multi-item checkout, visible customer order, department browsing and no schema migration.
 - [x] Phase 7 follow-up: persistent warehouse storage layout with bounded free grid placement and 90-degree rotation; see `operations/PHASE29_WAREHOUSE_LAYOUT_EDITOR.md`.
-- [ ] Phase 7 follow-up: complete purchasable plots, floor expansion and arbitrary department construction; existing shelves and checkout lane/queue can now be rearranged as Phases 32 and 34.
+- [ ] Phase 7 follow-up: complete arbitrary department construction on new plots; existing shelves, checkout and grocery aisles can be rearranged as Phases 32, 34, 63–67 and 75.
 - [x] Phase 32: persist and server-validate rearrangement/rotation of the four customer-facing product shelves; see `operations/PHASE32_RETAIL_LAYOUT.md`.
 - [x] Phase 34: persist and server-validate checkout lane and queue placement, rotate the composite fixture, and derive cashier/customer routes from its transform; see `operations/PHASE34_CHECKOUT_LAYOUT.md`.
 - [x] Phase 35: add a persistent `$500` rear supermarket wing after the household aisle, with a walk-through wall opening, lighting, and an unlock-gated rear shelf zone; see `operations/PHASE35_REAR_FLOOR_EXPANSION.md`.

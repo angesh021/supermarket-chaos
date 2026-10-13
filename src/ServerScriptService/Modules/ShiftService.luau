@@ -53,6 +53,7 @@ local ROLE_ACTIONS = {
         Warehouse = true,
         AisleExpansion = true,
         FloorExpansion = true,
+        RetailPlot = true,
         BuildBakery = true,
         BuildFreezer = true,
         BuildSelfCheckout = true,
@@ -208,6 +209,7 @@ local function snapshot(message, recipient)
         frozenMealStock = hasStoreAccess and current.frozenMealStock or 0,
         bakeryPurchased = hasStoreAccess and current.bakeryPurchased or false,
         freezerPurchased = hasStoreAccess and current.freezerPurchased or false,
+        retailPlotPurchased = hasStoreAccess and current.retailPlotPurchased or false,
         employeePayroll = hasStoreAccess and Economy.getShiftPayroll(current) or 0,
         operatingCosts = hasStoreAccess and Economy.getShiftOperatingCosts(current) or 0,
         bookshopPurchased = hasStoreAccess and current.bookshopPurchased or false,
@@ -1142,6 +1144,7 @@ function ShiftService.init(event, membershipRemotes, options)
             bakeryPurchased = state.bakeryPurchased,
             freezerPurchased = state.freezerPurchased,
             floorExpansionOwned = state.floorExpansionPurchased,
+            retailPlotPurchased = state.retailPlotPurchased,
             shelfBayPurchased = state.upgradePurchased,
             householdAislePurchased = state.aisleExpansionPurchased,
         })
@@ -1161,6 +1164,15 @@ function ShiftService.init(event, membershipRemotes, options)
         if ok then
             world.addFloorExpansion()
             commit("floorExpansion")
+        end
+        broadcast(message)
+    end)
+
+    bind("RetailPlot", world.retailPlotPrompt, 12, function()
+        local ok, message = Economy.buyRetailPlot(state)
+        if ok then
+            world.addRetailPlot()
+            commit("retailPlot")
         end
         broadcast(message)
     end)
@@ -2460,6 +2472,9 @@ function ShiftService.init(event, membershipRemotes, options)
             end
             if state.floorExpansionPurchased then
                 world.addFloorExpansion()
+            end
+            if state.retailPlotPurchased then
+                world.addRetailPlot()
             end
             world.setSelfCheckoutPurchased(state.selfCheckoutPurchased)
             world.setMarketStyle(state.marketStylePurchased, state.marketStyleId)

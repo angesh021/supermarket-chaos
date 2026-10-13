@@ -1353,8 +1353,10 @@ function WorldBuilder.build(locationId, origin)
         or (WorldBuilder.UPTOWN_ORIGIN * CFrame.new(58, 2.5, 44))
     local aisleExpansionPurchased = false
     local floorExpansionPurchased = false
+    local retailPlotPurchased = false
     local selfCheckoutPurchased = false
     local floorExpansionModel
+    local retailPlotModel
     local customerModels = {}
     local customerColors = {
         { COLORS.blue, COLORS.deepTeal, COLORS.orange },
@@ -1579,7 +1581,17 @@ function WorldBuilder.build(locationId, origin)
     local function browseCustomerBasket(entry, speed, flowVersion)
         local browseSpeed = customerAssistantHired and speed * 0.7 or speed
         for _, position in ipairs(customerProductPositions) do
-            if position.Z < -17 then
+            if position.Z < -41 then
+                if not moveCustomer(entry, Vector3.new(0, 0.45, -17), browseSpeed, flowVersion) then
+                    return false
+                end
+                if not moveCustomer(entry, Vector3.new(0, 0.45, -30), browseSpeed, flowVersion) then
+                    return false
+                end
+                if not moveCustomer(entry, Vector3.new(0, 0.45, -45), browseSpeed, flowVersion) then
+                    return false
+                end
+            elseif position.Z < -17 then
                 if not moveCustomer(entry, Vector3.new(0, 0.45, -17), browseSpeed, flowVersion) then
                     return false
                 end
@@ -1587,6 +1599,22 @@ function WorldBuilder.build(locationId, origin)
             if not moveCustomer(entry, position, browseSpeed, flowVersion) then
                 return false
             end
+        end
+        return true
+    end
+
+    local function returnCustomerToMainFloor(entry, speed, flowVersion)
+        local position = entry.model:GetPivot().Position
+        if position.Z < -41 then
+            if not moveCustomer(entry, Vector3.new(0, 0.45, -45), speed, flowVersion) then
+                return false
+            end
+            if not moveCustomer(entry, Vector3.new(0, 0.45, -30), speed, flowVersion) then
+                return false
+            end
+        end
+        if entry.model:GetPivot().Position.Z < -17 then
+            return moveCustomer(entry, Vector3.new(0, 0.45, -17), speed, flowVersion)
         end
         return true
     end
@@ -1617,10 +1645,8 @@ function WorldBuilder.build(locationId, origin)
             .. " • "
             .. string.upper(customerBasketName)
         task.wait(0.55)
-        if entry.model:GetPivot().Position.Z < -17 then
-            if not moveCustomer(entry, Vector3.new(0, 0.45, -17), 0.55, flowVersion) then
-                return
-            end
+        if not returnCustomerToMainFloor(entry, 0.55, flowVersion) then
+            return
         end
         local laneOffset = checkoutLane == "SelfCheckout" and -3.5 or -5
         if
@@ -1653,10 +1679,8 @@ function WorldBuilder.build(locationId, origin)
         end
         task.wait(0.35)
         entry.label.Text = "MOVING TO CHECKOUT"
-        if entry.model:GetPivot().Position.Z < -17 then
-            if not moveCustomer(entry, Vector3.new(0, 0.45, -17), 0.45, flowVersion) then
-                return
-            end
+        if not returnCustomerToMainFloor(entry, 0.45, flowVersion) then
+            return
         end
         local laneOffset = checkoutLane == "SelfCheckout" and -3.5 or -5
         local waypoints = {
@@ -2383,6 +2407,19 @@ function WorldBuilder.build(locationId, origin)
         10
     )
     freezerDepartmentPrompt.Enabled = false
+    local retailPlotPad = part(
+        interior,
+        "Retail Expansion Plot Pad",
+        Vector3.new(4.5, 0.5, 4.5),
+        CFrame.new(18, 0.5, -36),
+        COLORS.gold,
+        Enum.Material.Neon
+    )
+    local retailPlotPrompt =
+        prompt(retailPlotPad, "Build Retail Plot ($900)", "Store Expansion", "RetailPlot", 10)
+    retailPlotPrompt.Enabled = false
+    retailPlotPad.Transparency = 1
+    retailPlotPad.CanCollide = false
     frozenMealStockPrompt =
         prompt(freezerExpansionPad, "Stock Freezer", "Freezer Meals", "StockFrozenMeals", 9)
     frozenMealStockPrompt.Enabled = false
@@ -4847,6 +4884,13 @@ function WorldBuilder.build(locationId, origin)
             and not freezerPurchased
         freezerExpansionPad.Transparency = freezerPadVisible and 0 or 1
         freezerExpansionPad.CanCollide = freezerPadVisible
+        retailPlotPrompt.Enabled = stage == "Complete"
+            and floorExpansionPurchased
+            and warehousePurchased
+            and freezerPurchased
+            and not retailPlotPurchased
+        retailPlotPad.Transparency = retailPlotPrompt.Enabled and 0 or 1
+        retailPlotPad.CanCollide = retailPlotPrompt.Enabled
         local bakeryStockAllowed = cinnamonTwistStockAvailable
             and bakeryPurchased
             and stage ~= "Cart"
@@ -5504,6 +5548,7 @@ function WorldBuilder.build(locationId, origin)
         upgradePrompt = upgradePrompt,
         aisleExpansionPrompt = aisleExpansionPrompt,
         floorExpansionPrompt = floorExpansionPrompt,
+        retailPlotPrompt = retailPlotPrompt,
         setStage = setStage,
         setUpgradeReady = function(ready)
             upgradeMarker.Enabled = ready
@@ -5661,6 +5706,109 @@ function WorldBuilder.build(locationId, origin)
             floorExpansionPad.Transparency = 1
             floorExpansionPad.CanCollide = false
             floorExpansionPrompt.Enabled = false
+            applyMarketStyle(marketStylePurchased and marketStyleId or marketStylePreviewId)
+        end,
+        addRetailPlot = function()
+            if retailPlotModel then
+                retailPlotPurchased = true
+                retailPlotPrompt.Enabled = false
+                retailPlotPad.Transparency = 1
+                retailPlotPad.CanCollide = false
+                return
+            end
+            retailPlotPurchased = true
+            retailPlotPrompt.Enabled = false
+            retailPlotPad.Transparency = 1
+            retailPlotPad.CanCollide = false
+            if floorExpansionModel then
+                local oldBackWall = floorExpansionModel:FindFirstChild("Rear Department Back Wall")
+                if oldBackWall then
+                    oldBackWall:Destroy()
+                end
+            end
+            retailPlotModel = Instance.new("Model")
+            retailPlotModel.Name = "Purchased Retail Expansion Plot"
+            retailPlotModel.Parent = interior
+            local function plotPart(name, size, cframe, color, material)
+                local item = part(retailPlotModel, name, size, cframe, color, material)
+                item:SetAttribute("PlayerPurchased", true)
+                item:SetAttribute(
+                    "MarketPaletteRole",
+                    name == "Retail Plot Floor" and "Floor" or "Wall"
+                )
+                return item
+            end
+            plotPart(
+                "Retail Plot Opening Left Pier",
+                Vector3.new(15, 12, 1),
+                CFrame.new(-14.5, 6, -41),
+                COLORS.cream
+            )
+            plotPart(
+                "Retail Plot Opening Right Pier",
+                Vector3.new(15, 12, 1),
+                CFrame.new(14.5, 6, -41),
+                COLORS.cream
+            )
+            plotPart(
+                "Retail Plot Opening Header",
+                Vector3.new(14, 3, 1),
+                CFrame.new(0, 10.5, -41),
+                COLORS.cream
+            )
+            plotPart(
+                "Retail Plot Floor",
+                Vector3.new(44, 0.45, 22),
+                CFrame.new(0, 0.24, -52.5),
+                COLORS.cream,
+                Enum.Material.CeramicTiles
+            )
+            plotPart(
+                "Retail Plot Left Wall",
+                Vector3.new(1, 12, 23),
+                CFrame.new(-22, 6, -52.5),
+                COLORS.cream
+            )
+            plotPart(
+                "Retail Plot Right Wall",
+                Vector3.new(1, 12, 23),
+                CFrame.new(22, 6, -52.5),
+                COLORS.cream
+            )
+            plotPart(
+                "Retail Plot Back Wall",
+                Vector3.new(44, 12, 1),
+                CFrame.new(0, 6, -64),
+                COLORS.cream
+            )
+            local ceiling = plotPart(
+                "Retail Plot Ceiling",
+                Vector3.new(44, 0.6, 23),
+                CFrame.new(0, 12.1, -52.5),
+                COLORS.warmWhite
+            )
+            ceiling.CanQuery = false
+            for _, lightX in ipairs({ -14, -7, 0, 7, 14 }) do
+                local light = plotPart(
+                    "Retail Plot Ceiling Light",
+                    Vector3.new(3, 0.12, 0.7),
+                    CFrame.new(lightX, 11.72, -48 - ((lightX / 7) % 2) * 7),
+                    COLORS.warmWhite,
+                    Enum.Material.Neon
+                )
+                light.CanCollide = false
+                light.CanQuery = false
+            end
+            local sign = label(
+                retailPlotModel,
+                "Retail Plot Department Sign",
+                "GROCERY AISLES  •  EXPANSION",
+                Vector3.new(12, 1.3, 0.35),
+                CFrame.new(0, 8.2, -41.55),
+                COLORS.green,
+                COLORS.warmWhite
+            )
+            sign:SetAttribute("PlayerPurchased", true)
             applyMarketStyle(marketStylePurchased and marketStyleId or marketStylePreviewId)
         end,
         setCashierHired = function(hired)

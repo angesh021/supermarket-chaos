@@ -4,7 +4,7 @@
 
 Make constructed gondola aisles part of the store's department layout. A built aisle can now be assigned to one of the existing six server-owned products and carries that department's sign and visible product stock.
 
-- Before building, Owner/Manager selects an available department in the retail layout editor. The existing `$250` build price, four-aisle cap, grid, floor, collision and location checks remain in force.
+- Before building, Owner/Manager selects an available department in the retail layout editor. The existing `$250` build price, grid, floor, collision and location checks remain in force. Phase 75 retains the four-aisle cap without a retail plot and expands it to six for plot owners.
 - Citrus Pop, Berry Bites, Golden Apples and Sunrise Cereal are available with the first shelf bay. Cinnamon Twists and Freezer Meals are available only after their departments are owned.
 - The server validates the product ID and prerequisite. The client cannot submit a price, stock amount or product outside the allow-list. Moving a saved aisle preserves its assigned department.
 - Aisle product and placement persist in retail layout version 6. Existing version 1–5 layouts migrate; untyped version 5 aisles become Citrus Pop aisles. No profile schema bump is required.

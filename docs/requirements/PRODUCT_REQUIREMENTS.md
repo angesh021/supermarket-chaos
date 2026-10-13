@@ -78,6 +78,12 @@ Instrument funnel events for first interaction, first stock, first sale, first u
 - Receiving a shipment adds its contents once to backstock. Stocking consumes three cans from backstock. Backstock is capped at 500; all quantities, costs and roles are checked on the server.
 - G7 delivery verification covers insufficient funds, already-pending orders, duplicate/racing receive requests, capacity, prompt distance, Manager/owner authorization, save/rejoin during transit, and non-development session-only behavior.
 
+### Phase 7 retail plot increment
+- After rear-wing, warehouse and freezer ownership, the owner can buy one fixed retail plot for `$900`; the server owns all eligibility, price, build and persistence state.
+- The room restores per location and permits two additional existing grocery aisle fixtures, for at most six total. Existing aisle placement, product ownership, inventory allocation, customer routes and collision checks continue to apply.
+- The plot adds `$1` facility upkeep per shift; total facility upkeep is capped at `$15`. Schemas v40 and earlier migrate with the plot unowned.
+- Manual verification covers purchase, insufficient funds, role/range denial, fifth/sixth aisle placement, collisions, shopper routes, upkeep, v40 migration, location isolation and save/rejoin.
+
 ### Phase 7 multi-product increment
 - Keep each catalog product's shelf stock and warehouse backstock independent.
 - Use the server catalog for prices and checkout selection; the client must not submit SKU, price, quantity, or reward.

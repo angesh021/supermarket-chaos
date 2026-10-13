@@ -379,6 +379,12 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Consequences:** No saved route state or new client input; unstocked aisles fall back to the existing primary shelf and movement recovery.
 - **Verification:** See `docs/operations/PHASE71_MERCHANDISED_AISLE_ROUTING.md`.
 
+## ADR-0068: Add a persistent retail expansion plot
+
+- **Decision:** Let the owner add a server-built rear room for `$900` after rear-wing, warehouse and freezer ownership, unlocking two additional constructed grocery aisles.
+- **Consequences:** Schema v41 persists ownership per location. The server validates prices, prerequisites, plot bounds, aisle capacity and existing fixture collisions; the plot adds `$1` per-shift upkeep.
+- **Verification:** See `docs/operations/PHASE75_RETAIL_EXPANSION_PLOT.md`.
+
 ## ADR-0009 — Keep product inventory and supplier orders SKU-specific
 - **Status:** Accepted — 2026-10-12.
 - **Context:** The retail loop needs visible department variety and product-specific stock behavior while keeping stock and money authoritative.

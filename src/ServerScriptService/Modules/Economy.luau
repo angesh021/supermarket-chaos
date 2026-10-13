@@ -17,6 +17,7 @@ Economy.REAR_WING_UPKEEP_PER_SHIFT = 1
 Economy.DEPARTMENT_UPKEEP_PER_SHIFT = 1
 Economy.SELF_CHECKOUT_UPKEEP_PER_SHIFT = 1
 Economy.RETAIL_AISLE_UPKEEP_PER_SHIFT = 1
+Economy.MAX_OPERATING_COSTS_PER_SHIFT = 15
 Economy.WAREHOUSE_COST = 200
 Economy.MARKET_STYLE_COST = 180
 Economy.AISLE_EXPANSION_COST = 220
@@ -24,6 +25,7 @@ Economy.FLOOR_EXPANSION_COST = 500
 Economy.BAKERY_DEPARTMENT_COST = 350
 Economy.FREEZER_DEPARTMENT_COST = 400
 Economy.RETAIL_AISLE_COST = 250
+Economy.RETAIL_PLOT_COST = 900
 Economy.SELF_CHECKOUT_COST = 300
 Economy.CAFE_COST = 650
 Economy.CAFE_RESTOCK_COST = 45
@@ -243,6 +245,7 @@ function Economy.newState(profile, playerSeed, companyWallet)
         marketStyleId = upgrades.marketStyleId or (upgrades.marketStyle and "coastal" or ""),
         aisleExpansionPurchased = upgrades.aisleExpansion or false,
         floorExpansionPurchased = upgrades.floorExpansion or false,
+        retailPlotPurchased = upgrades.retailPlot or false,
         bakeryPurchased = upgrades.bakery or false,
         freezerPurchased = upgrades.freezer or false,
         selfCheckoutPurchased = upgrades.selfCheckout or false,
@@ -253,7 +256,8 @@ function Economy.newState(profile, playerSeed, companyWallet)
             upgrades.bakery == true,
             upgrades.freezer == true,
             upgrades.shelfBay == true,
-            upgrades.aisleExpansion == true
+            upgrades.aisleExpansion == true,
+            upgrades.retailPlot == true
         ) or RetailLayoutService.default(),
         cashierHired = (profile.hiredEmployees and profile.hiredEmployees.cashier) or false,
         stockerHired = (profile.hiredEmployees and profile.hiredEmployees.stocker) or false,
@@ -844,6 +848,9 @@ function Economy.getShiftOperatingCosts(state)
     if state.floorExpansionPurchased then
         costs += Economy.REAR_WING_UPKEEP_PER_SHIFT
     end
+    if state.retailPlotPurchased then
+        costs += Economy.REAR_WING_UPKEEP_PER_SHIFT
+    end
     if state.bakeryPurchased then
         costs += Economy.DEPARTMENT_UPKEEP_PER_SHIFT
     end
@@ -858,7 +865,7 @@ function Economy.getShiftOperatingCosts(state)
         aisleCount += 1
     end
     costs += math.min(aisleCount, RetailLayoutService.MAX_CONSTRUCTED_AISLES)
-    return costs
+    return math.min(costs, Economy.MAX_OPERATING_COSTS_PER_SHIFT)
 end
 
 function Economy.cycleProductPrice(state, productId)
@@ -2010,7 +2017,8 @@ function Economy.buyBakeryDepartment(state)
         true,
         state.freezerPurchased,
         state.upgradePurchased,
-        state.aisleExpansionPurchased
+        state.aisleExpansionPurchased,
+        state.retailPlotPurchased
     )
     if not compatibleLayout then
         return false,
@@ -2045,7 +2053,8 @@ function Economy.buyFreezerDepartment(state)
         state.bakeryPurchased,
         true,
         state.upgradePurchased,
-        state.aisleExpansionPurchased
+        state.aisleExpansionPurchased,
+        state.retailPlotPurchased
     )
     if not compatibleLayout then
         return false,
@@ -2055,6 +2064,40 @@ function Economy.buyFreezerDepartment(state)
     state.freezerPurchased = true
     state.frozenMealBackstock = math.max(state.frozenMealBackstock or 0, 6)
     return true, "Freezer section built! Freezer Meals are ready for stocking."
+end
+
+function Economy.buyRetailPlot(state)
+    if
+        state.stage ~= "Complete"
+        or not state.floorExpansionPurchased
+        or not state.freezerPurchased
+        or not state.warehousePurchased
+        or state.retailPlotPurchased
+    then
+        return false, "Build the rear wing, warehouse and freezer before adding the retail plot."
+    end
+    if state.cash < Economy.RETAIL_PLOT_COST then
+        return false,
+            string.format(
+                "You need $%d to build the retail expansion plot.",
+                Economy.RETAIL_PLOT_COST
+            )
+    end
+    local compatibleLayout, layoutError = RetailLayoutService.normalize(
+        state.retailLayout,
+        state.floorExpansionPurchased,
+        state.bakeryPurchased,
+        state.freezerPurchased,
+        state.upgradePurchased,
+        state.aisleExpansionPurchased,
+        true
+    )
+    if not compatibleLayout then
+        return false, "Fix the current retail layout before expanding. " .. tostring(layoutError)
+    end
+    state.cash -= Economy.RETAIL_PLOT_COST
+    state.retailPlotPurchased = true
+    return true, "Retail expansion plot built! Two more grocery aisles can be added."
 end
 
 function Economy.buildRetailAisle(state, aisleId, x, z, rotation, productId)
@@ -2080,6 +2123,9 @@ function Economy.buildRetailAisle(state, aisleId, x, z, rotation, productId)
     if count >= RetailLayoutService.MAX_CONSTRUCTED_AISLES then
         return false, "The store has reached its constructed aisle limit."
     end
+    if count >= RetailLayoutService.BASE_CONSTRUCTED_AISLES and not state.retailPlotPurchased then
+        return false, "Purchase the retail expansion plot before building more grocery aisles."
+    end
     if state.cash < Economy.RETAIL_AISLE_COST then
         return false,
             string.format("You need $%d to build a grocery aisle.", Economy.RETAIL_AISLE_COST)
@@ -2094,7 +2140,9 @@ function Economy.buildRetailAisle(state, aisleId, x, z, rotation, productId)
         state.bakeryPurchased,
         state.freezerPurchased,
         state.upgradePurchased,
-        state.aisleExpansionPurchased
+        state.aisleExpansionPurchased,
+        nil,
+        state.retailPlotPurchased
     )
     if not valid then
         return false, reason
@@ -2136,7 +2184,8 @@ function Economy.moveRetailAisle(state, aisleId, x, z, rotation)
         state.freezerPurchased,
         state.upgradePurchased,
         state.aisleExpansionPurchased,
-        aisleId
+        aisleId,
+        state.retailPlotPurchased
     )
     if not valid then
         return false, reason
