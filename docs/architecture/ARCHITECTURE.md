@@ -88,6 +88,12 @@ Currency and stock changes occur only after server-side validation. Transactions
 - The physical produce shelf and HUD are projections of authoritative counts. Customer baskets derive apple intent from customer number and use current stock; they require no saved order field.
 - See `operations/PHASE17_GOLDEN_APPLES.md`; Studio migration, sale and shipment verification remain pending.
 
+## Phase 4 employee automation controls
+- `Economy` allow-lists cashier, stocker and cleaner automation changes and rejects toggles unless the selected employee is hired. Separate fixed board prompts are Owner/Manager-only through the existing ShiftService authorization gate.
+- Profile schema v12 stores the three boolean settings. Missing values in v1–v11 profiles normalize to enabled, preserving earlier automation behavior.
+- Each delayed automation uses a generation token and rechecks hire state, the saved automation flag, current stage, owner readiness and profile lease. Toggling off invalidates pending work; each eventual action still goes through the existing economy transition.
+- Board prompt text and employee visibility are presentation only. See `operations/PHASE18_EMPLOYEE_AUTOMATION.md`; Studio behavior and migration checks remain pending.
+
 ## Open technical decisions
 See `docs/decisions/README.md` for accepted ownership policy. Remaining decisions include multi-store/guest permissions, production Studio place configuration, analytics implementation/privacy review, and any changes to persistence recovery. Verify platform APIs against official documentation when implementation starts.
 # Cooperative ownership and cashier extension

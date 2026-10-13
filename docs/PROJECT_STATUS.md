@@ -31,6 +31,7 @@ Phase 1 desktop first play and Phase 2 progression/persistence were reported pas
 - Phase 15 adds a `$180` Coastal Market style upgrade at the physical pad. The server charges Owner/Manager once, recolors the exterior fascia/sign/canopy and interior header, and persists ownership as `ownedUpgrades.marketStyle`. Profile schema v10 defaults v1–v9 profiles to the original palette. Purchase, visual, migration and rejoin checks remain unverified in Studio; checklist is `operations/PHASE15_STOREFRONT_STYLE.md`.
 - Phase 16 adds stage-derived customer billboard reactions for `Spill`, `PowerOutage`, and `CustomerRush`; normal queue labels return after recovery. Reactions are presentation only and add no persistence or remotes. Studio appearance and route-recovery checks remain pending in `operations/PHASE16_CUSTOMER_EVENT_REACTIONS.md`.
 - Phase 17 adds Golden Apples as a third SKU with `$12` unit price, `$35` shipment of 18, three-unit restocking, 24-unit shelf cap, produce visuals, HUD counters, role checks and basket patterns. Profile schema v11 persists apple shelf/backroom counts and tags the existing one-shipment slot. Older warehouse profiles without apple inventory migrate to six backstock apples; non-warehouse profiles get zero. Shipment, customer basket, migration, permission and rejoin behavior remain unverified in Studio; checklist: `operations/PHASE17_GOLDEN_APPLES.md`.
+- Phase 18 adds independent pause/resume controls for hired cashier, stocker and cleaner automation at their staff boards. Owner/Manager authorization and hired-state checks remain server-side; generation tokens cancel pending automation callbacks. Profile schema v12 stores the three flags and migrates v1–v11 profiles to enabled. Studio toggle timing, race, permission, legacy migration and rejoin checks remain pending in `operations/PHASE18_EMPLOYEE_AUTOMATION.md`.
 - Phase 10 schema v6 adds a validated persistent cleaner employee flag; schemas v1–v5 default safely to no cleaner.
 - DataStore calls are enabled only when `game.GameId` matches development universe `10770581249`. Other universes display session-only status and never write to that store.
 
@@ -54,6 +55,7 @@ Use a private development test experience in universe `10770581249`; use two or 
 16. Follow [Phase 15 storefront style checks](operations/PHASE15_STOREFRONT_STYLE.md) for the `$180` purchase, role limits, visible recolor, legacy migration and save/rejoin.
 17. Follow [Phase 16 customer reaction checks](operations/PHASE16_CUSTOMER_EVENT_REACTIONS.md) for event labels, recovery, and confirmation that they do not change economy state.
 18. Follow [Phase 17 Golden Apples checks](operations/PHASE17_GOLDEN_APPLES.md) for produce stock, shipments, basket math, v11 migration, roles and rejoin.
+19. Follow [Phase 18 employee automation checks](operations/PHASE18_EMPLOYEE_AUTOMATION.md) for pause/resume timing, permissions, races, v1–v11 migration and save/rejoin.
 
 ## Toolchain and checks
 - Rojo 7.7.0, Selene 0.32.0 and StyLua 2.5.0 are pinned in `rokit.toml`.

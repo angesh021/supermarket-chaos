@@ -90,6 +90,7 @@ function Economy.newState(profile)
     profile = profile or {}
     local savedShift = profile.shift or {}
     local upgrades = profile.ownedUpgrades or {}
+    local employeeAutomation = profile.employeeAutomation or {}
     local warehouseInventory = profile.warehouseInventory or {}
     local shipmentQuantity = warehouseInventory.shipmentQuantity or 0
     return {
@@ -109,6 +110,9 @@ function Economy.newState(profile)
         cashierHired = (profile.hiredEmployees and profile.hiredEmployees.cashier) or false,
         stockerHired = (profile.hiredEmployees and profile.hiredEmployees.stocker) or false,
         cleanerHired = (profile.hiredEmployees and profile.hiredEmployees.cleaner) or false,
+        cashierAutomationEnabled = employeeAutomation.cashier ~= false,
+        stockerAutomationEnabled = employeeAutomation.stocker ~= false,
+        cleanerAutomationEnabled = employeeAutomation.cleaner ~= false,
         backstock = warehouseInventory.citrusPop or 12,
         berryBackstock = warehouseInventory.berryBites or (upgrades.warehouse and 12 or 0),
         goldenAppleBackstock = warehouseInventory.goldenApples or (upgrades.warehouse and 6 or 0),
@@ -547,6 +551,7 @@ function Economy.hireCashier(state)
     end
     state.cash -= Economy.CASHIER_COST
     state.cashierHired = true
+    state.cashierAutomationEnabled = true
     return true, "Cashier hired! They will serve stocked customers automatically."
 end
 
@@ -559,6 +564,7 @@ function Economy.hireStocker(state)
     end
     state.cash -= Economy.STOCKER_COST
     state.stockerHired = true
+    state.stockerAutomationEnabled = true
     return true, "Stock clerk hired! They will restock Citrus Pop automatically."
 end
 
@@ -571,7 +577,35 @@ function Economy.hireCleaner(state)
     end
     state.cash -= Economy.CLEANER_COST
     state.cleanerHired = true
+    state.cleanerAutomationEnabled = true
     return true, "Cleaner hired! They will handle checkout spills automatically."
+end
+
+function Economy.toggleEmployeeAutomation(state, employeeId)
+    local employees = {
+        cashier = {
+            hiredField = "cashierHired",
+            enabledField = "cashierAutomationEnabled",
+            name = "Cashier",
+        },
+        stocker = {
+            hiredField = "stockerHired",
+            enabledField = "stockerAutomationEnabled",
+            name = "Stock clerk",
+        },
+        cleaner = {
+            hiredField = "cleanerHired",
+            enabledField = "cleanerAutomationEnabled",
+            name = "Cleaner",
+        },
+    }
+    local employee = employees[employeeId]
+    if not employee or not state[employee.hiredField] then
+        return false, "Hire this employee before changing its automation."
+    end
+    state[employee.enabledField] = not state[employee.enabledField]
+    local status = state[employee.enabledField] and "resumed" or "paused"
+    return true, string.format("%s automation %s.", employee.name, status)
 end
 
 function Economy.buyWarehouse(state)

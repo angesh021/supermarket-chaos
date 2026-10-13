@@ -44,12 +44,14 @@ Instrument funnel events for first interaction, first stock, first sale, first u
 - Helpers act on the owner's shared shift and currency; they do not load or write the owner's profile as their own.
 - G3 requires multi-client Studio verification of each role, removal, capacity and rejected remote/event misuse.
 
-## Phase 4 employee requirements (first increment)
+## Phase 4 employee requirements
 - On a completed shift, the owner or authorized manager may purchase a persistent cashier for $100 or stock clerk for $80 in fictional currency.
 - The server checks the stage, balance and ownership before taking payment and saving the employee flag.
 - A hired cashier is visibly represented in the store and automatically completes a stocked checkout after a short delay using the ordinary sale path exactly once. A hired stock clerk visibly appears and automatically stocks the starting product after the cart stage.
 - Profile schema v2 safely defaults legacy profiles to no employees. Saved schema version values must be finite bounded integers; read-only visitors receive no balance, stock or sales values.
+- Owners and Managers can pause/resume each hired employee's automation at its staff board. The server persists these settings independently; schemas v1–v11 migrate to enabled to preserve existing behavior. Pausing does not prevent player-operated actions.
 - G4 requires Studio verification of both purchases, persistence, automatic actions and races with players/helpers at the same prompts.
+- Employee automation control acceptance and migration cases are listed in `operations/PHASE18_EMPLOYEE_AUTOMATION.md`.
 
 ## Phase 5 analytics requirements (development increment)
 - Track the first-shift funnel through Store Ready, Cart Recovered, Product Stocked, First Sale, First Shift Closed and First Shelf Upgrade.

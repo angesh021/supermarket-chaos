@@ -35,6 +35,9 @@ local ROLE_ACTIONS = {
         HireCashier = true,
         HireStocker = true,
         HireCleaner = true,
+        ToggleCashierAutomation = true,
+        ToggleStockerAutomation = true,
+        ToggleCleanerAutomation = true,
         Warehouse = true,
         MarketStyle = true,
         OrderDelivery = true,
@@ -271,16 +274,26 @@ function ShiftService.init(event, membershipRemotes)
     end
 
     local commit
+    local stockerScheduleVersion = 0
     local function scheduleStocker()
-        if not state or not state.stockerHired or state.stage ~= "Stock" then
+        stockerScheduleVersion += 1
+        local scheduleVersion = stockerScheduleVersion
+        if
+            not state
+            or not state.stockerHired
+            or not state.stockerAutomationEnabled
+            or state.stage ~= "Stock"
+        then
             return
         end
         task.delay(4, function()
             if
-                not ownerReady
+                scheduleVersion ~= stockerScheduleVersion
+                or not ownerReady
                 or not ownerPlayer
                 or not state
                 or not state.stockerHired
+                or not state.stockerAutomationEnabled
                 or state.stage ~= "Stock"
                 or ProfileService.getSaveStatus(ownerPlayer) == "lock lost"
                 or ProfileService.getSaveStatus(ownerPlayer) == "save pending"
@@ -308,6 +321,7 @@ function ShiftService.init(event, membershipRemotes)
         if
             not state
             or not state.cashierHired
+            or not state.cashierAutomationEnabled
             or (state.stage ~= "Checkout" and state.stage ~= "CustomerRush")
         then
             return
@@ -322,6 +336,7 @@ function ShiftService.init(event, membershipRemotes)
                     or not ownerPlayer
                     or not state
                     or not state.cashierHired
+                    or not state.cashierAutomationEnabled
                     or (state.stage ~= "Checkout" and state.stage ~= "CustomerRush")
                     or ProfileService.getSaveStatus(ownerPlayer) == "lock lost"
                     or ProfileService.getSaveStatus(ownerPlayer) == "save pending"
@@ -358,7 +373,12 @@ function ShiftService.init(event, membershipRemotes)
     local function scheduleCleaner()
         cleanerScheduleVersion += 1
         local scheduleVersion = cleanerScheduleVersion
-        if not state or not state.cleanerHired or state.stage ~= "Spill" then
+        if
+            not state
+            or not state.cleanerHired
+            or not state.cleanerAutomationEnabled
+            or state.stage ~= "Spill"
+        then
             return
         end
         task.delay(5, function()
@@ -368,6 +388,7 @@ function ShiftService.init(event, membershipRemotes)
                 or not ownerPlayer
                 or not state
                 or not state.cleanerHired
+                or not state.cleanerAutomationEnabled
                 or state.stage ~= "Spill"
                 or ProfileService.getSaveStatus(ownerPlayer) == "lock lost"
                 or ProfileService.getSaveStatus(ownerPlayer) == "save pending"
@@ -724,6 +745,33 @@ function ShiftService.init(event, membershipRemotes)
         broadcast(message)
     end)
 
+    bind("ToggleCashierAutomation", world.cashierAutomationPrompt, 12, function()
+        local ok, message = Economy.toggleEmployeeAutomation(state, "cashier")
+        if ok then
+            world.setCashierAutomationEnabled(state.cashierAutomationEnabled)
+            commit("employeeAutomationChanged")
+        end
+        broadcast(message)
+    end)
+
+    bind("ToggleStockerAutomation", world.stockerAutomationPrompt, 12, function()
+        local ok, message = Economy.toggleEmployeeAutomation(state, "stocker")
+        if ok then
+            world.setStockerAutomationEnabled(state.stockerAutomationEnabled)
+            commit("employeeAutomationChanged")
+        end
+        broadcast(message)
+    end)
+
+    bind("ToggleCleanerAutomation", world.cleanerAutomationPrompt, 12, function()
+        local ok, message = Economy.toggleEmployeeAutomation(state, "cleaner")
+        if ok then
+            world.setCleanerAutomationEnabled(state.cleanerAutomationEnabled)
+            commit("employeeAutomationChanged")
+        end
+        broadcast(message)
+    end)
+
     joinRequestEvent.OnServerEvent:Connect(function(player)
         if
             player == ownerPlayer
@@ -877,6 +925,9 @@ function ShiftService.init(event, membershipRemotes)
             world.setCashierHired(state.cashierHired)
             world.setStockerHired(state.stockerHired)
             world.setCleanerHired(state.cleanerHired)
+            world.setCashierAutomationEnabled(state.cashierAutomationEnabled)
+            world.setStockerAutomationEnabled(state.stockerAutomationEnabled)
+            world.setCleanerAutomationEnabled(state.cleanerAutomationEnabled)
             world.setStockVisual(state.stock)
             world.setBerryStockVisual(state.berryStock)
             world.setGoldenAppleStockVisual(state.goldenAppleStock)

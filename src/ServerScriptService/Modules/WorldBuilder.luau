@@ -1243,6 +1243,9 @@ function WorldBuilder.build()
     )
     local cashierHirePrompt =
         prompt(hiringBoard, "Hire Cashier ($100)", "Staff Board", "HireCashier", 10)
+    local cashierAutomationPrompt =
+        prompt(hiringBoard, "Pause Automation", "Cashier", "ToggleCashierAutomation", 10)
+    cashierAutomationPrompt.Enabled = false
     local cashierModel = createLowPolyPerson(
         interior,
         "Store Cashier",
@@ -1269,6 +1272,9 @@ function WorldBuilder.build()
     )
     local stockerHirePrompt =
         prompt(stockerHiringBoard, "Hire Stocker ($80)", "Staff Board", "HireStocker", 10)
+    local stockerAutomationPrompt =
+        prompt(stockerHiringBoard, "Pause Automation", "Stock Clerk", "ToggleStockerAutomation", 10)
+    stockerAutomationPrompt.Enabled = false
     local stockerModel = createLowPolyPerson(
         interior,
         "Store Stock Clerk",
@@ -1295,6 +1301,9 @@ function WorldBuilder.build()
     )
     local cleanerHirePrompt =
         prompt(cleanerHiringBoard, "Hire Cleaner ($120)", "Staff Board", "HireCleaner", 10)
+    local cleanerAutomationPrompt =
+        prompt(cleanerHiringBoard, "Pause Automation", "Cleaner", "ToggleCleanerAutomation", 10)
+    cleanerAutomationPrompt.Enabled = false
     local cleanerModel = createLowPolyPerson(
         interior,
         "Store Cleaner",
@@ -1897,6 +1906,15 @@ function WorldBuilder.build()
         cashierHirePrompt.Enabled = stage == "Complete" and not cashierHired
         stockerHirePrompt.Enabled = stage == "Complete" and not stockerHired
         cleanerHirePrompt.Enabled = stage == "Complete" and not cleanerHired
+        cashierAutomationPrompt.Enabled = stage ~= "Loading"
+            and stage ~= "OwnerOffline"
+            and cashierHired
+        stockerAutomationPrompt.Enabled = stage ~= "Loading"
+            and stage ~= "OwnerOffline"
+            and stockerHired
+        cleanerAutomationPrompt.Enabled = stage ~= "Loading"
+            and stage ~= "OwnerOffline"
+            and cleanerHired
         warehousePrompt.Enabled = stage == "Complete" and not warehousePurchased
         goldenAppleStockPrompt.Enabled = goldenAppleStockAvailable
             and warehousePurchased
@@ -1995,6 +2013,9 @@ function WorldBuilder.build()
         restartPrompt = restartPrompt,
         cashierHirePrompt = cashierHirePrompt,
         stockerHirePrompt = stockerHirePrompt,
+        cashierAutomationPrompt = cashierAutomationPrompt,
+        stockerAutomationPrompt = stockerAutomationPrompt,
+        cleanerAutomationPrompt = cleanerAutomationPrompt,
         warehousePrompt = warehousePrompt,
         marketStylePrompt = stylePrompt,
         setMarketStyle = setMarketStyle,
@@ -2041,6 +2062,10 @@ function WorldBuilder.build()
                 end
             end
         end,
+        setCashierAutomationEnabled = function(enabled)
+            cashierAutomationPrompt.ActionText = enabled and "Pause Automation"
+                or "Resume Automation"
+        end,
         setStockerHired = function(hired)
             stockerHired = hired == true
             stockerHirePrompt.Enabled = not stockerHired and currentStage == "Complete"
@@ -2049,6 +2074,10 @@ function WorldBuilder.build()
                     item.Transparency = stockerHired and 0 or 1
                 end
             end
+        end,
+        setStockerAutomationEnabled = function(enabled)
+            stockerAutomationPrompt.ActionText = enabled and "Pause Automation"
+                or "Resume Automation"
         end,
         cleanerHirePrompt = cleanerHirePrompt,
         setCleanerHired = function(hired)
@@ -2059,6 +2088,10 @@ function WorldBuilder.build()
                     item.Transparency = cleanerHired and 0 or 1
                 end
             end
+        end,
+        setCleanerAutomationEnabled = function(enabled)
+            cleanerAutomationPrompt.ActionText = enabled and "Pause Automation"
+                or "Resume Automation"
         end,
         addWarehouse = addWarehouse,
         setWarehousePurchased = function(purchased)

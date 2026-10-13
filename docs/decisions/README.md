@@ -87,6 +87,13 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Consequences:** Profile schema v11 adds Golden Apples counts and accepts its shipment ID. Existing warehouse profiles missing the new field migrate to six backstock apples; profiles without a warehouse get zero. Restock quantity is three, shelf cap 24, order is 18 for `$35`, and retail unit price is `$12`.
 - **Verification:** See `docs/operations/PHASE17_GOLDEN_APPLES.md`; gameplay, migration and shipment checks await Studio verification.
 
+## ADR-0016 — Persist per-employee automation controls
+- **Status:** Accepted — 2026-10-12.
+- **Context:** Employees currently act automatically whenever their existing stage becomes eligible, with no owner control over the behavior.
+- **Decision:** Add one persistent enabled flag per hired cashier, stock clerk, and cleaner. Owner/Manager prompts toggle each flag. Automation callbacks carry generation tokens and recheck the current flag and session lease before using the existing economy action.
+- **Consequences:** Profile schema v12 defaults v1–v11 profiles to enabled, preserving prior behavior. Pausing does not unhire staff or disable player-operated actions. The controls do not add wages or expand employee behavior.
+- **Verification:** See `docs/operations/PHASE18_EMPLOYEE_AUTOMATION.md`; Studio permissions, pause timing, races and migration checks remain pending.
+
 ## ADR-0009 — Keep product inventory and supplier orders SKU-specific
 - **Status:** Accepted — 2026-10-12.
 - **Context:** The retail loop needs visible department variety and product-specific stock behavior while keeping stock and money authoritative.

@@ -25,5 +25,6 @@
 | [Storefront style verification](operations/PHASE15_STOREFRONT_STYLE.md) | Persistent visual upgrade, price, permissions and migration checks |
 | [Customer event reaction verification](operations/PHASE16_CUSTOMER_EVENT_REACTIONS.md) | Spill, outage, rush and queue-recovery presentation checks |
 | [Golden Apples verification](operations/PHASE17_GOLDEN_APPLES.md) | Produce stock, basket sales, shipment and v11 migration checks |
+| [Employee automation verification](operations/PHASE18_EMPLOYEE_AUTOMATION.md) | Persistent pause/resume controls, timer cancellation, permissions and v12 migration checks |
 
 Keep this index and linked documents current as implementation changes. See [AGENTS.md](../AGENTS.md) for repository rules.
