@@ -410,7 +410,8 @@ function WorldBuilder.build()
         COLORS.cream,
         Enum.Material.CeramicTiles
     )
-    part(interior, "Back Wall", Vector3.new(44, 12, 1), CFrame.new(0, 6, -19), COLORS.cream)
+    local mainBackWall =
+        part(interior, "Back Wall", Vector3.new(44, 12, 1), CFrame.new(0, 6, -19), COLORS.cream)
     part(interior, "Left Wall", Vector3.new(1, 12, 36), CFrame.new(-22, 6, -1), COLORS.cream)
     part(interior, "Right Wall", Vector3.new(1, 12, 36), CFrame.new(22, 6, -1), COLORS.cream)
     part(interior, "Front Left Pier", Vector3.new(1, 12, 1), CFrame.new(-22, 6, 17), COLORS.cream)
@@ -572,7 +573,7 @@ function WorldBuilder.build()
         Enum.Material.SmoothPlastic,
         0.45
     )
-    label(
+    local neighborhoodMarketMural = label(
         interior,
         "Neighborhood Market Mural",
         "GOOD FOOD  •  GOOD NEIGHBORS",
@@ -601,7 +602,7 @@ function WorldBuilder.build()
             Enum.Material.Metal
         )
     end
-    part(
+    local mainBackWainscot = part(
         interior,
         "Back Wall Teal Wainscot",
         Vector3.new(43, 1.1, 0.22),
@@ -831,6 +832,8 @@ function WorldBuilder.build()
     checkoutModel:PivotTo(CFrame.new(14, 1.7, 8))
     local currentStage = "Loading"
     local aisleExpansionPurchased = false
+    local floorExpansionPurchased = false
+    local floorExpansionModel
     local customerModels = {}
     local customerColors = {
         { COLORS.blue, COLORS.deepTeal, COLORS.orange },
@@ -1007,6 +1010,11 @@ function WorldBuilder.build()
     local function browseCustomerBasket(entry, speed, flowVersion)
         local browseSpeed = customerAssistantHired and speed * 0.7 or speed
         for _, position in ipairs(customerProductPositions) do
+            if position.Z < -17 then
+                if not moveCustomer(entry, Vector3.new(0, 0.45, -17), browseSpeed, flowVersion) then
+                    return false
+                end
+            end
             if not moveCustomer(entry, position, browseSpeed, flowVersion) then
                 return false
             end
@@ -1066,6 +1074,11 @@ function WorldBuilder.build()
         end
         task.wait(0.35)
         entry.label.Text = "MOVING TO CHECKOUT"
+        if entry.model:GetPivot().Position.Z < -17 then
+            if not moveCustomer(entry, Vector3.new(0, 0.45, -17), 0.45, flowVersion) then
+                return
+            end
+        end
         local waypoints = {
             checkoutLocalPosition(Vector3.new(-5, -1.25, 0)),
             checkoutLocalPosition(Vector3.new(-5, -1.25, -4)),
@@ -1631,6 +1644,26 @@ function WorldBuilder.build()
         10
     )
     aisleExpansionPrompt.Enabled = false
+    local floorExpansionPad = part(
+        interior,
+        "Rear Department Expansion Pad",
+        Vector3.new(4.5, 0.5, 4.5),
+        CFrame.new(18, 0.5, -14),
+        COLORS.gold,
+        Enum.Material.Neon
+    )
+    local floorExpansionPrompt =
+        prompt(floorExpansionPad, "Build Rear Wing ($500)", "Store Expansion", "FloorExpansion", 10)
+    floorExpansionPrompt.Enabled = false
+    local floorExpansionSign = label(
+        interior,
+        "Rear Department Expansion Sign",
+        "REAR MARKET WING\n$500",
+        Vector3.new(5, 2.5, 0.4),
+        CFrame.new(17.5, 4, -17.1),
+        COLORS.green,
+        COLORS.warmWhite
+    )
     local upgradeSign = label(
         interior,
         "Upgrade Sign",
@@ -2282,6 +2315,19 @@ function WorldBuilder.build()
             and not aisleExpansionPurchased
             and interior:FindFirstChild("Purchased Shelf Bay") ~= nil
         aisleExpansionPad.Transparency = 0
+        floorExpansionPrompt.Enabled = stage == "Complete"
+            and aisleExpansionPurchased
+            and not floorExpansionPurchased
+        local floorSignSurface = floorExpansionSign:FindFirstChildOfClass("SurfaceGui")
+        local floorSignText = floorSignSurface
+            and floorSignSurface:FindFirstChildOfClass("TextLabel")
+        if floorSignText then
+            floorSignText.Text = floorExpansionPurchased and "REAR MARKET WING\nBUILT"
+                or (floorExpansionPrompt.Enabled and "REAR MARKET WING\n$500")
+                or (aisleExpansionPurchased and "REAR MARKET WING\nNEXT" or "REAR WING\nLOCKED")
+        end
+        floorExpansionPad.Transparency = floorExpansionPurchased and 1 or 0
+        floorExpansionPad.CanCollide = not floorExpansionPurchased
         local signSurface = upgradeSign:FindFirstChildOfClass("SurfaceGui")
         local signText = signSurface and signSurface:FindFirstChildOfClass("TextLabel")
         if signText then
@@ -2554,6 +2600,7 @@ function WorldBuilder.build()
         setDeliveryState = setDeliveryState,
         upgradePrompt = upgradePrompt,
         aisleExpansionPrompt = aisleExpansionPrompt,
+        floorExpansionPrompt = floorExpansionPrompt,
         setStage = setStage,
         setUpgradeReady = function(ready)
             upgradeMarker.Enabled = ready
@@ -2595,6 +2642,105 @@ function WorldBuilder.build()
             aisleExpansionPurchased = true
             aisleExpansionPrompt.Enabled = false
             aisleExpansionPad.Transparency = 0
+        end,
+        addFloorExpansion = function()
+            if floorExpansionModel then
+                floorExpansionPurchased = true
+                return
+            end
+            floorExpansionPurchased = true
+            if mainBackWall and mainBackWall.Parent then
+                mainBackWall:Destroy()
+            end
+            if mainBackWainscot and mainBackWainscot.Parent then
+                mainBackWainscot:Destroy()
+            end
+            if neighborhoodMarketMural and neighborhoodMarketMural.Parent then
+                neighborhoodMarketMural:Destroy()
+            end
+            floorExpansionModel = Instance.new("Model")
+            floorExpansionModel.Name = "Purchased Rear Department Wing"
+            floorExpansionModel.Parent = interior
+            local function wingPart(name, size, cframe, color, material)
+                local item = part(floorExpansionModel, name, size, cframe, color, material)
+                item:SetAttribute("PlayerPurchased", true)
+                return item
+            end
+            -- Rebuild the former rear wall with a wide, walkable opening into the new wing.
+            wingPart(
+                "Rear Opening Left Pier",
+                Vector3.new(15, 12, 1),
+                CFrame.new(-14.5, 6, -19),
+                COLORS.cream
+            )
+            wingPart(
+                "Rear Opening Right Pier",
+                Vector3.new(15, 12, 1),
+                CFrame.new(14.5, 6, -19),
+                COLORS.cream
+            )
+            wingPart(
+                "Rear Opening Header",
+                Vector3.new(14, 3, 1),
+                CFrame.new(0, 10.5, -19),
+                COLORS.cream
+            )
+            wingPart(
+                "Rear Department Floor",
+                Vector3.new(44, 0.45, 21),
+                CFrame.new(0, 0.24, -29.5),
+                COLORS.cream,
+                Enum.Material.CeramicTiles
+            )
+            wingPart(
+                "Rear Department Left Wall",
+                Vector3.new(1, 12, 22),
+                CFrame.new(-22, 6, -30),
+                COLORS.cream
+            )
+            wingPart(
+                "Rear Department Right Wall",
+                Vector3.new(1, 12, 22),
+                CFrame.new(22, 6, -30),
+                COLORS.cream
+            )
+            wingPart(
+                "Rear Department Back Wall",
+                Vector3.new(44, 12, 1),
+                CFrame.new(0, 6, -41),
+                COLORS.cream
+            )
+            local rearCeiling = wingPart(
+                "Rear Department Ceiling",
+                Vector3.new(44, 0.6, 22),
+                CFrame.new(0, 12.1, -30),
+                COLORS.warmWhite
+            )
+            rearCeiling.CanQuery = false
+            for _, lightX in ipairs({ -14, -7, 0, 7, 14 }) do
+                local ceilingLight = wingPart(
+                    "Rear Department Light",
+                    Vector3.new(3, 0.12, 0.7),
+                    CFrame.new(lightX, 11.72, -24 - ((lightX / 7) % 2) * 7),
+                    COLORS.warmWhite,
+                    Enum.Material.Neon
+                )
+                ceilingLight.CanCollide = false
+                ceilingLight.CanQuery = false
+            end
+            local departmentSign = label(
+                floorExpansionModel,
+                "Rear Wing Department Sign",
+                "FRESH MARKET  •  MORE ROOM TO GROW",
+                Vector3.new(12, 1.3, 0.35),
+                CFrame.new(0, 8.2, -19.55),
+                COLORS.green,
+                COLORS.warmWhite
+            )
+            departmentSign:SetAttribute("PlayerPurchased", true)
+            floorExpansionPad.Transparency = 1
+            floorExpansionPad.CanCollide = false
+            floorExpansionPrompt.Enabled = false
         end,
         setCashierHired = function(hired)
             cashierHired = hired == true

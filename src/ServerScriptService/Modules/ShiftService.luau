@@ -50,6 +50,7 @@ local ROLE_ACTIONS = {
         ToggleDeliveryWorkerAutomation = true,
         Warehouse = true,
         AisleExpansion = true,
+        FloorExpansion = true,
         EditLayout = true,
         EditRetailLayout = true,
         MarketStyle = true,
@@ -830,6 +831,7 @@ function ShiftService.init(event, membershipRemotes)
         retailLayoutRequestEvent:FireClient(player, {
             action = "Open",
             layout = state.retailLayout,
+            floorExpansionOwned = state.floorExpansionPurchased,
         })
     end)
 
@@ -838,6 +840,15 @@ function ShiftService.init(event, membershipRemotes)
         if ok then
             world.addAisleExpansion()
             commit("aisleExpansion")
+        end
+        broadcast(message)
+    end)
+
+    bind("FloorExpansion", world.floorExpansionPrompt, 12, function()
+        local ok, message = Economy.buyFloorExpansion(state)
+        if ok then
+            world.addFloorExpansion()
+            commit("floorExpansion")
         end
         broadcast(message)
     end)
@@ -1235,7 +1246,8 @@ function ShiftService.init(event, membershipRemotes)
             request.x,
             request.z,
             request.rotation,
-            state.retailLayout.checkout
+            state.retailLayout.checkout,
+            state.floorExpansionPurchased
         )
         if not valid then
             return reject(reason)
@@ -1373,6 +1385,9 @@ function ShiftService.init(event, membershipRemotes)
             end
             if state.aisleExpansionPurchased then
                 world.addAisleExpansion()
+            end
+            if state.floorExpansionPurchased then
+                world.addFloorExpansion()
             end
             world.setMarketStyle(state.marketStylePurchased)
             marketStylePreviewing = false

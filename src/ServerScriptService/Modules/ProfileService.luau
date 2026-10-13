@@ -6,7 +6,7 @@ local ProfileService = {}
 local LayoutService = require(script.Parent.LayoutService)
 local RetailLayoutService = require(script.Parent.RetailLayoutService)
 
-local SCHEMA_VERSION = 21
+local SCHEMA_VERSION = 22
 local SESSION_LEASE_SECONDS = 180
 local MAX_RETRIES = 3
 local STORE_NAME = "SupermarketChaos_PlayerProfiles_v1"
@@ -48,6 +48,7 @@ local function defaultProfile()
             warehouse = false,
             marketStyle = false,
             aisleExpansion = false,
+            floorExpansion = false,
         },
         hiredEmployees = {
             cashier = false,
@@ -188,6 +189,9 @@ local function normalizeProfile(value)
             or (value.ownedUpgrades.aisleExpansion ~= nil and type(
                 value.ownedUpgrades.aisleExpansion
             ) ~= "boolean")
+            or (value.ownedUpgrades.floorExpansion ~= nil and type(
+                value.ownedUpgrades.floorExpansion
+            ) ~= "boolean")
             or (
                 value.ownedUpgrades.marketStyle ~= nil
                 and type(value.ownedUpgrades.marketStyle) ~= "boolean"
@@ -199,9 +203,13 @@ local function normalizeProfile(value)
         profile.ownedUpgrades.warehouse = value.ownedUpgrades.warehouse == true
         profile.ownedUpgrades.marketStyle = value.ownedUpgrades.marketStyle == true
         profile.ownedUpgrades.aisleExpansion = value.ownedUpgrades.aisleExpansion == true
+        profile.ownedUpgrades.floorExpansion = value.ownedUpgrades.floorExpansion == true
     end
     if profile.ownedUpgrades.aisleExpansion and not profile.ownedUpgrades.shelfBay then
         return nil, "Stored aisle expansion exists without the first shelf bay."
+    end
+    if profile.ownedUpgrades.floorExpansion and not profile.ownedUpgrades.aisleExpansion then
+        return nil, "Stored floor expansion exists without the household aisle expansion."
     end
     local normalizedLayout, layoutError =
         LayoutService.normalize(value.warehouseLayout, profile.ownedUpgrades.warehouse)
@@ -210,7 +218,7 @@ local function normalizeProfile(value)
     end
     profile.warehouseLayout = normalizedLayout
     local normalizedRetailLayout, retailLayoutError =
-        RetailLayoutService.normalize(value.retailLayout)
+        RetailLayoutService.normalize(value.retailLayout, profile.ownedUpgrades.floorExpansion)
     if not normalizedRetailLayout then
         return nil, retailLayoutError
     end
@@ -444,6 +452,7 @@ local function copyProfile(profile)
             warehouse = profile.ownedUpgrades.warehouse,
             marketStyle = profile.ownedUpgrades.marketStyle,
             aisleExpansion = profile.ownedUpgrades.aisleExpansion,
+            floorExpansion = profile.ownedUpgrades.floorExpansion,
         },
         hiredEmployees = {
             cashier = profile.hiredEmployees.cashier,
@@ -709,8 +718,10 @@ function ProfileService.saveProgress(player, state, eventName)
     profile.ownedUpgrades.warehouse = state.warehousePurchased
     profile.ownedUpgrades.marketStyle = state.marketStylePurchased
     profile.ownedUpgrades.aisleExpansion = state.aisleExpansionPurchased
+    profile.ownedUpgrades.floorExpansion = state.floorExpansionPurchased
     profile.warehouseLayout = state.warehouseLayout
-    profile.retailLayout = RetailLayoutService.normalize(state.retailLayout)
+    profile.retailLayout =
+        RetailLayoutService.normalize(state.retailLayout, state.floorExpansionPurchased)
     profile.customerSatisfaction = math.min(math.max(state.customerSatisfaction or 75, 0), 100)
     profile.hiredEmployees.cashier = state.cashierHired
     profile.hiredEmployees.stocker = state.stockerHired

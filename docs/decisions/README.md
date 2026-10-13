@@ -204,6 +204,11 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Consequences:** Profile schema v21 migrates existing shelf layouts without moving their departments. Rotated display readability and customer navigation need Studio verification.
 - **Verification:** See `docs/operations/PHASE34_CHECKOUT_LAYOUT.md`.
 
+## ADR-0033: Persist a fixed rear store expansion
+- **Decision:** Unlock a fixed rear retail wing after the household aisle; charge once, construct it server-side, and only allow shelf layout records in its marked zone when owned.
+- **Consequences:** Profile schema v22 stores the purchase and migrates older profiles with the wing disabled. Customer routes use the fixed opening; the existing product inventory and checkout remain authoritative.
+- **Verification:** See `docs/operations/PHASE35_REAR_FLOOR_EXPANSION.md`.
+
 ## ADR-0009 — Keep product inventory and supplier orders SKU-specific
 - **Status:** Accepted — 2026-10-12.
 - **Context:** The retail loop needs visible department variety and product-specific stock behavior while keeping stock and money authoritative.

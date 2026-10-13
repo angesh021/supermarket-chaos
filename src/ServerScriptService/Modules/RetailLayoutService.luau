@@ -53,18 +53,26 @@ local function overlaps(x, z, productId, rotation, otherX, otherZ, otherProductI
         and math.abs(z - otherZ) < halfZ + otherHalfZ + 0.2
 end
 
-local function canPlace(shelves, productId, x, z, rotation, excludedProductId)
+local function validRetailZone(x, z, expansionPurchased)
+    if validGrid(x, -12, 12) and validGrid(z, -9, -1) then
+        return true
+    end
+    return expansionPurchased == true and validGrid(x, -12, 12) and validGrid(z, -33, -21)
+end
+
+local function canPlace(shelves, productId, x, z, rotation, excludedProductId, expansionPurchased)
     if not RetailLayoutService.isProductId(productId) then
         return false, "Choose one of the four installed product departments."
     end
-    if not validGrid(x, -12, 12) or not validGrid(z, -9, -1) then
+    if not validRetailZone(x, z, expansionPurchased) then
         return false, "Choose a snapped position inside the marked retail floor zone."
     end
     if rotation ~= 0 and rotation ~= 90 then
         return false, "Shelf rotation must be 0 or 90 degrees."
     end
     local halfX, halfZ = halfFootprint(productId, rotation)
-    if x - halfX < -20.5 or x + halfX > 20.5 or z - halfZ < -18.5 or z + halfZ > 16.5 then
+    local minimumFloorZ = expansionPurchased == true and z < -17 and -39.5 or -18.5
+    if x - halfX < -20.5 or x + halfX > 20.5 or z - halfZ < minimumFloorZ or z + halfZ > 16.5 then
         return false, "The rotated shelf must stay inside the store floor."
     end
 
@@ -181,7 +189,7 @@ function RetailLayoutService.default()
     }
 end
 
-function RetailLayoutService.normalize(value)
+function RetailLayoutService.normalize(value, expansionPurchased)
     if value == nil then
         return RetailLayoutService.default()
     end
@@ -221,8 +229,15 @@ function RetailLayoutService.normalize(value)
     end
     for _, productId in ipairs(RetailLayoutService.PRODUCT_IDS) do
         local shelf = normalized.shelves[productId]
-        local valid, reason =
-            canPlace(normalized.shelves, productId, shelf.x, shelf.z, shelf.rotation, productId)
+        local valid, reason = canPlace(
+            normalized.shelves,
+            productId,
+            shelf.x,
+            shelf.z,
+            shelf.rotation,
+            productId,
+            expansionPurchased
+        )
         if not valid then
             return nil, reason
         end
@@ -255,7 +270,8 @@ function RetailLayoutService.normalize(value)
             shelf.x,
             shelf.z,
             shelf.rotation,
-            normalized.checkout
+            normalized.checkout,
+            expansionPurchased
         )
         if not shelfValid then
             return nil, shelfReason
@@ -264,8 +280,17 @@ function RetailLayoutService.normalize(value)
     return normalized
 end
 
-function RetailLayoutService.canPlace(shelves, productId, x, z, rotation, checkout)
-    local valid, reason = canPlace(shelves, productId, x, z, rotation, productId)
+function RetailLayoutService.canPlace(
+    shelves,
+    productId,
+    x,
+    z,
+    rotation,
+    checkout,
+    expansionPurchased
+)
+    local valid, reason =
+        canPlace(shelves, productId, x, z, rotation, productId, expansionPurchased)
     if not valid then
         return false, reason
     end

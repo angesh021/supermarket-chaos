@@ -110,6 +110,7 @@ local closeButton = makeButton("Close", UDim2.new(0.78, 0, 0, 10), UDim2.new(0.1
 
 local selectedProductId
 local selectedCheckout = false
+local floorExpansionOwned = false
 local rotation = 0
 local moveMode = false
 local pointerPosition
@@ -277,7 +278,14 @@ local function onPointerDown(input, processed)
     end
     if moveMode then
         local minX, maxX = selectedCheckout and -14 or -12, selectedCheckout and 14 or 12
-        local minZ, maxZ = selectedCheckout and 6 or -9, selectedCheckout and 12 or -1
+        local minZ, maxZ
+        if selectedCheckout then
+            minZ, maxZ = 6, 12
+        elseif floorExpansionOwned and hit.Position.Z < -17 then
+            minZ, maxZ = -33, -21
+        else
+            minZ, maxZ = -9, -1
+        end
         local x, validX = snap(hit.Position.X, minX, maxX)
         local z, validZ = snap(hit.Position.Z, minZ, maxZ)
         if not validX or not validZ then
@@ -335,20 +343,25 @@ RunService.RenderStepped:Connect(function()
     if selectedCheckout then
         x, validX = snap(hit.Position.X, -14, 14)
         z, validZ = snap(hit.Position.Z, 6, 12)
+    elseif floorExpansionOwned and hit.Position.Z < -17 then
+        z, validZ = snap(hit.Position.Z, -33, -21)
     end
     local width = selectedProductId == "goldenApples" and 4 or 6
     local halfX = selectedCheckout and (rotation == 0 and 4.5 or 5.75)
         or (rotation == 0 and width / 2 or 1.1)
     local halfZ = selectedCheckout and (rotation == 0 and 5.75 or 4.5)
         or (rotation == 0 and 1.1 or width / 2)
+    local minimumFloorZ = z < -17 and -39.5 or -18.5
     local inside = validX
         and validZ
         and x - halfX >= -20.5
         and x + halfX <= 20.5
-        and z - halfZ >= -18.5
+        and z - halfZ >= minimumFloorZ
         and z + halfZ <= 16.5
     if selectedCheckout then
         inside = inside and x >= -14 and x <= 14 and z >= 6 and z <= 12
+    elseif z < -17 then
+        inside = inside and floorExpansionOwned and z >= -33 and z <= -21
     end
     ghost.CFrame = CFrame.new(x, 3.5, z) * CFrame.Angles(0, math.rad(rotation), 0)
     ghost.Transparency = 0.48
@@ -362,6 +375,7 @@ layoutEvent.OnClientEvent:Connect(function(message)
     if message.action == "Open" then
         selectedProductId = nil
         selectedCheckout = false
+        floorExpansionOwned = message.floorExpansionOwned == true
         rotation = 0
         setMoveMode(false)
         gui.Enabled = true

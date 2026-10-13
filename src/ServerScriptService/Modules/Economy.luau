@@ -14,6 +14,7 @@ Economy.CUSTOMER_ASSISTANT_COST = 160
 Economy.WAREHOUSE_COST = 200
 Economy.MARKET_STYLE_COST = 180
 Economy.AISLE_EXPANSION_COST = 220
+Economy.FLOOR_EXPANSION_COST = 500
 Economy.EMPLOYEE_WAGES = {
     cashier = 4,
     stocker = 4,
@@ -152,8 +153,12 @@ function Economy.newState(profile, playerSeed)
         warehousePurchased = upgrades.warehouse or false,
         marketStylePurchased = upgrades.marketStyle or false,
         aisleExpansionPurchased = upgrades.aisleExpansion or false,
+        floorExpansionPurchased = upgrades.floorExpansion or false,
         warehouseLayout = warehouseLayout,
-        retailLayout = profile.retailLayout or RetailLayoutService.default(),
+        retailLayout = RetailLayoutService.normalize(
+            profile.retailLayout,
+            upgrades.floorExpansion == true
+        ) or RetailLayoutService.default(),
         cashierHired = (profile.hiredEmployees and profile.hiredEmployees.cashier) or false,
         stockerHired = (profile.hiredEmployees and profile.hiredEmployees.stocker) or false,
         cleanerHired = (profile.hiredEmployees and profile.hiredEmployees.cleaner) or false,
@@ -978,6 +983,26 @@ function Economy.buyAisleExpansion(state)
     state.cash -= Economy.AISLE_EXPANSION_COST
     state.aisleExpansionPurchased = true
     return true, "Household aisle added! Your store has room for more shoppers."
+end
+
+function Economy.buyFloorExpansion(state)
+    if
+        state.stage ~= "Complete"
+        or not state.aisleExpansionPurchased
+        or state.floorExpansionPurchased
+    then
+        return false, "The rear department expansion is not available right now."
+    end
+    if state.cash < Economy.FLOOR_EXPANSION_COST then
+        return false,
+            string.format(
+                "You need $%d to build the rear department wing.",
+                Economy.FLOOR_EXPANSION_COST
+            )
+    end
+    state.cash -= Economy.FLOOR_EXPANSION_COST
+    state.floorExpansionPurchased = true
+    return true, "Rear department wing built! The main floor now has room to grow."
 end
 
 return Economy

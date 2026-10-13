@@ -96,6 +96,7 @@ G0 was approved on 2026-10-12. The user authorized continued phase implementatio
 - [ ] Phase 7 follow-up: complete purchasable plots, floor expansion and arbitrary department construction; existing shelves and checkout lane/queue can now be rearranged as Phases 32 and 34.
 - [x] Phase 32: persist and server-validate rearrangement/rotation of the four customer-facing product shelves; see `operations/PHASE32_RETAIL_LAYOUT.md`.
 - [x] Phase 34: persist and server-validate checkout lane and queue placement, rotate the composite fixture, and derive cashier/customer routes from its transform; see `operations/PHASE34_CHECKOUT_LAYOUT.md`.
+- [x] Phase 35: add a persistent `$500` rear supermarket wing after the household aisle, with a walk-through wall opening, lighting, and an unlock-gated rear shelf zone; see `operations/PHASE35_REAR_FLOOR_EXPANSION.md`.
 - [ ] Studio verification of Golden Apples shipment, produce stock, migration, basket math, helper permissions, and save/rejoin; see `operations/PHASE17_GOLDEN_APPLES.md`.
 - [ ] Studio verification of employee automation toggles, delayed timer cancellation, roles, v1–v11 migration and save/rejoin; see `operations/PHASE18_EMPLOYEE_AUTOMATION.md`.
 - [ ] Studio verification of the palette preview/reset, purchase, role permissions and save/rejoin; see `operations/PHASE19_STOREFRONT_PREVIEW.md`.
