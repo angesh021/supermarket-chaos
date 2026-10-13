@@ -208,7 +208,12 @@ See `docs/decisions/README.md` for accepted ownership policy. Remaining decision
 ## Phase 52 shared plaza traffic
 - `WorldBuilder` creates a fixed pool of four anchored procedural visitors and uses short server-side pivot interpolation between plaza path points and currently owned storefronts.
 - Each visitor browses one open business and exits; the pool and route destinations are hard-bounded. World destruction ends each route loop.
-- Visitors are visual-only. They do not call `Economy`, sell products, modify stock or alter persistent data.
+- Route movement is visual-only; the separately versioned Phase 53 browse event uses the existing server economy transition for a purchase.
+
+## Phase 53 plaza customer sales
+- At a visitor's server-generated browse event, `ShiftService` accepts only one of four fixed business IDs and invokes that business's existing `Economy` sale transition.
+- Owner readiness, profile lease/save state, per-business 15-second cooldown and the common transaction lock gate the sale. Existing profile stock/sales fields are saved through `commit`.
+- Visitors cannot choose products, quantities or prices. Empty stock and dropped concurrent events do not pay; visitors retry on a later route.
 # Cooperative ownership and cashier extension
 - One owner profile remains the persistence boundary. Per-server membership grants temporary action permissions but does not load a guest's profile into the owner's economy.
 - Server role map: Owner (all), Manager (all shift actions including staff hiring), Cashier (checkout), Stocker (stock), Maintenance (cart recovery).

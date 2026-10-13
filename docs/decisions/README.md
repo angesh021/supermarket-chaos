@@ -294,6 +294,11 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Consequences:** Traffic is visual-only and does not touch money, stock, sales or persistence. A bounded pool limits added world instances.
 - **Verification:** See `docs/operations/PHASE52_SHARED_PLAZA_TRAFFIC.md`.
 
+## ADR-0051: Let plaza visitors make server-priced purchases
+- **Decision:** When a server-created visitor browses a plaza business, attempt one sale through that business's existing server economy transition.
+- **Consequences:** Current stock and saved business sales/cash update consistently. A 15-second per-business throttle and shared transaction lock bound automatic sales and prevent races; no new profile fields are needed.
+- **Verification:** See `docs/operations/PHASE53_PLAZA_CUSTOMER_SALES.md`.
+
 ## ADR-0009 — Keep product inventory and supplier orders SKU-specific
 - **Status:** Accepted — 2026-10-12.
 - **Context:** The retail loop needs visible department variety and product-specific stock behavior while keeping stock and money authoritative.

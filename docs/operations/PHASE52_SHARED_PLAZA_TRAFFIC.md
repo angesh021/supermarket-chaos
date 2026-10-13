@@ -4,7 +4,7 @@
 - At most four server-created visitors appear while at least one plaza business is owned.
 - Each visitor routes along the plaza path to an owned business, shows a matching browse label, then exits along the path.
 - Unowned businesses are never selected as destinations. With no businesses owned, visitors remain hidden.
-- Visitors are visual-only: they never change cash, inventory, sales, shift progress or persistence.
+- Route movement itself does not change cash, inventory, sales, shift progress or persistence. A later browse point may emit the separately documented Phase 53 purchase event.
 - Destroying/rebuilding the world stops the previous visitor loops; the new world has one pool of four, not duplicate groups.
 
 ## Server/client boundaries
@@ -14,7 +14,7 @@
 
 ## Failure handling and limits
 - The pool is capped at four models, with fixed destinations, one business stop per visit, and bounded waits between visits.
-- No purchase is simulated. This increment adds visible foot traffic only; visitor-driven purchases and customer preference behavior remain future work.
+- Purchase behavior is owned by Phase 53. The route system itself does not select a price, quantity or business transaction.
 - If route movement or a model fails, it does not block player prompts, business transactions or supermarket shifts.
 
 ## Manual Roblox Studio verification checklist
@@ -23,7 +23,7 @@
 3. Purchase the restaurant and electronics store; confirm the visitor pool remains at four or fewer and uses only owned stores.
 4. Purchase Little Sprout; confirm traffic can route to each of the four shops over repeated visits.
 5. During visitor routes, check all characters stay on or beside the plaza path, do not pass through walls, and do not block the player at prompts.
-6. Watch cash, shop stock, store sales and supermarket shift counters before and after several visits; confirm none change.
+6. Confirm economy values change only when a visitor reaches its browse point; verify the resulting purchase separately with the Phase 53 checklist.
 7. Stop and restart the server/world; confirm the old visitor group disappears and only one new group runs.
 8. Inspect Output and test route visibility at desktop and mobile camera sizes.
 

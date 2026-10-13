@@ -3318,6 +3318,9 @@ function WorldBuilder.build()
         return style and style.name or "Coastal Walk"
     end
 
+    local plazaVisitEvent = Instance.new("BindableEvent")
+    plazaVisitEvent.Name = "PlazaBusinessVisit"
+    plazaVisitEvent.Parent = exterior
     local plazaVisitors = {}
     local visitorColors = {
         { COLORS.blue, COLORS.deepTeal, COLORS.orange },
@@ -3393,26 +3396,29 @@ function WorldBuilder.build()
                 if cafePurchased then
                     table.insert(
                         openBusinesses,
-                        { name = "CORNER CAFÉ", front = Vector3.new(-65, 0.45, 7) }
+                        { id = "cafe", name = "CORNER CAFÉ", front = Vector3.new(-65, 0.45, 7) }
                     )
                 end
                 if restaurantPurchased then
-                    table.insert(
-                        openBusinesses,
-                        { name = "MARKET TABLE", front = Vector3.new(-65, 0.45, -32) }
-                    )
+                    table.insert(openBusinesses, {
+                        id = "restaurant",
+                        name = "MARKET TABLE",
+                        front = Vector3.new(-65, 0.45, -32),
+                    })
                 end
                 if electronicsStorePurchased then
-                    table.insert(
-                        openBusinesses,
-                        { name = "PIXEL & PLUG", front = Vector3.new(-65, 0.45, -72) }
-                    )
+                    table.insert(openBusinesses, {
+                        id = "electronics",
+                        name = "PIXEL & PLUG",
+                        front = Vector3.new(-65, 0.45, -72),
+                    })
                 end
                 if gardenStorePurchased then
-                    table.insert(
-                        openBusinesses,
-                        { name = "LITTLE SPROUT", front = Vector3.new(-65, 0.45, -112) }
-                    )
+                    table.insert(openBusinesses, {
+                        id = "garden",
+                        name = "LITTLE SPROUT",
+                        front = Vector3.new(-65, 0.45, -112),
+                    })
                 end
                 if #openBusinesses == 0 then
                     entry.billboard.Enabled = false
@@ -3437,6 +3443,7 @@ function WorldBuilder.build()
                 movePlazaVisitor(entry, Vector3.new(-80, 0.45, target.front.Z + 6))
                 movePlazaVisitor(entry, target.front)
                 entry.caption.Text = "BROWSING " .. target.name
+                plazaVisitEvent:Fire(target.id)
                 task.wait(2.5)
                 movePlazaVisitor(entry, Vector3.new(-80, 0.45, target.front.Z + 6))
                 movePlazaVisitor(entry, Vector3.new(-80, 0.45, 22))
@@ -4411,6 +4418,7 @@ function WorldBuilder.build()
             end
             updatePlazaPrompts()
         end,
+        plazaVisitEvent = plazaVisitEvent,
         orderDeliveryPrompt = function()
             return orderDeliveryPrompt
         end,

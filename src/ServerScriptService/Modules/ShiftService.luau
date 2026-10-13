@@ -389,6 +389,7 @@ function ShiftService.init(event, membershipRemotes)
 
     local commit
     local saleTransactionInProgress = false
+    local lastPlazaSaleAt = {}
     local performSale
     local stockerScheduleVersion = 0
     local function scheduleStocker()
@@ -828,6 +829,44 @@ function ShiftService.init(event, membershipRemotes)
         schedulePowerOutageRecovery()
         scheduleCustomerRushExpiry()
     end
+
+    world.plazaVisitEvent.Event:Connect(function(businessId)
+        if
+            type(businessId) ~= "string"
+            or (businessId ~= "cafe" and businessId ~= "restaurant" and businessId ~= "electronics" and businessId ~= "garden")
+            or saleTransactionInProgress
+            or not ownerReady
+            or not ownerPlayer
+            or state.stage == "Loading"
+            or state.stage == "OwnerOffline"
+            or ProfileService.getSaveStatus(ownerPlayer) == "lock lost"
+            or ProfileService.getSaveStatus(ownerPlayer) == "save pending"
+        then
+            return
+        end
+        local now = os.clock()
+        if lastPlazaSaleAt[businessId] and now - lastPlazaSaleAt[businessId] < 15 then
+            return
+        end
+
+        saleTransactionInProgress = true
+        local ok, message
+        if businessId == "cafe" then
+            ok, message = Economy.serveCafeCoffee(state)
+        elseif businessId == "restaurant" then
+            ok, message = Economy.serveRestaurantMeal(state)
+        elseif businessId == "electronics" then
+            ok, message = Economy.sellElectronics(state)
+        else
+            ok, message = Economy.sellGardenItem(state)
+        end
+        if ok then
+            lastPlazaSaleAt[businessId] = now
+            commit("plazaCustomerSale")
+            broadcast(message)
+        end
+        saleTransactionInProgress = false
+    end)
 
     performSale = function()
         if saleTransactionInProgress then
