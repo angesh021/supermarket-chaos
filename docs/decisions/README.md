@@ -24,11 +24,11 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Status:** Accepted — 2026-10-12; see [ADR-0005](ADR-0005-warehouse-delivery-loop.md).
 - **Decision:** Persist backstock and one pending shipment; the server charges, times, validates and receives the shipment.
 
-## ADR-0006 — Keep the first checkout queue bounded and server-owned
+## ADR-0006 — Keep customer traffic bounded and server-owned
 - **Status:** Accepted — 2026-10-12.
 - **Context:** The first shift had one static customer and one sale, which did not establish a customer operations loop.
-- **Decision:** Each shift serves three customers using a fixed, visible queue. The server's existing sale transition owns stock and revenue; the existing persisted sales count reconstructs queue progress.
-- **Consequences:** No new customer persistence fields or remote payloads are needed. Browsing, path navigation, exit behavior, and larger traffic events remain later increments; queue positions are visual staging, not autonomous AI navigation.
+- **Decision:** Each shift serves at most three customers using a server-scripted entrance, browse, queue, checkout and exit route. The server's existing sale transition owns stock and revenue; the persisted sales count reconstructs remaining customer traffic.
+- **Consequences:** No customer persistence fields, PathfindingService loops or client remotes are needed. Fixed routes are bounded and have a 12-second queue-position recovery. Product choice, baskets and larger traffic events remain later increments.
 - **Verification:** See `docs/operations/PHASE8_CUSTOMERS.md`; Roblox Studio runtime checks remain pending.
 
 ## ADR-0007 — Persist chaos interruptions in the shift stage

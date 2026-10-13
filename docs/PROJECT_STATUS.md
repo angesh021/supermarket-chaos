@@ -1,7 +1,7 @@
 # Project status — 2026-10-12
 
 ## Summary
-Phase 1 desktop first play and Phase 2 progression/persistence were reported passed by the user. Phase 7 now has its first increment implemented: a server-authoritative, persistent warehouse purchase. The Phase 3–7 increments are awaiting Studio verification. DataStore persistence is hard-limited to development universe `10770581249`; all other universes, including the future production universe, run session-only until explicitly configured.
+Phase 1 desktop first play and Phase 2 progression/persistence were reported passed by the user. Additional increments now cover co-op roles, employees, warehouse delivery, a persistent checkout spill and bounded customer visit flow. Those later systems await Studio verification. DataStore persistence is hard-limited to development universe `10770581249`; all other universes, including the future production universe, run session-only until explicitly configured.
 
 ## Completed and user-verified
 - Phase 1 desktop flow: cart, stocking visuals, visible checkout customer, sale, shift close, visible upgrade and compact HUD.
@@ -12,7 +12,7 @@ Phase 1 desktop first play and Phase 2 progression/persistence were reported pas
 - Phase 3 membership: a visitor requests to help; owner approves with Manager, Cashier, Stocker or Maintenance, declines, or removes a member. Maximum four players, including the owner.
 - Server validates the owner for member management, request frequency, player membership, role IDs, current objective, prompt range, and role permission before allowing an interaction. Helpers contribute to the owner's shift; only the owner's profile is saved.
 - Phase 4 employees: $100 cashier and $80 stock clerk, unlocked after shift completion. Both appear in the store; the stock clerk automatically stocks after the cart objective and the cashier automatically serves checkout after four seconds. Both use existing server-side economy transitions.
-- Phase 4 customer operations: each shift now serves up to three customers from a visibly bounded queue. The server charges once per checkout using the existing sale transition, and only enables shift close after the third sale. Queue visibility is reconstructed from the saved sales count. Customers are varied procedural blockouts; browsing, navigation, exit behavior and Studio verification remain pending.
+- Phase 4 customer operations: each shift serves up to three varied procedural customers that enter, browse an aisle, queue, checkout and exit through bounded scripted waypoints. A 12-second route fallback reconstructs the line if movement stalls. The server charges once through the existing sale transition; customer count is recovered from saved sales. Product selection, baskets and Studio verification remain pending.
 - Phase 4 chaos operations: after the first customer sale, a checkout spill pauses the line. The owner/Manager or Maintenance helper can clean it for $5; the existing shift stage persists the event across rejoin. Customer Rush, Power Outage, event timers, and Studio verification are still pending.
 - Profile schema v2 adds employee ownership flags and migrates v1 profiles through safe defaults.
 - Phase 5 security increment validates saved schema versions as finite bounded integers and avoids exposing store cash/stock/sales to read-only visitors.
@@ -43,6 +43,7 @@ Use a private development test experience in universe `10770581249`; use two or 
 - Rojo 7.7.0, Selene 0.32.0 and StyLua 2.5.0 are pinned in `rokit.toml`.
 - The `rojo`, `selene` and `stylua` launch shims returned `ERROR home directory not found`; invoking the pinned binaries directly from `.rokit/tool-storage` worked. `stylua --check src` passed, `selene src` reported 0 errors/0 warnings/0 parse errors, and `rojo build default.project.json -o %TEMP%\supermarket-chaos.rbxlx` succeeded. `git diff --check` passed with Windows line-ending normalization warnings.
 - For the checkout queue and spill increments, `stylua --check src`, `selene src` (0 errors, 0 warnings, 0 parse errors), `rojo build default.project.json -o %TEMP%\\supermarket-chaos.rbxlx`, and `git diff --check` passed on 2026-10-12. Git reported only LF-to-CRLF normalization warnings.
+- For bounded customer flow, the four checks passed again on 2026-10-12: `stylua --check src`, `selene src`, Rojo build, and `git diff --check`. Studio animation/navigation is not locally executable.
 - Roblox Studio runtime and DataStore behavior cannot be exercised from the local shell. Do not mark the new multiplayer, employee, or customer-queue behavior passed until the user confirms Studio results.
 
 ## Known limitations

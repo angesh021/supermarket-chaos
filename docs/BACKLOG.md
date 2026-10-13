@@ -38,7 +38,8 @@ G0 was approved on 2026-10-12. The user authorized continued phase implementatio
 - [x] Show a bounded three-customer checkout queue with varied original procedural appearances.
 - [x] Serve customers through the existing server economy transaction; close the shift only when the queue is cleared.
 - [x] Reconstruct remaining queue positions from the persisted shift sales count after rejoin.
-- [ ] Add browsing, product selection, route navigation, exit behavior and navigation recovery.
+- [x] Script bounded entrance, aisle browse, checkout queue and exit waypoints; add a 12-second queue recovery path.
+- [ ] Add customer product selection, shopping baskets, varied preferences and reactions to events.
 - [ ] Studio verification of three sales, queue visibility, cashier automation, helper races, and rejoin mid-queue.
 
 ## Phase 4 — Chaos operations (checkout spill increment implemented)

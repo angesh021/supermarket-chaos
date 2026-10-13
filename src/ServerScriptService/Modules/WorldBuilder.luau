@@ -1,4 +1,5 @@
 local WorldBuilder = {}
+local TweenService = game:GetService("TweenService")
 
 local COLORS = {
     teal = Color3.fromRGB(22, 79, 82),
@@ -820,6 +821,7 @@ function WorldBuilder.build()
         end
         table.insert(customerModels, {
             model = customer,
+            homePosition = position,
             homePivot = customer:GetPivot(),
             billboard = customerBillboard,
             label = customerLabel,
@@ -827,23 +829,232 @@ function WorldBuilder.build()
     end
 
     local register = prompt(counter, "Serve Customer", "Checkout", "Checkout", 9)
-    local function setCustomerCount(count)
-        local remaining = (currentStage == "Checkout" or currentStage == "Spill")
-                and math.min(math.max(math.floor(count), 0), #customerModels)
-            or 0
-        local served = #customerModels - remaining
+    register.Enabled = false
+    local customerFlowVersion = 0
+    local customerFlowTweens = {}
+    local remainingCustomers
+    local checkoutReady = false
+    local function cancelCustomerFlow()
+        customerFlowVersion += 1
+        for _, tween in pairs(customerFlowTweens) do
+            tween:Cancel()
+        end
+        for entry in pairs(customerFlowTweens) do
+            customerFlowTweens[entry] = nil
+        end
+    end
+
+    local function moveCustomer(entry, targetPosition, duration, flowVersion)
+        if not entry.model.Parent or flowVersion ~= customerFlowVersion then
+            return false
+        end
+        local driver = Instance.new("CFrameValue")
+        driver.Value = entry.model:GetPivot()
+        local targetPivot = entry.homePivot + (targetPosition - entry.homePosition)
+        local connection = driver:GetPropertyChangedSignal("Value"):Connect(function()
+            if flowVersion == customerFlowVersion and entry.model.Parent then
+                entry.model:PivotTo(driver.Value)
+            end
+        end)
+        local tween = TweenService:Create(
+            driver,
+            TweenInfo.new(duration, Enum.EasingStyle.Linear),
+            { Value = targetPivot }
+        )
+        customerFlowTweens[entry] = tween
+        tween:Play()
+        local result = tween.Completed:Wait()
+        connection:Disconnect()
+        if customerFlowTweens[entry] == tween then
+            customerFlowTweens[entry] = nil
+        end
+        driver:Destroy()
+        return result == Enum.PlaybackState.Completed and flowVersion == customerFlowVersion
+    end
+
+    local function runCustomerVisit(entry, queuePosition, queueNumber, flowVersion)
+        if queueNumber > 1 then
+            task.wait((queueNumber - 1) * 1.1)
+        end
+        local waypoints = {
+            { Vector3.new(0, 0.45, 20), 0.65 },
+            { Vector3.new(0, 0.45, 13), 0.55 },
+            { Vector3.new(-5, 0.45, 8), 0.75 },
+        }
+        entry.label.Text = "ENTERING"
+        for _, waypoint in ipairs(waypoints) do
+            if not moveCustomer(entry, waypoint[1], waypoint[2], flowVersion) then
+                return
+            end
+        end
+        entry.label.Text = "BROWSING"
+        if not moveCustomer(entry, Vector3.new(-10, 0.45, 4), 0.7, flowVersion) then
+            return
+        end
+        entry.label.Text = "PICKING CITRUS POP"
+        task.wait(0.55)
+        if not moveCustomer(entry, Vector3.new(5, 0.45, 4), 0.75, flowVersion) then
+            return
+        end
+        if not moveCustomer(entry, queuePosition, 0.65, flowVersion) then
+            return
+        end
+        entry.label.Text = queueNumber == 1 and "NEXT CUSTOMER" or "IN QUEUE"
+        if queueNumber == 1 then
+            checkoutReady = true
+            register.Enabled = currentStage == "Checkout"
+        end
+    end
+
+    local function runCustomerAdvance(entry, queuePosition, queueNumber, flowVersion)
+        entry.label.Text = "MOVING UP"
+        local waypoints = {
+            Vector3.new(0, 0.45, 13),
+            Vector3.new(5, 0.45, 8),
+            Vector3.new(5, 0.45, 4),
+            queuePosition,
+        }
+        for _, waypoint in ipairs(waypoints) do
+            if not moveCustomer(entry, waypoint, 0.45, flowVersion) then
+                return
+            end
+        end
+        entry.label.Text = queueNumber == 1 and "NEXT CUSTOMER" or "IN QUEUE"
+        if queueNumber == 1 then
+            checkoutReady = true
+            register.Enabled = currentStage == "Checkout"
+        end
+    end
+
+    local function runCustomerExit(entry, flowVersion)
+        entry.label.Text = "THANK YOU!"
+        local waypoints = {
+            Vector3.new(5, 0.45, 4),
+            Vector3.new(0, 0.45, 13),
+            Vector3.new(0, 0.45, 22),
+        }
+        for _, waypoint in ipairs(waypoints) do
+            if not moveCustomer(entry, waypoint, 0.45, flowVersion) then
+                return
+            end
+        end
+        for _, item in ipairs(entry.model:GetDescendants()) do
+            if item:IsA("BasePart") then
+                item.Transparency = 1
+            end
+        end
+        entry.billboard.Enabled = false
+    end
+
+    local function recoverCustomerQueue()
+        cancelCustomerFlow()
+        local served = #customerModels - (remainingCustomers or 0)
         for index, entry in ipairs(customerModels) do
             local visible = index > served
-                and (currentStage == "Checkout" or currentStage == "Spill")
-            local queueOffset = Vector3.new(0, 0, -4 * served)
-            entry.model:PivotTo(entry.homePivot + queueOffset)
+            if visible then
+                local queueNumber = index - served
+                local targetPosition = customerPositions[queueNumber]
+                entry.model:PivotTo(entry.homePivot + (targetPosition - entry.homePosition))
+                entry.label.Text = queueNumber == 1 and "NEXT CUSTOMER" or "IN QUEUE"
+            end
             for _, item in ipairs(entry.model:GetDescendants()) do
                 if item:IsA("BasePart") then
                     item.Transparency = visible and 0 or 1
                 end
             end
             entry.billboard.Enabled = visible
-            entry.label.Text = index == served + 1 and "NEXT CUSTOMER" or "IN QUEUE"
+        end
+        checkoutReady = (remainingCustomers or 0) > 0
+        register.Enabled = currentStage == "Checkout" and checkoutReady
+    end
+
+    local function setCustomerCount(count)
+        local activeStage = currentStage == "Checkout" or currentStage == "Spill"
+        local countAllowed = activeStage or currentStage == "CloseShift"
+        local remaining = countAllowed and math.min(math.max(math.floor(count), 0), #customerModels)
+            or 0
+        if not activeStage and currentStage ~= "CloseShift" then
+            cancelCustomerFlow()
+            remainingCustomers = nil
+            checkoutReady = false
+            register.Enabled = false
+            for _, entry in ipairs(customerModels) do
+                for _, item in ipairs(entry.model:GetDescendants()) do
+                    if item:IsA("BasePart") then
+                        item.Transparency = 1
+                    end
+                end
+                entry.billboard.Enabled = false
+            end
+            return
+        end
+        if remainingCustomers == remaining then
+            return
+        end
+
+        local previousRemaining = remainingCustomers
+        remainingCustomers = remaining
+        checkoutReady = false
+        register.Enabled = false
+        cancelCustomerFlow()
+        local flowVersion = customerFlowVersion
+        local served = #customerModels - remaining
+
+        for index, entry in ipairs(customerModels) do
+            local visible = index > served
+            if visible then
+                for _, item in ipairs(entry.model:GetDescendants()) do
+                    if item:IsA("BasePart") then
+                        item.Transparency = 0
+                    end
+                end
+                entry.billboard.Enabled = true
+            end
+        end
+
+        if previousRemaining and remaining < previousRemaining then
+            local servedIndex = #customerModels - previousRemaining + 1
+            local servedEntry = customerModels[servedIndex]
+            if servedEntry then
+                task.spawn(runCustomerExit, servedEntry, flowVersion)
+            end
+        elseif not previousRemaining then
+            for index = 1, served do
+                local entry = customerModels[index]
+                for _, item in ipairs(entry.model:GetDescendants()) do
+                    if item:IsA("BasePart") then
+                        item.Transparency = 1
+                    end
+                end
+                entry.billboard.Enabled = false
+            end
+        end
+
+        for index = served + 1, #customerModels do
+            local entry = customerModels[index]
+            local queueNumber = index - served
+            local homePosition = customerPositions[index]
+            if previousRemaining == nil then
+                local spawnPosition = Vector3.new((index - 2) * 1.7, 0.45, 22)
+                entry.model:PivotTo(entry.homePivot + (spawnPosition - entry.homePosition))
+            end
+            local queuePosition = customerPositions[queueNumber] or homePosition
+            if previousRemaining == nil then
+                task.spawn(runCustomerVisit, entry, queuePosition, queueNumber, flowVersion)
+            else
+                task.spawn(runCustomerAdvance, entry, queuePosition, queueNumber, flowVersion)
+            end
+        end
+        if remaining > 0 then
+            task.delay(12, function()
+                if
+                    customerFlowVersion == flowVersion
+                    and remainingCustomers == remaining
+                    and not checkoutReady
+                then
+                    recoverCustomerQueue()
+                end
+            end)
         end
         register.ActionText = remaining > 0 and string.format("Serve Customer (%d left)", remaining)
             or "Checkout Complete"
@@ -1379,7 +1590,7 @@ function WorldBuilder.build()
         currentStage = stage
         cartPrompt.Enabled = stage == "Cart"
         stockPrompt.Enabled = stage == "Stock"
-        register.Enabled = stage == "Checkout"
+        register.Enabled = stage == "Checkout" and checkoutReady
         closePrompt.Enabled = stage == "CloseShift"
         spillPrompt.Enabled = stage == "Spill"
         upgradePrompt.Enabled = stage == "Upgrade"
@@ -1396,7 +1607,6 @@ function WorldBuilder.build()
                 and deliveryQuantity > 0
                 and os.time() >= deliveryReadyAt
         end
-        setCustomerVisible(stage == "Checkout" or stage == "CloseShift" or stage == "Spill")
         setSpillVisible(stage == "Spill")
     end
 
@@ -1415,6 +1625,10 @@ function WorldBuilder.build()
         setCustomerVisible = setCustomerVisible,
         setCustomerCount = setCustomerCount,
         registerPrompt = register,
+        isCheckoutReady = function()
+            return checkoutReady
+        end,
+        recoverCustomerQueue = recoverCustomerQueue,
         spillPrompt = spillPrompt,
         setSpillVisible = setSpillVisible,
         closePrompt = closePrompt,

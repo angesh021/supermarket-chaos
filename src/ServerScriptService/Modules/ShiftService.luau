@@ -183,6 +183,7 @@ local function permitInteraction(player, actionId, promptObject, maxDistance)
         or ProfileService.getSaveStatus(ownerPlayer) == "save pending"
         or player.Parent ~= Players
         or not promptObject
+        or not promptObject.Enabled
         or not promptObject:IsDescendantOf(workspace)
     then
         return false
@@ -266,29 +267,48 @@ function ShiftService.init(event, membershipRemotes)
         end)
     end
 
+    local cashierScheduleVersion = 0
     local function scheduleCashierSale()
+        cashierScheduleVersion += 1
+        local scheduleVersion = cashierScheduleVersion
         if not state or not state.cashierHired or state.stage ~= "Checkout" then
             return
         end
-        task.delay(4, function()
-            if
-                not ownerReady
-                or not ownerPlayer
-                or not state
-                or not state.cashierHired
-                or state.stage ~= "Checkout"
-                or ProfileService.getSaveStatus(ownerPlayer) == "lock lost"
-                or ProfileService.getSaveStatus(ownerPlayer) == "save pending"
-            then
-                return
-            end
-            local ok, message = Economy.sellProduct(state)
-            if ok then
-                world.setStockVisual(state.stock)
-                commit("sale")
-                broadcast("Cashier served the customer automatically. " .. message)
-            end
-        end)
+
+        local readinessChecks = 0
+        local function tryCashierSale(delaySeconds)
+            task.delay(delaySeconds, function()
+                if
+                    scheduleVersion ~= cashierScheduleVersion
+                    or not ownerReady
+                    or not ownerPlayer
+                    or not state
+                    or not state.cashierHired
+                    or state.stage ~= "Checkout"
+                    or ProfileService.getSaveStatus(ownerPlayer) == "lock lost"
+                    or ProfileService.getSaveStatus(ownerPlayer) == "save pending"
+                then
+                    return
+                end
+                if not world.isCheckoutReady() then
+                    readinessChecks += 1
+                    if readinessChecks >= 24 then
+                        world.recoverCustomerQueue()
+                    end
+                    if readinessChecks < 30 then
+                        tryCashierSale(0.5)
+                    end
+                    return
+                end
+                local ok, message = Economy.sellProduct(state)
+                if ok then
+                    world.setStockVisual(state.stock)
+                    commit("sale")
+                    broadcast("Cashier served the customer automatically. " .. message)
+                end
+            end)
+        end
+        tryCashierSale(4)
     end
 
     local scheduledDeliveryAt
@@ -347,6 +367,12 @@ function ShiftService.init(event, membershipRemotes)
     end)
 
     bind("Checkout", world.registerPrompt, 12, function()
+        if not world.isCheckoutReady() then
+            broadcast(
+                "The customer is still shopping. Checkout will open when they reach the till."
+            )
+            return
+        end
         local ok, message = Economy.sellProduct(state)
         if ok then
             world.setStockVisual(state.stock)
@@ -622,6 +648,7 @@ function ShiftService.init(event, membershipRemotes)
                 activeTween:Cancel()
             end
             world.setStage("OwnerOffline")
+            world.setCustomerVisible(false)
             broadcast("The store owner left. Join a new server to open your store.")
             broadcastMemberState()
         end
