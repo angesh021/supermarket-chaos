@@ -82,6 +82,12 @@ Currency and stock changes occur only after server-side validation. Transactions
 - Reactions are client-visible world presentation driven by server state. They do not alter `Economy`, persistence, deadlines or interaction permissions and add no remotes or profile fields.
 - See `operations/PHASE16_CUSTOMER_EVENT_REACTIONS.md`; Studio appearance and route recovery checks remain pending.
 
+## Phase 7 produce SKU increment
+- Golden Apples use the existing product catalog, product-ID shipment, basket transaction, warehouse ownership and remote/prompt security boundaries. Order/receive/stock/sale transitions remain in the pure economy module; services orchestrate presentation, persistence and server authorization.
+- Profile schema v11 persists `shift.goldenAppleStock`, `warehouseInventory.goldenApples`, and the already-generic shipment product ID. Legacy warehouse profiles with no apple field receive six backstock apples; no-warehouse profiles receive zero. Existing Citrus/Berry values and pending shipments normalize unchanged.
+- The physical produce shelf and HUD are projections of authoritative counts. Customer baskets derive apple intent from customer number and use current stock; they require no saved order field.
+- See `operations/PHASE17_GOLDEN_APPLES.md`; Studio migration, sale and shipment verification remain pending.
+
 ## Open technical decisions
 See `docs/decisions/README.md` for accepted ownership policy. Remaining decisions include multi-store/guest permissions, production Studio place configuration, analytics implementation/privacy review, and any changes to persistence recovery. Verify platform APIs against official documentation when implementation starts.
 # Cooperative ownership and cashier extension

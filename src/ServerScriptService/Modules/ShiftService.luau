@@ -39,11 +39,13 @@ local ROLE_ACTIONS = {
         MarketStyle = true,
         OrderDelivery = true,
         OrderBerryDelivery = true,
+        OrderAppleDelivery = true,
         ReceiveDelivery = true,
         StockBerryBites = true,
+        StockGoldenApples = true,
     },
     Cashier = { Checkout = true },
-    Stocker = { Stock = true, StockBerryBites = true },
+    Stocker = { Stock = true, StockBerryBites = true, StockGoldenApples = true },
     Maintenance = { Cart = true, Spill = true, RestorePower = true },
 }
 local ASSIGNABLE_ROLES = { Manager = true, Cashier = true, Stocker = true, Maintenance = true }
@@ -108,6 +110,7 @@ local function snapshot(message, recipient)
         cash = hasStoreAccess and current.cash or 0,
         stock = hasStoreAccess and current.stock or 0,
         berryStock = hasStoreAccess and current.berryStock or 0,
+        goldenAppleStock = hasStoreAccess and current.goldenAppleStock or 0,
         sales = hasStoreAccess and current.sales or 0,
         message = message or "",
         upgradePurchased = current.upgradePurchased,
@@ -118,6 +121,7 @@ local function snapshot(message, recipient)
         warehousePurchased = hasStoreAccess and current.warehousePurchased or false,
         backstock = hasStoreAccess and current.backstock or 0,
         berryBackstock = hasStoreAccess and current.berryBackstock or 0,
+        goldenAppleBackstock = hasStoreAccess and current.goldenAppleBackstock or 0,
         customerRushUntil = hasStoreAccess and current.customerRushUntil or 0,
         rushRemaining = hasStoreAccess and Economy.getRemainingCustomers(current) or 0,
         rushReward = hasStoreAccess and Economy.CUSTOMER_RUSH_REWARD or 0,
@@ -287,6 +291,7 @@ function ShiftService.init(event, membershipRemotes)
             if ok then
                 world.setStockVisual(state.stock)
                 world.setBerryStockVisual(state.berryStock)
+                world.setGoldenAppleStockVisual(state.goldenAppleStock)
                 world.setBerryStockAvailable(
                     state.berryBackstock >= Economy.BERRY_BITES_STOCK_PER_RESTOCK
                 )
@@ -337,6 +342,7 @@ function ShiftService.init(event, membershipRemotes)
                 if ok then
                     world.setStockVisual(state.stock)
                     world.setBerryStockVisual(state.berryStock)
+                    world.setGoldenAppleStockVisual(state.goldenAppleStock)
                     world.setBerryStockAvailable(
                         state.berryBackstock >= Economy.BERRY_BITES_STOCK_PER_RESTOCK
                     )
@@ -493,6 +499,10 @@ function ShiftService.init(event, membershipRemotes)
             state.warehousePurchased
                 and state.berryBackstock >= Economy.BERRY_BITES_STOCK_PER_RESTOCK
         )
+        world.setGoldenAppleStockAvailable(
+            state.warehousePurchased
+                and state.goldenAppleBackstock >= Economy.GOLDEN_APPLES_STOCK_PER_RESTOCK
+        )
         world.setCustomerCount(
             Economy.getRemainingCustomers(state),
             Economy.getCustomerTarget(state)
@@ -540,6 +550,18 @@ function ShiftService.init(event, membershipRemotes)
         broadcast(message)
     end)
 
+    bind("StockGoldenApples", world.goldenAppleStockPrompt, 12, function()
+        local ok, message = Economy.stockGoldenApples(state)
+        if ok then
+            world.setGoldenAppleStockVisual(state.goldenAppleStock)
+            world.setGoldenAppleStockAvailable(
+                state.goldenAppleBackstock >= Economy.GOLDEN_APPLES_STOCK_PER_RESTOCK
+            )
+            commit("goldenAppleStock")
+        end
+        broadcast(message)
+    end)
+
     bind("Checkout", world.registerPrompt, 12, function()
         if not world.isCheckoutReady() then
             broadcast(
@@ -551,6 +573,7 @@ function ShiftService.init(event, membershipRemotes)
         if ok then
             world.setStockVisual(state.stock)
             world.setBerryStockVisual(state.berryStock)
+            world.setGoldenAppleStockVisual(state.goldenAppleStock)
             commit("sale")
         end
         broadcast(message)
@@ -634,6 +657,19 @@ function ShiftService.init(event, membershipRemotes)
         broadcast(message)
     end)
 
+    bind("OrderAppleDelivery", world.appleDeliveryPrompt(), 12, function()
+        local ok, message = Economy.orderDelivery(state, os.time(), "goldenApples")
+        if ok then
+            world.setDeliveryState(
+                state.shipmentReadyAt,
+                state.shipmentQuantity,
+                state.shipmentProductId
+            )
+            commit("goldenAppleDeliveryOrdered")
+        end
+        broadcast(message)
+    end)
+
     bind("ReceiveDelivery", world.deliveryPrompt(), 12, function()
         local ok, message = Economy.receiveDelivery(state, os.time())
         if ok then
@@ -652,6 +688,7 @@ function ShiftService.init(event, membershipRemotes)
         if ok then
             world.setStockVisual(0)
             world.setBerryStockVisual(0)
+            world.setGoldenAppleStockVisual(0)
             world.setCustomerVisible(false)
             world.setStage(state.stage)
             startCart()
@@ -842,9 +879,14 @@ function ShiftService.init(event, membershipRemotes)
             world.setCleanerHired(state.cleanerHired)
             world.setStockVisual(state.stock)
             world.setBerryStockVisual(state.berryStock)
+            world.setGoldenAppleStockVisual(state.goldenAppleStock)
             world.setBerryStockAvailable(
                 state.warehousePurchased
                     and state.berryBackstock >= Economy.BERRY_BITES_STOCK_PER_RESTOCK
+            )
+            world.setGoldenAppleStockAvailable(
+                state.warehousePurchased
+                    and state.goldenAppleBackstock >= Economy.GOLDEN_APPLES_STOCK_PER_RESTOCK
             )
             world.setCustomerProduct(
                 Economy.PRODUCTS[Economy.getNextCheckoutProductId(state) or "citrusPop"].displayName

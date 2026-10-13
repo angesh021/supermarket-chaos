@@ -173,7 +173,8 @@ local function makeStat(name, heading, value, x, background, accent)
 end
 
 local cashValue = makeStat("CashStat", "CASH", "$0", 0, COLORS.green, Color3.fromRGB(48, 112, 61))
-local stockValue = makeStat("StockStat", "C / B STOCK", "0 / 0", 0.342, COLORS.blue, COLORS.teal)
+local stockValue = makeStat("StockStat", "C / B / A", "0/0/0", 0.342, COLORS.blue, COLORS.teal)
+stockValue.TextSize = 13
 local salesValue = makeStat("SalesStat", "SALES", "0", 0.684, COLORS.gold, COLORS.coral)
 
 local feedback = Instance.new("TextLabel")
@@ -195,7 +196,7 @@ backroomValue.Name = "BackroomInventory"
 backroomValue.Position = UDim2.fromOffset(0, 110)
 backroomValue.Size = UDim2.new(1, 0, 0, 18)
 backroomValue.BackgroundTransparency = 1
-backroomValue.Text = "BACKROOM  CITRUS 0  |  BERRY 0"
+backroomValue.Text = "BACKROOM  C 0 | B 0 | A 0"
 backroomValue.TextColor3 = COLORS.teal
 backroomValue.Font = Enum.Font.GothamBold
 backroomValue.TextSize = 10
@@ -517,9 +518,10 @@ local function update(state)
     renderRushObjective()
     warehouseView = state.warehousePurchased == true
     backroomValue.Text = string.format(
-        "BACKROOM  CITRUS %d  |  BERRY %d",
+        "BACKROOM  C %d | B %d | A %d",
         state.backstock or 0,
-        state.berryBackstock or 0
+        state.berryBackstock or 0,
+        state.goldenAppleBackstock or 0
     )
     backroomValue.Visible = not collapsed and ownerView and warehouseView
     card.Size = UDim2.fromOffset(280, collapsed and 40 or (warehouseView and 165 or 145))
@@ -546,7 +548,12 @@ local function update(state)
         saveStatus.TextColor3 = COLORS.teal
     end
     cashValue.Text = string.format("$%d", state.cash or 0)
-    stockValue.Text = string.format("%d / %d", state.stock or 0, state.berryStock or 0)
+    stockValue.Text = string.format(
+        "%d/%d/%d",
+        state.stock or 0,
+        state.berryStock or 0,
+        state.goldenAppleStock or 0
+    )
     salesValue.Text = tostring(state.sales or 0)
     feedback.Text = tostring(state.message or "")
     messageRevision += 1

@@ -18,6 +18,8 @@ Economy.CUSTOMERS_PER_SHIFT = 3
 Economy.SPILL_CLEAN_REWARD = 5
 Economy.BERRY_BITES_STOCK_PER_RESTOCK = 4
 Economy.BERRY_BITES_SHELF_CAPACITY = 24
+Economy.GOLDEN_APPLES_STOCK_PER_RESTOCK = 3
+Economy.GOLDEN_APPLES_SHELF_CAPACITY = 24
 Economy.POWER_OUTAGE_DURATION = 30
 Economy.CUSTOMER_RUSH_DURATION = 60
 Economy.CUSTOMER_RUSH_EXTRA_CUSTOMERS = 2
@@ -37,6 +39,12 @@ Economy.PRODUCTS = {
         salePrice = 18,
         deliveryCost = 45,
         deliveryQuantity = 24,
+    },
+    goldenApples = {
+        displayName = "Golden Apples",
+        salePrice = 12,
+        deliveryCost = 35,
+        deliveryQuantity = 18,
     },
 }
 
@@ -89,6 +97,7 @@ function Economy.newState(profile)
         cash = profile.balance or 0,
         stock = savedShift.stock or 0,
         berryStock = savedShift.berryStock or 0,
+        goldenAppleStock = savedShift.goldenAppleStock or 0,
         sales = savedShift.sales or 0,
         cartRecovered = savedShift.cartRecovered or false,
         shiftClosed = savedShift.shiftClosed or false,
@@ -102,10 +111,12 @@ function Economy.newState(profile)
         cleanerHired = (profile.hiredEmployees and profile.hiredEmployees.cleaner) or false,
         backstock = warehouseInventory.citrusPop or 12,
         berryBackstock = warehouseInventory.berryBites or (upgrades.warehouse and 12 or 0),
+        goldenAppleBackstock = warehouseInventory.goldenApples or (upgrades.warehouse and 6 or 0),
         shipmentReadyAt = warehouseInventory.shipmentReadyAt or 0,
         shipmentQuantity = shipmentQuantity,
-        shipmentProductId = warehouseInventory.shipmentProductId == "berryBites" and "berryBites"
-            or (shipmentQuantity > 0 and "citrusPop" or ""),
+        shipmentProductId = shipmentQuantity > 0
+                and (warehouseInventory.shipmentProductId == "goldenApples" and "goldenApples" or (warehouseInventory.shipmentProductId == "berryBites" and "berryBites" or "citrusPop"))
+            or "",
     }
 end
 
@@ -174,6 +185,33 @@ function Economy.stockBerryBites(state)
     return true, "Berry Bites restocked from the warehouse."
 end
 
+function Economy.stockGoldenApples(state)
+    if
+        state.stage == "Cart"
+        or state.stage == "Upgrade"
+        or state.stage == "Loading"
+        or state.stage == "OwnerOffline"
+        or state.stage == "PowerOutage"
+    then
+        return false, "Wait until store operations are underway before restocking Golden Apples."
+    end
+    if not state.warehousePurchased then
+        return false, "Unlock the warehouse before restocking Golden Apples."
+    end
+    if state.goldenAppleBackstock < Economy.GOLDEN_APPLES_STOCK_PER_RESTOCK then
+        return false, "The backroom is out of Golden Apples. Order a delivery from the warehouse."
+    end
+    if
+        state.goldenAppleStock + Economy.GOLDEN_APPLES_STOCK_PER_RESTOCK
+        > Economy.GOLDEN_APPLES_SHELF_CAPACITY
+    then
+        return false, "The Golden Apples display is full."
+    end
+    state.goldenAppleBackstock -= Economy.GOLDEN_APPLES_STOCK_PER_RESTOCK
+    state.goldenAppleStock += Economy.GOLDEN_APPLES_STOCK_PER_RESTOCK
+    return true, "Golden Apples restocked from the warehouse."
+end
+
 function Economy.orderDelivery(state, now, productId)
     productId = productId or "citrusPop"
     local product = Economy.PRODUCTS[productId]
@@ -186,7 +224,8 @@ function Economy.orderDelivery(state, now, productId)
     if state.shipmentQuantity > 0 or state.shipmentReadyAt > 0 then
         return false, "A delivery is already on the way."
     end
-    local currentBackstock = productId == "citrusPop" and state.backstock or state.berryBackstock
+    local currentBackstock = productId == "citrusPop" and state.backstock
+        or (productId == "berryBites" and state.berryBackstock or state.goldenAppleBackstock)
     if currentBackstock + product.deliveryQuantity > Economy.BACKSTOCK_CAPACITY then
         return false, "There is not enough backroom space for another delivery."
     end
@@ -216,16 +255,20 @@ function Economy.receiveDelivery(state, now)
     if type(now) ~= "number" or now ~= now or now % 1 ~= 0 or now < state.shipmentReadyAt then
         return false, "The delivery is still on its way."
     end
-    local productId = state.shipmentProductId == "berryBites" and "berryBites" or "citrusPop"
-    local currentBackstock = productId == "citrusPop" and state.backstock or state.berryBackstock
+    local productId = state.shipmentProductId == "goldenApples" and "goldenApples"
+        or (state.shipmentProductId == "berryBites" and "berryBites" or "citrusPop")
+    local currentBackstock = productId == "citrusPop" and state.backstock
+        or (productId == "berryBites" and state.berryBackstock or state.goldenAppleBackstock)
     if currentBackstock + state.shipmentQuantity > Economy.BACKSTOCK_CAPACITY then
         return false, "The backroom is full. Clear space before receiving this delivery."
     end
     local quantity = state.shipmentQuantity
     if productId == "citrusPop" then
         state.backstock += quantity
-    else
+    elseif productId == "berryBites" then
         state.berryBackstock += quantity
+    else
+        state.goldenAppleBackstock += quantity
     end
     state.shipmentQuantity = 0
     state.shipmentReadyAt = 0
@@ -240,7 +283,7 @@ end
 
 function Economy.getNextCheckoutProductId(state)
     local basket = Economy.getNextCheckoutBasket(state)
-    return basket and basket.items[1].productId or nil
+    return basket and basket.items[1] and basket.items[1].productId or nil
 end
 
 -- Basket intent is derived from the next customer number. The server resolves it
@@ -250,14 +293,15 @@ function Economy.getNextCheckoutBasket(state)
     local intents = {
         { "citrusPop" },
         { "berryBites" },
-        { "citrusPop", "berryBites" },
+        { "citrusPop", "goldenApples" },
         { "berryBites", "berryBites" },
-        { "citrusPop", "citrusPop" },
+        { "goldenApples", "goldenApples" },
     }
     local intent = intents[((customerNumber - 1) % #intents) + 1]
     local available = {
         citrusPop = math.max(0, math.floor(state.stock or 0)),
         berryBites = math.max(0, math.floor(state.berryStock or 0)),
+        goldenApples = math.max(0, math.floor(state.goldenAppleStock or 0)),
     }
     local items = {}
     local counts = {}
@@ -275,6 +319,7 @@ function Economy.getNextCheckoutBasket(state)
     if fulfilledCount == 0 then
         local fallbackId = state.stock > 0 and "citrusPop"
             or (state.berryStock > 0 and "berryBites" or nil)
+            or (state.goldenAppleStock > 0 and "goldenApples" or nil)
         if fallbackId then
             counts[fallbackId] = 1
         end
@@ -337,8 +382,10 @@ function Economy.sellProduct(state, now)
     for _, item in ipairs(basket.items) do
         if item.productId == "citrusPop" then
             state.stock -= item.quantity
-        else
+        elseif item.productId == "berryBites" then
             state.berryStock -= item.quantity
+        else
+            state.goldenAppleStock -= item.quantity
         end
     end
     state.sales += 1
@@ -365,7 +412,8 @@ function Economy.sellProduct(state, now)
     if
         state.sales == Economy.CHAOS_EVENTS.CustomerRush.triggerSales
         and state.customerRushUntil == 0
-        and state.stock + state.berryStock >= Economy.CUSTOMER_RUSH_EXTRA_CUSTOMERS
+        and state.stock + state.berryStock + state.goldenAppleStock
+            >= Economy.CUSTOMER_RUSH_EXTRA_CUSTOMERS
     then
         state.customerRushUntil = now + Economy.CHAOS_EVENTS.CustomerRush.duration
         state.stage = "CustomerRush"
@@ -469,6 +517,7 @@ function Economy.restartShift(state)
     state.stage = "Cart"
     state.stock = 0
     state.berryStock = 0
+    state.goldenAppleStock = 0
     state.powerOutageUntil = 0
     state.sales = 0
     state.cartRecovered = false
@@ -537,6 +586,9 @@ function Economy.buyWarehouse(state)
     state.warehousePurchased = true
     if state.berryBackstock == 0 then
         state.berryBackstock = 12
+    end
+    if state.goldenAppleBackstock == 0 then
+        state.goldenAppleBackstock = 6
     end
     return true, "Warehouse annex purchased! Your retail empire is expanding."
 end

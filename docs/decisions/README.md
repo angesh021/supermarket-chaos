@@ -28,7 +28,7 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Status:** Accepted — 2026-10-12.
 - **Context:** The first shift had one static customer and one sale, which did not establish a customer operations loop.
 - **Decision:** Each shift serves at most three customers using a server-scripted entrance, browse, queue, checkout and exit route. The server's existing sale transition owns stock and revenue; the persisted sales count reconstructs remaining customer traffic.
-- **Consequences:** No customer persistence fields, PathfindingService loops or client remotes are needed. Fixed routes are bounded and have a 12-second queue-position recovery. Product choice, baskets and larger traffic events remain later increments.
+- **Consequences:** No customer persistence fields, PathfindingService loops or client remotes are needed. Fixed routes are bounded and have a 12-second queue-position recovery. Product choice and baskets are implemented through the later multi-product increments; broader preference simulation and larger traffic events remain future work.
 - **Verification:** See `docs/operations/PHASE8_CUSTOMERS.md`; Roblox Studio runtime checks remain pending.
 
 ## ADR-0007 — Persist chaos interruptions in the shift stage
@@ -79,6 +79,13 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Decision:** Set customer queue billboard text from the current server-owned `Spill`, `PowerOutage`, and `CustomerRush` stages, and restore normal labels when the stage resolves.
 - **Consequences:** Reactions are presentation-only, use existing stage updates and queue recovery, and require no remotes, profile fields, or migration. Animation/audio/patience behaviors remain future work.
 - **Verification:** See `docs/operations/PHASE16_CUSTOMER_EVENT_REACTIONS.md`; Studio reaction and recovery checks await verification.
+
+## ADR-0015 — Extend the catalog with warehouse-backed Golden Apples
+- **Status:** Accepted — 2026-10-12.
+- **Context:** The visible produce department was decorative and the existing product flow supported only drinks/snacks.
+- **Decision:** Add Golden Apples as a third server-catalog product, with a bounded shelf, warehouse backstock, one product-tagged pending shipment, produce shelf, customer baskets, and catalog-priced checkout. Persist the quantities using the existing profile and shipment structures.
+- **Consequences:** Profile schema v11 adds Golden Apples counts and accepts its shipment ID. Existing warehouse profiles missing the new field migrate to six backstock apples; profiles without a warehouse get zero. Restock quantity is three, shelf cap 24, order is 18 for `$35`, and retail unit price is `$12`.
+- **Verification:** See `docs/operations/PHASE17_GOLDEN_APPLES.md`; gameplay, migration and shipment checks await Studio verification.
 
 ## ADR-0009 — Keep product inventory and supplier orders SKU-specific
 - **Status:** Accepted — 2026-10-12.

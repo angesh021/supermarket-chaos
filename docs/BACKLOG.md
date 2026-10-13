@@ -19,7 +19,7 @@ G0 was approved on 2026-10-12. The user authorized continued phase implementatio
 - [x] Persist balance, in-progress shift, sales, completed shifts and the shelf upgrade.
 - [x] Resume saved shift state and start repeat shifts from the shift board.
 - [x] User confirmed the requested Studio progression and persistence tests passed.
-- [ ] Extend the upgrade catalog, product inventory and store customization.
+- [ ] Extend the upgrade catalog and customization beyond the fixed storefront style.
 - [x] Phase 15: add a persistent, server-purchased Coastal Market storefront palette and v10 migration; see `operations/PHASE15_STOREFRONT_STYLE.md`.
 
 ## Phase 3 — Cooperative multiplayer
@@ -73,6 +73,8 @@ G0 was approved on 2026-10-12. The user authorized continued phase implementatio
 - [x] Phase 7 first increment: server-authoritative $200 warehouse annex purchase, physical buildout and per-player persistence.
 - [x] Phase 7 delivery increment: persistent backroom Citrus Pop stock, server-priced supply order, delayed shipment, receive prompt and stock HUD.
 - [x] Phase 7 follow-up increment: Citrus Pop and Berry Bites have separate server-owned shelf/backroom quantities, prices, shelf visuals and product-specific delivery.
+- [x] Phase 17: add Golden Apples as a produce SKU with v11 inventory migration, server-priced shipment/checkout, stocking visuals and customer baskets; see `operations/PHASE17_GOLDEN_APPLES.md`.
 - [x] Phase 4 customer increment: server-derived five-pattern shopping baskets with atomic multi-item checkout, visible customer order, department browsing and no schema migration.
 - [ ] Phase 7 follow-up: warehouse inventory layout, additional departments and Studio verification of purchase/delivery/save/rejoin; see `operations/PHASE11_PRODUCTS.md`.
+- [ ] Studio verification of Golden Apples shipment, produce stock, migration, basket math, helper permissions, and save/rejoin; see `operations/PHASE17_GOLDEN_APPLES.md`.
 - [ ] Later phases: broader economy, seasonal/live operations, production commerce and release work remain gated by the specification, Studio validation and explicit release approval.

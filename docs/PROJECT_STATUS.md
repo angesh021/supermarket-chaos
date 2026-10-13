@@ -30,6 +30,7 @@ Phase 1 desktop first play and Phase 2 progression/persistence were reported pas
 - Phase 14 customer baskets replace fixed one-item checkout with five deterministic Citrus Pop/Berry Bites basket patterns. `Economy` resolves intent against server shelf counts, prices and deducts every included item in one customer sale, and safely falls back when a preferred SKU is unavailable. The objective/customer model show the basket and the procedural route browses each included department. The next basket reconstructs from saved sales and inventory; Profile schema remains v9. Basket totals, stock fallback, routing, races and rejoin remain unverified in Studio; checklist is `operations/PHASE14_CUSTOMER_BASKETS.md`.
 - Phase 15 adds a `$180` Coastal Market style upgrade at the physical pad. The server charges Owner/Manager once, recolors the exterior fascia/sign/canopy and interior header, and persists ownership as `ownedUpgrades.marketStyle`. Profile schema v10 defaults v1–v9 profiles to the original palette. Purchase, visual, migration and rejoin checks remain unverified in Studio; checklist is `operations/PHASE15_STOREFRONT_STYLE.md`.
 - Phase 16 adds stage-derived customer billboard reactions for `Spill`, `PowerOutage`, and `CustomerRush`; normal queue labels return after recovery. Reactions are presentation only and add no persistence or remotes. Studio appearance and route-recovery checks remain pending in `operations/PHASE16_CUSTOMER_EVENT_REACTIONS.md`.
+- Phase 17 adds Golden Apples as a third SKU with `$12` unit price, `$35` shipment of 18, three-unit restocking, 24-unit shelf cap, produce visuals, HUD counters, role checks and basket patterns. Profile schema v11 persists apple shelf/backroom counts and tags the existing one-shipment slot. Older warehouse profiles without apple inventory migrate to six backstock apples; non-warehouse profiles get zero. Shipment, customer basket, migration, permission and rejoin behavior remain unverified in Studio; checklist: `operations/PHASE17_GOLDEN_APPLES.md`.
 - Phase 10 schema v6 adds a validated persistent cleaner employee flag; schemas v1–v5 default safely to no cleaner.
 - DataStore calls are enabled only when `game.GameId` matches development universe `10770581249`. Other universes display session-only status and never write to that store.
 
@@ -52,6 +53,7 @@ Use a private development test experience in universe `10770581249`; use two or 
 15. Follow [Phase 14 customer basket checks](operations/PHASE14_CUSTOMER_BASKETS.md) for mixed and double-item transactions, missing stock, one-customer sale count, role races and deterministic rejoin behavior.
 16. Follow [Phase 15 storefront style checks](operations/PHASE15_STOREFRONT_STYLE.md) for the `$180` purchase, role limits, visible recolor, legacy migration and save/rejoin.
 17. Follow [Phase 16 customer reaction checks](operations/PHASE16_CUSTOMER_EVENT_REACTIONS.md) for event labels, recovery, and confirmation that they do not change economy state.
+18. Follow [Phase 17 Golden Apples checks](operations/PHASE17_GOLDEN_APPLES.md) for produce stock, shipments, basket math, v11 migration, roles and rejoin.
 
 ## Toolchain and checks
 - Rojo 7.7.0, Selene 0.32.0 and StyLua 2.5.0 are pinned in `rokit.toml`.
@@ -69,7 +71,7 @@ Use a private development test experience in universe `10770581249`; use two or 
 3. Employees are a first automation increment and only auto-serve the introductory stock/checkout stage; they do not simulate a full queue or wages.
 4. Mobile layout, multi-server lease failure paths, malicious-client stress, development funnel ingestion and Studio behavior for Phases 3/4 remain unverified.
 5. Production universe ID, publishing and commerce are not configured. Development funnel ingestion and Creator Dashboard reporting remain unverified.
-6. Product variety remains limited to two SKUs, one pending shipment total, and no supplier selection or editable warehouse layout. Customer baskets have five deterministic patterns but no preference weights, discounts, or event-specific reactions. The first storefront palette is fixed and cannot be edited. Chaos event selection remains predictable; there is no random event director yet.
+6. Product variety is limited to three SKUs, one pending shipment total, and no supplier selection or editable warehouse layout. Customer baskets have five deterministic patterns but no preference weights, discounts, or patience effects. The first storefront palette is fixed and cannot be edited. Chaos event selection remains predictable; there is no random event director yet.
 
 ## Current gate
 **G0:** approved. **G1:** desktop first-shift accepted. **G2:** user reported tests passed. **G3–G7 increments:** implemented; multiplayer, employee, customer queue, spill event, analytics, touch, visual, warehouse, delivery and multi-product verification pending. **Production:** disabled pending user-provided production universe ID and deployment approval.

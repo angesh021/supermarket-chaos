@@ -76,12 +76,17 @@ Instrument funnel events for first interaction, first stock, first sale, first u
 - G7 delivery verification covers insufficient funds, already-pending orders, duplicate/racing receive requests, capacity, prompt distance, Manager/owner authorization, save/rejoin during transit, and non-development session-only behavior.
 
 ### Phase 7 multi-product increment
-- Keep Citrus Pop and Berry Bites shelf stock and warehouse backstock independent.
+- Keep each catalog product's shelf stock and warehouse backstock independent.
 - Use the server catalog for prices and checkout selection; the client must not submit SKU, price, quantity, or reward.
 - Persist the product identifier for the single pending shipment and migrate older untagged shipments to Citrus Pop.
 - Display separate inventory counts and distinguish visible stocked products on their department shelves.
 - Keep Berry Bites stocking and both supplier orders behind warehouse ownership and current server role permissions.
 - Manual acceptance and failure cases are listed in `operations/PHASE11_PRODUCTS.md`.
+
+### Phase 7 produce product increment
+- Add Golden Apples to the produce department with independent shelf/backroom counters, server-defined sale/order prices, bounded restock and a product-tagged shipment.
+- Existing warehouse owners safely receive a bounded six-apple migration grant; non-warehouse profiles receive none. Keep the single-pending-shipment, owner/Manager purchasing and Owner/Manager/Stocker restock boundaries.
+- Display produce stock and include the product in deterministic server-side customer baskets with safe stock fallback. Manual cases are in `operations/PHASE17_GOLDEN_APPLES.md`.
 
 ### Phase 4 Power Outage increment
 - After the second completed sale, trigger a bounded checkout outage with a visible breaker objective and a 30-second server recovery deadline.
