@@ -324,6 +324,11 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Consequences:** Profile schema v38 saves florist ownership, stock and sales, and migrates v37 neighborhood snapshots. Owner/Manager, Stocker and Cashier actions reuse server-authoritative prompt checks; visitors reuse the existing plaza sale lock and throttle.
 - **Verification:** See `docs/operations/PHASE59_MAPLE_CORNER_FLORIST.md`.
 
+## ADR-0057: Store bounded location snapshots under one profile lease
+- **Decision:** Allow two fixed server-approved location IDs, keep the chain balance at profile root, and serialize all location snapshots under the existing owner profile lease.
+- **Consequences:** Schema v39 validates and preserves a second location record. Branch purchase, a synchronized wallet, independent runtime and location-scoped roles remain required for playable multi-store support.
+- **Verification:** See `docs/operations/PHASE60_LOCATION_PROFILE_STORAGE.md`.
+
 ## ADR-0009 — Keep product inventory and supplier orders SKU-specific
 - **Status:** Accepted — 2026-10-12.
 - **Context:** The retail loop needs visible department variety and product-specific stock behavior while keeping stock and money authoritative.

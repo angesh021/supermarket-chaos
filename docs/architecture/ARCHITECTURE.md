@@ -249,6 +249,13 @@ See `docs/decisions/README.md` for accepted ownership policy. Remaining decision
 - Owner/Manager can build, restock and sell; Stocker can restock; Cashier can sell. Visitor purchases call the same sale transition, require an available profile and stock, share the transaction lock, and use the existing 15-second business throttle.
 - Profile schema v38 stores florist ownership, stock and sales. v37 migration supplies false/zero defaults and validates the old `locations.neighborhood` snapshot with those newly added fields omitted. Existing profile values remain the source of truth.
 - See ADR-0056 and `operations/PHASE59_MAPLE_CORNER_FLORIST.md`. Multi-store runtime and Studio verification remain pending.
+
+## Phase 60 multi-location profile storage
+- Profile schema v39 permits exactly `neighborhood` and one optional `uptown` location. Each stores an independently normalized operational snapshot; the shared company balance and session lease remain at profile root.
+- `ProfileService.getLocation` returns a defensive copy for either existing location; `getCompanyBalance` reads the shared root balance. `createLocation` accepts only `uptown` and seeds a server-default snapshot; `saveProgress` accepts a known existing location and routes its snapshot update through the same serialized profile save.
+- Profile loading validates the original neighborhood against legacy flat fields and validates `uptown` through the normal profile validators. Unknown IDs, malformed state and unsupported counts are rejected.
+- This is only storage infrastructure. A shared in-memory wallet, branch purchase, branch runtime/world, switching and per-location memberships still need implementation before users can operate two stores.
+- See ADR-0057 and `operations/PHASE60_LOCATION_PROFILE_STORAGE.md`.
 # Cooperative ownership and cashier extension
 - One owner profile remains the persistence boundary. Per-server membership grants temporary action permissions but does not load a guest's profile into the owner's economy.
 - Server role map: Owner (all), Manager (all shift actions including staff hiring), Cashier (checkout), Stocker (stock), Maintenance (cart recovery).

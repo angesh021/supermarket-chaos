@@ -1,7 +1,7 @@
 # Phase 57 — Multi-store foundation
 
 ## Current status
-Architecture decision, schema v37 migration, and unique world-container support are implemented. `WorldBuilder.build(locationId, origin)` validates the server-supplied ID, uses a location-specific world model and can position it independently. Profile schema v37 migrates the v36 flat state to `locations.neighborhood`, verifies the location record stays synchronized with the legacy runtime fields, and exposes a server-only read-only location accessor. The current `ShiftService` still starts only one state/world/owner for the server; no second branch is playable yet.
+Architecture decisions, schema v37-to-v39 profile foundations, and unique world-container support are implemented. `WorldBuilder.build(locationId, origin)` validates the server-supplied ID, uses a location-specific world model and can position it independently. The profile preserves the v36 flat state as `locations.neighborhood` and now allows one optional, validated `locations.uptown` record under the same owner lease. The current `ShiftService` still starts only one state/world/owner for the server; no second branch is playable yet.
 
 ## Target acceptance criteria
 - One player can own at least two independently managed store locations under the same account and company balance.
@@ -12,14 +12,15 @@ Architecture decision, schema v37 migration, and unique world-container support 
 - Profile writes from two location runtimes remain serialized under one player lease. Rejoin restores both locations; a second server cannot take the same profile lease.
 
 ## Remaining implementation increments
-1. Extract one location runtime from the singleton `ShiftService`, and scope action authorization and client snapshots to that runtime.
-2. Add a server-priced branch purchase and a second fixed plot. Reuse the same profile save lock, but persist the branch's state independently.
+1. Add the synchronized shared company wallet, a server-priced branch purchase and the fixed uptown plot.
+2. Extract one location runtime from the singleton `ShiftService`, and scope action authorization and client snapshots to that runtime.
 3. Add per-location membership grants and test same-owner writes, branch switching, rejoin and unauthorized cross-branch actions.
 
 ## Security and persistence boundaries
 - The client may request an action within a visible store, but cannot create location IDs, choose another owner's profile, or supply the location's stock, cash or upgrade state.
 - Server-owned runtime lookup must resolve the location before checking its Owner/Manager/Cashier/Stocker permissions, current prompt, distance and cooldown.
 - The DataStore key and session lease remain per player. A single serialized profile writer prevents two branches from overwriting one another.
+- Schema v39 allows exactly two known location IDs, keeps balance at the company profile root and validates the optional second snapshot through normal profile normalization. See `operations/PHASE60_LOCATION_PROFILE_STORAGE.md` for migration and malformed-record checks.
 - Migration preserves a backup/recovery path until v36-to-v37 data is validated in a private development experience. Production publishing and Robux commerce remain disabled.
 
 ## Manual verification gate

@@ -6,13 +6,14 @@ local ProfileService = {}
 local LayoutService = require(script.Parent.LayoutService)
 local RetailLayoutService = require(script.Parent.RetailLayoutService)
 
-local SCHEMA_VERSION = 38
+local SCHEMA_VERSION = 39
 local SESSION_LEASE_SECONDS = 180
 local MAX_RETRIES = 3
 local STORE_NAME = "SupermarketChaos_PlayerProfiles_v1"
 local DEVELOPMENT_UNIVERSE_ID = 10770581249
 local sessionId = HttpService:GenerateGUID(false)
 local profiles = {}
+local LOCATION_IDS = { neighborhood = true, uptown = true }
 local store
 local storeReady = false
 local storeError = "Persistence is enabled only in the configured development universe."
@@ -781,30 +782,69 @@ local function normalizeProfile(value)
     local snapshot = locationSnapshot(profile)
     if value.locations ~= nil then
         if
-            (value.schemaVersion ~= SCHEMA_VERSION and value.schemaVersion ~= 37)
-            or type(value.locations) ~= "table"
+            (
+                value.schemaVersion ~= SCHEMA_VERSION
+                and value.schemaVersion ~= 38
+                and value.schemaVersion ~= 37
+            ) or type(value.locations) ~= "table"
         then
             return nil, "Stored location records are malformed or have an unsupported schema."
         end
         local count = 0
         for locationId, record in pairs(value.locations) do
             count += 1
-            if locationId ~= "neighborhood" or type(record) ~= "table" then
+            if not LOCATION_IDS[locationId] or type(record) ~= "table" then
                 return nil, "Stored profile contains an unknown or malformed location."
             end
+            if value.schemaVersion < SCHEMA_VERSION and locationId ~= "neighborhood" then
+                return nil, "Older stored profiles cannot contain an additional location."
+            end
         end
-        local expectedSnapshot = snapshot
+        if count < 1 or count > 2 then
+            return nil, "Stored profile has an unsupported location count."
+        end
+        if value.locations.neighborhood == nil then
+            return nil, "Stored profile is missing its original neighborhood location."
+        end
+        local expectedSnapshot = cloneData(snapshot)
         if value.schemaVersion == 37 then
-            expectedSnapshot = cloneData(snapshot)
             expectedSnapshot.shift.floristStock = nil
             expectedSnapshot.shift.floristSales = nil
             expectedSnapshot.ownedUpgrades.floristStore = nil
         end
-        if count ~= 1 or not sameData(value.locations.neighborhood, expectedSnapshot) then
+        if not sameData(value.locations.neighborhood, expectedSnapshot) then
             return nil, "Stored neighborhood location does not match the migrated profile state."
         end
+        if value.locations.uptown then
+            local branch = value.locations.uptown
+            local branchProfile, branchError = normalizeProfile({
+                schemaVersion = SCHEMA_VERSION,
+                balance = profile.balance,
+                shift = branch.shift,
+                ownedUpgrades = branch.ownedUpgrades,
+                hiredEmployees = branch.hiredEmployees,
+                employeeAutomation = branch.employeeAutomation,
+                warehouseInventory = branch.warehouseInventory,
+                warehouseLayout = branch.warehouseLayout,
+                retailLayout = branch.retailLayout,
+                productPrices = branch.productPrices,
+                completedShifts = branch.completedShifts,
+                customerSatisfaction = branch.customerSatisfaction,
+                lifetimeSales = branch.lifetimeSales,
+                onlineOrdersFulfilled = branch.onlineOrdersFulfilled,
+            })
+            if not branchProfile then
+                return nil, "Stored uptown location is invalid: " .. tostring(branchError)
+            end
+            local normalizedBranch = locationSnapshot(branchProfile)
+            if not sameData(branch, normalizedBranch) then
+                return nil, "Stored uptown location contains unsupported or divergent data."
+            end
+            profile.locations = { neighborhood = snapshot, uptown = normalizedBranch }
+        end
     end
-    profile.locations = { neighborhood = snapshot }
+    profile.locations = profile.locations or { neighborhood = snapshot }
+    profile.locations.neighborhood = snapshot
     return profile
 end
 
@@ -921,7 +961,7 @@ local function copyProfile(profile)
         z = profile.retailLayout.checkout.z,
         rotation = profile.retailLayout.checkout.rotation,
     }
-    copy.locations = { neighborhood = locationSnapshot(profile) }
+    copy.locations = cloneData(profile.locations)
     return copy
 end
 
@@ -986,6 +1026,17 @@ local function saveEntry(entry, releasing)
     return false
 end
 
+local function beginProfileMutation(entry)
+    while entry.mutationInProgress do
+        task.wait()
+    end
+    entry.mutationInProgress = true
+end
+
+local function endProfileMutation(entry)
+    entry.mutationInProgress = false
+end
+
 function ProfileService.load(player)
     local key = keyFor(player)
     if not storeReady then
@@ -998,6 +1049,7 @@ function ProfileService.load(player)
             persistent = false,
             saveStatus = "session only",
             saveInProgress = false,
+            mutationInProgress = false,
         }
         return profile, "session only"
     end
@@ -1063,6 +1115,7 @@ function ProfileService.load(player)
                 lockLost = false,
                 saveStatus = "saved",
                 saveInProgress = false,
+                mutationInProgress = false,
             }
             return loadedProfile, "saved"
         end
@@ -1098,6 +1151,7 @@ function ProfileService.load(player)
         persistent = false,
         saveStatus = "session only",
         saveInProgress = false,
+        mutationInProgress = false,
     }
     return profile, "session only"
 end
@@ -1109,18 +1163,56 @@ end
 
 function ProfileService.getLocation(player, locationId)
     local entry = profiles[player.UserId]
-    if not entry or locationId ~= "neighborhood" then
+    if not entry or not LOCATION_IDS[locationId] then
         return nil
     end
-    return cloneData(entry.profile.locations.neighborhood)
+    local location = entry.profile.locations[locationId]
+    return location and cloneData(location) or nil
 end
 
-function ProfileService.saveProgress(player, state, eventName)
+function ProfileService.getCompanyBalance(player)
     local entry = profiles[player.UserId]
-    if not entry then
+    return entry and entry.profile.balance or nil
+end
+
+function ProfileService.createLocation(player, locationId)
+    local entry = profiles[player.UserId]
+    if not entry or locationId ~= "uptown" then
         return false
     end
-    local profile = entry.profile
+    if entry.profile.locations.uptown then
+        return true
+    end
+    beginProfileMutation(entry)
+    local initialProfile = defaultProfile()
+    entry.profile.locations.uptown = locationSnapshot(initialProfile)
+    local saved = true
+    if entry.persistent then
+        saved = saveEntry(entry, false)
+    end
+    endProfileMutation(entry)
+    return saved
+end
+
+local function profileFromLocationSnapshot(snapshot, balance)
+    local profile = defaultProfile()
+    profile.balance = balance
+    profile.shift = cloneData(snapshot.shift)
+    profile.ownedUpgrades = cloneData(snapshot.ownedUpgrades)
+    profile.hiredEmployees = cloneData(snapshot.hiredEmployees)
+    profile.employeeAutomation = cloneData(snapshot.employeeAutomation)
+    profile.warehouseInventory = cloneData(snapshot.warehouseInventory)
+    profile.warehouseLayout = cloneData(snapshot.warehouseLayout)
+    profile.retailLayout = cloneData(snapshot.retailLayout)
+    profile.productPrices = cloneData(snapshot.productPrices)
+    profile.completedShifts = snapshot.completedShifts
+    profile.customerSatisfaction = snapshot.customerSatisfaction
+    profile.lifetimeSales = snapshot.lifetimeSales
+    profile.onlineOrdersFulfilled = snapshot.onlineOrdersFulfilled
+    return profile
+end
+
+local function applyStateToProfile(profile, state, eventName)
     profile.balance = state.cash
     profile.onlineOrdersFulfilled = state.onlineOrdersFulfilled or 0
     profile.shift.stage = state.stage
@@ -1204,11 +1296,34 @@ function ProfileService.saveProgress(player, state, eventName)
     elseif eventName == "shiftClosed" then
         profile.completedShifts += 1
     end
-    profile.locations = { neighborhood = locationSnapshot(profile) }
-    if entry.persistent then
-        return saveEntry(entry, false)
+end
+
+function ProfileService.saveProgress(player, state, eventName, locationId)
+    local entry = profiles[player.UserId]
+    if not entry or (locationId ~= nil and not LOCATION_IDS[locationId]) then
+        return false
     end
-    return false
+    local profile = entry.profile
+    beginProfileMutation(entry)
+    if locationId == "uptown" then
+        local location = profile.locations.uptown
+        if not location then
+            return false
+        end
+        local locationProfile = profileFromLocationSnapshot(location, profile.balance)
+        applyStateToProfile(locationProfile, state, eventName)
+        profile.balance = state.cash
+        profile.locations.uptown = locationSnapshot(locationProfile)
+    else
+        applyStateToProfile(profile, state, eventName)
+        profile.locations.neighborhood = locationSnapshot(profile)
+    end
+    local saved = true
+    if entry.persistent then
+        saved = saveEntry(entry, false)
+    end
+    endProfileMutation(entry)
+    return saved
 end
 
 function ProfileService.getSaveStatus(player)
