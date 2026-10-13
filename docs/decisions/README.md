@@ -349,6 +349,11 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Consequences:** Fixture models and signs move together; all existing merchandise, department and checkout collision checks account for owned fixtures.
 - **Verification:** See `docs/operations/PHASE64_MOVABLE_CORE_FIXTURES.md`.
 
+## ADR-0062: Apply store palettes to the interior
+- **Decision:** Reuse the existing installed style ID and preview flow for tagged supermarket interior surfaces.
+- **Consequences:** Exterior and interior colors remain one server-owned, persisted selection without new profile fields or client-supplied colors.
+- **Verification:** See `docs/operations/PHASE66_INTERIOR_STYLE_PALETTES.md`.
+
 ## ADR-0009 — Keep product inventory and supplier orders SKU-specific
 - **Status:** Accepted — 2026-10-12.
 - **Context:** The retail loop needs visible department variety and product-specific stock behavior while keeping stock and money authoritative.

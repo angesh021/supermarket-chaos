@@ -616,7 +616,7 @@ function WorldBuilder.build(locationId, origin)
     )
 
     -- 44 x 36 storefront; entry opening remains visible from the parking approach.
-    part(
+    local storeFloor = part(
         interior,
         "Tile Floor",
         Vector3.new(44, 0.45, 36),
@@ -624,12 +624,31 @@ function WorldBuilder.build(locationId, origin)
         COLORS.cream,
         Enum.Material.CeramicTiles
     )
+    storeFloor:SetAttribute("MarketPaletteRole", "Floor")
     local mainBackWall =
         part(interior, "Back Wall", Vector3.new(44, 12, 1), CFrame.new(0, 6, -19), COLORS.cream)
-    part(interior, "Left Wall", Vector3.new(1, 12, 36), CFrame.new(-22, 6, -1), COLORS.cream)
-    part(interior, "Right Wall", Vector3.new(1, 12, 36), CFrame.new(22, 6, -1), COLORS.cream)
-    part(interior, "Front Left Pier", Vector3.new(1, 12, 1), CFrame.new(-22, 6, 17), COLORS.cream)
-    part(interior, "Front Right Pier", Vector3.new(1, 12, 1), CFrame.new(22, 6, 17), COLORS.cream)
+    mainBackWall:SetAttribute("MarketPaletteRole", "Wall")
+    local leftWall =
+        part(interior, "Left Wall", Vector3.new(1, 12, 36), CFrame.new(-22, 6, -1), COLORS.cream)
+    local rightWall =
+        part(interior, "Right Wall", Vector3.new(1, 12, 36), CFrame.new(22, 6, -1), COLORS.cream)
+    local frontLeftPier = part(
+        interior,
+        "Front Left Pier",
+        Vector3.new(1, 12, 1),
+        CFrame.new(-22, 6, 17),
+        COLORS.cream
+    )
+    local frontRightPier = part(
+        interior,
+        "Front Right Pier",
+        Vector3.new(1, 12, 1),
+        CFrame.new(22, 6, 17),
+        COLORS.cream
+    )
+    for _, wall in ipairs({ leftWall, rightWall, frontLeftPier, frontRightPier }) do
+        wall:SetAttribute("MarketPaletteRole", "Wall")
+    end
     part(
         interior,
         "Front Left Window",
@@ -871,6 +890,7 @@ function WorldBuilder.build(locationId, origin)
         COLORS.teal,
         Enum.Material.SmoothPlastic
     )
+    mainBackWainscot:SetAttribute("MarketPaletteRole", "WallAccent")
 
     -- Warm, high-visibility ceiling panels; point lights are sparse and non-shadow casting.
     for x = -14, 14, 7 do
@@ -902,6 +922,23 @@ function WorldBuilder.build(locationId, origin)
     local retailShelfPivotHeights = {}
     local retailBuildFixtures = {}
     local retailFixturePivotHeights = {}
+    local function tagRetailShelfPalette(model)
+        for _, item in ipairs(model:GetDescendants()) do
+            if item:IsA("BasePart") then
+                if item.Name == "Retail Gondola Back" then
+                    item:SetAttribute("MarketPaletteRole", "ShelfBody")
+                elseif
+                    item.Name == "Wooden Kick Plate"
+                    or item.Name == "Gondola Upright"
+                    or item.Name == "Shelf Edge Price Rail"
+                then
+                    item:SetAttribute("MarketPaletteRole", "ShelfAccent")
+                elseif item.Name == "Aisle Department Sign" then
+                    item:SetAttribute("MarketPaletteRole", "DepartmentSign")
+                end
+            end
+        end
+    end
     local bakeryPurchased = false
     local freezerPurchased = false
     local bakeryModel
@@ -917,6 +954,7 @@ function WorldBuilder.build(locationId, origin)
     local function createDepartmentShelf(productId, name, x, z, width, department)
         local model = createShelf(retailDepartmentFolder, name, x, z, width, department)
         model:SetAttribute("RetailProductId", productId)
+        tagRetailShelfPalette(model)
         retailDepartmentShelves[productId] = model
         retailShelfPositions[productId] = { x = x, z = z, rotation = 0 }
         retailShelfPivotHeights[productId] = 1.2
@@ -1027,13 +1065,15 @@ function WorldBuilder.build(locationId, origin)
         COLORS.deepTeal,
         Enum.Material.Metal
     )
-    checkoutPart(
+    counter:SetAttribute("MarketPaletteRole", "Checkout")
+    local checkoutFrontPanel = checkoutPart(
         "Checkout Counter Front Panel",
         Vector3.new(7.5, 1.55, 0.18),
         CFrame.new(14, 1.65, 9.78),
         COLORS.wood,
         Enum.Material.WoodPlanks
     )
+    checkoutFrontPanel:SetAttribute("MarketPaletteRole", "CheckoutAccent")
     checkoutPart(
         "Checkout Conveyor Belt",
         Vector3.new(4.1, 0.18, 2.5),
@@ -2300,7 +2340,7 @@ function WorldBuilder.build(locationId, origin)
         Enum.Material.Neon
     )
     local stylePrompt =
-        prompt(stylePad, "Install Preview ($180)", "Storefront Refresh", "MarketStyle", 10)
+        prompt(stylePad, "Install Preview ($180)", "Store Refresh", "MarketStyle", 10)
     stylePrompt.Enabled = false
     local stylePreviewPad = part(
         interior,
@@ -2313,7 +2353,7 @@ function WorldBuilder.build(locationId, origin)
     local stylePreviewPrompt = prompt(
         stylePreviewPad,
         "Preview Next Style",
-        "Storefront Preview",
+        "Store Interior Preview",
         "PreviewMarketStyle",
         10
     )
@@ -2321,7 +2361,7 @@ function WorldBuilder.build(locationId, origin)
     stylePreviewPrompt.Enabled = false
     local styleSign = label(
         interior,
-        "Storefront Style Sign",
+        "Store Style Sign",
         "COASTAL MARKET\n$180",
         Vector3.new(5, 2.7, 0.4),
         CFrame.new(-17.5, 4.3, 9.4),
@@ -2338,6 +2378,14 @@ function WorldBuilder.build(locationId, origin)
             canopy = COLORS.gold,
             valance = COLORS.teal,
             header = COLORS.green,
+            floor = COLORS.cream,
+            wall = COLORS.warmWhite,
+            wallAccent = COLORS.green,
+            shelfBody = COLORS.teal,
+            shelfAccent = COLORS.gold,
+            departmentSign = COLORS.deepTeal,
+            checkout = COLORS.deepTeal,
+            checkoutAccent = COLORS.wood,
         },
         urban = {
             name = "City Grocer",
@@ -2346,6 +2394,14 @@ function WorldBuilder.build(locationId, origin)
             canopy = COLORS.gray,
             valance = COLORS.coral,
             header = COLORS.deepTeal,
+            floor = Color3.fromRGB(221, 228, 229),
+            wall = Color3.fromRGB(246, 247, 245),
+            wallAccent = COLORS.coral,
+            shelfBody = COLORS.gray,
+            shelfAccent = COLORS.deepTeal,
+            departmentSign = COLORS.deepTeal,
+            checkout = COLORS.ink,
+            checkoutAccent = COLORS.coral,
         },
         harvest = {
             name = "Harvest Market",
@@ -2354,6 +2410,14 @@ function WorldBuilder.build(locationId, origin)
             canopy = COLORS.gold,
             valance = COLORS.green,
             header = COLORS.coral,
+            floor = Color3.fromRGB(242, 225, 193),
+            wall = COLORS.warmWhite,
+            wallAccent = COLORS.gold,
+            shelfBody = COLORS.wood,
+            shelfAccent = COLORS.green,
+            departmentSign = COLORS.green,
+            checkout = COLORS.green,
+            checkoutAccent = COLORS.wood,
         },
     }
     local function applyMarketStyle(styleId)
@@ -2365,10 +2429,32 @@ function WorldBuilder.build(locationId, origin)
         entryCanopy.Color = selectedStyle and selectedStyle.canopy or COLORS.coral
         canopyValance.Color = selectedStyle and selectedStyle.valance or COLORS.deepTeal
         frontHeader.Color = selectedStyle and selectedStyle.header or COLORS.teal
+        local paletteColors = {
+            Floor = selectedStyle and selectedStyle.floor or COLORS.cream,
+            Wall = selectedStyle and selectedStyle.wall or COLORS.cream,
+            WallAccent = selectedStyle and selectedStyle.wallAccent or COLORS.teal,
+            ShelfBody = selectedStyle and selectedStyle.shelfBody or COLORS.cream,
+            ShelfAccent = selectedStyle and selectedStyle.shelfAccent or COLORS.blue,
+            DepartmentSign = selectedStyle and selectedStyle.departmentSign or COLORS.deepTeal,
+            Checkout = selectedStyle and selectedStyle.checkout or COLORS.deepTeal,
+            CheckoutAccent = selectedStyle and selectedStyle.checkoutAccent or COLORS.wood,
+        }
+        for _, item in ipairs(interior:GetDescendants()) do
+            if item:IsA("BasePart") then
+                local role = item:GetAttribute("MarketPaletteRole")
+                local color = role and paletteColors[role]
+                if color then
+                    item.Color = color
+                end
+            end
+        end
+        stylePrompt.ActionText = selectedStyle and "Install Style ($180)"
+            or "Install Preview ($180)"
+        stylePreviewPrompt.ActionText = "Preview Next Store Style / Cancel"
         local surface = styleSign:FindFirstChildOfClass("SurfaceGui")
         local signText = surface and surface:FindFirstChildOfClass("TextLabel")
         if signText then
-            local name = selectedStyle and selectedStyle.name or "STOREFRONT REFRESH"
+            local name = selectedStyle and selectedStyle.name or "STORE REFRESH"
             signText.Text = if marketStylePurchased
                 then string.upper(name) .. "\nINSTALLED"
                 elseif selectedStyle then string.upper(name) .. "\nPREVIEW"
@@ -4954,6 +5040,7 @@ function WorldBuilder.build(locationId, origin)
                 end
             end
             updateCustomerBasketPositions()
+            applyMarketStyle(marketStylePurchased and marketStyleId or marketStylePreviewId)
         end,
         marketStylePrompt = stylePrompt,
         marketStylePreviewPrompt = stylePreviewPrompt,
@@ -5105,6 +5192,7 @@ function WorldBuilder.build(locationId, origin)
                 return
             end
             local newShelf = createShelf(interior, "Purchased Shelf Bay", -16, -8, 6)
+            tagRetailShelfPalette(newShelf)
             newShelf:SetAttribute("PlayerPurchased", true)
             newShelf:SetAttribute("RetailFixtureId", "shelfBay")
             retailBuildFixtures.shelfBay = newShelf
@@ -5118,6 +5206,8 @@ function WorldBuilder.build(locationId, origin)
                 COLORS.green
             )
             sign:SetAttribute("PlayerPurchased", true)
+            sign:SetAttribute("MarketPaletteRole", "DepartmentSign")
+            applyMarketStyle(marketStylePurchased and marketStyleId or marketStylePreviewId)
         end,
         addAisleExpansion = function()
             if aisleExpansionPurchased then
@@ -5126,6 +5216,7 @@ function WorldBuilder.build(locationId, origin)
             -- A fixed, allow-listed bay inside the current floor footprint; no client placement data is used.
             local aisleExpansionModel =
                 createShelf(interior, "Purchased Household Aisle", 16, -8, 6, "HOUSEHOLD")
+            tagRetailShelfPalette(aisleExpansionModel)
             aisleExpansionModel:SetAttribute("PlayerPurchased", true)
             aisleExpansionModel:SetAttribute("RetailFixtureId", "householdAisle")
             retailBuildFixtures.householdAisle = aisleExpansionModel
@@ -5140,9 +5231,11 @@ function WorldBuilder.build(locationId, origin)
                 COLORS.warmWhite
             )
             sign:SetAttribute("PlayerPurchased", true)
+            sign:SetAttribute("MarketPaletteRole", "DepartmentSign")
             aisleExpansionPurchased = true
             aisleExpansionPrompt.Enabled = false
             aisleExpansionPad.Transparency = 0
+            applyMarketStyle(marketStylePurchased and marketStyleId or marketStylePreviewId)
         end,
         addFloorExpansion = function()
             if floorExpansionModel then
@@ -5165,6 +5258,11 @@ function WorldBuilder.build(locationId, origin)
             local function wingPart(name, size, cframe, color, material)
                 local item = part(floorExpansionModel, name, size, cframe, color, material)
                 item:SetAttribute("PlayerPurchased", true)
+                if name == "Rear Department Floor" then
+                    item:SetAttribute("MarketPaletteRole", "Floor")
+                elseif string.find(name, "Wall") or string.find(name, "Pier") then
+                    item:SetAttribute("MarketPaletteRole", "Wall")
+                end
                 return item
             end
             -- Rebuild the former rear wall with a wide, walkable opening into the new wing.
@@ -5242,6 +5340,7 @@ function WorldBuilder.build(locationId, origin)
             floorExpansionPad.Transparency = 1
             floorExpansionPad.CanCollide = false
             floorExpansionPrompt.Enabled = false
+            applyMarketStyle(marketStylePurchased and marketStyleId or marketStylePreviewId)
         end,
         setCashierHired = function(hired)
             cashierHired = hired == true

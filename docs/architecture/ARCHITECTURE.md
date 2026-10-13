@@ -272,6 +272,9 @@ See `docs/decisions/README.md` for accepted ownership policy. Remaining decision
 - Profile mutation serialization spans location projection updates and the existing serialized DataStore save. Each save persists the wallet balance at the company root and keeps it out of location snapshots.
 - No second runtime is connected yet. Per-location interaction locks remain necessary in addition to the shared profile mutation lock.
 - See ADR-0058 and `operations/PHASE61_COMPANY_WALLET.md`.
+- Phase 66 reuses the installed storefront palette ID for selected interior surfaces. WorldBuilder maps IDs to role-specific fixed colors; preview remains server-session-only and the owned palette stays in the location profile.
+- No new client color data, profile fields, remotes or economy transitions are introduced. See ADR-0062 and operations/PHASE66_INTERIOR_STYLE_PALETTES.md.
+
 # Cooperative ownership and cashier extension
 - One owner profile remains the persistence boundary. Per-server membership grants temporary action permissions but does not load a guest's profile into the owner's economy.
 - Server role map: Owner (all), Manager (all shift actions including staff hiring), Cashier (checkout), Stocker (stock), Maintenance (cart recovery).

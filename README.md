@@ -2,7 +2,7 @@
 
 **Start Small. Build Big. Survive the Chaos.**
 
-Roblox cooperative supermarket management game. Phase 65 makes stocked product displays follow movable core shelves; Phase 64 adds persistent move/rotation controls for purchased shelf bay and household aisle fixtures. Roblox Studio multiplayer, layout and persistence verification remain pending. See [project status](docs/PROJECT_STATUS.md), the [Phase 65 checklist](docs/operations/PHASE65_MOVABLE_SHELF_STOCK_VISUALS.md), the [documentation index](docs/README.md), and [master specification](MASTER_SPECIFICATION.md).
+Roblox cooperative supermarket management game. Phase 66 extends the installed store palettes across the supermarket interior; Phase 65 makes stocked product displays follow movable core shelves. Roblox Studio multiplayer, layout and persistence verification remain pending. See [project status](docs/PROJECT_STATUS.md), the [Phase 66 checklist](docs/operations/PHASE66_INTERIOR_STYLE_PALETTES.md), the [documentation index](docs/README.md), and [master specification](MASTER_SPECIFICATION.md).
 
 GitHub repository supplied by the project owner: [angesh021/supermarket-chaos](https://github.com/angesh021/supermarket-chaos).
 

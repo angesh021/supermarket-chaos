@@ -146,6 +146,7 @@ Use a private development test experience in universe `10770581249`; use two or 
 60. Follow [Phase 59 Maple Corner Florist checks](operations/PHASE59_MAPLE_CORNER_FLORIST.md) for purchase, stock/sale math, role permissions, visitor sales, v37 migration and save/rejoin.
 61. Follow [Phase 60 location profile storage checks](operations/PHASE60_LOCATION_PROFILE_STORAGE.md) for v38-to-v39 migration, snapshot integrity, defensive reads, invalid-location rejection and session-only fallback.
 62. Follow [Phase 61 company wallet checks](operations/PHASE61_COMPANY_WALLET.md) for shared-balance behavior and save/rejoin contention.
+63. Follow [Phase 66 interior style checks](operations/PHASE66_INTERIOR_STYLE_PALETTES.md) for preview/cancel, palette readability, later-built fixtures, authorization and save/rejoin.
 
 ## Toolchain and checks
 - For Phase 43, pinned StyLua `--check src`, Selene (`0 errors, 0 warnings, 0 parse errors`), Rojo 7.7.0 build to `%TEMP%\\supermarket-chaos-phase43.rbxlx`, and `git diff --check` passed on 2026-10-13. Roblox Studio self-checkout visuals, queue assignment, transaction races, roles, migration and save/rejoin have not been run.
@@ -193,6 +194,8 @@ Use a private development test experience in universe `10770581249`; use two or 
 4. Mobile layout, multi-server lease failure paths, malicious-client stress, development funnel ingestion and Studio behavior for Phases 3/4 remain unverified.
 5. Production universe ID, publishing and commerce are not configured. Development funnel ingestion and Creator Dashboard reporting remain unverified.
 6. Product variety includes six SKUs and one pending shipment total, with no supplier selection or purchasable commercial plots. Four movable shelves, checkout, rear floor, fixed bakery and fixed freezer section are implemented; arbitrary user-placed department construction remains unimplemented. Satisfaction affects regular-customer intent and checkout patience, but there is no per-customer identity, loyalty tier, abandonment, or demand forecasting. Three storefront palettes are fixed and cannot be edited. The Chaos Director has four reproducible schedules for spill/outage, with no wider live event pool yet.
+
+- Phase 66 customization: the existing fixed server-side style choices now recolor tagged supermarket interior surfaces and the exterior together. The same preview/cancel/install and persisted style ID are used; no schema changes. On 2026-10-13, StyLua 2.5.0 `--check src`, Selene 0.32.0 (0 errors/warnings/parse errors), Rojo 7.7.0 build to `%TEMP%\\supermarket-chaos-phase66.rbxlx`, and `git diff --check` passed. Studio appearance and save/rejoin remain pending. Manual steps: operations/PHASE66_INTERIOR_STYLE_PALETTES.md.
 
 ## Current gate
 **G0:** approved. **G1:** desktop first-shift accepted. **G2:** user reported tests passed. **G3–G7 increments:** implemented; Studio verification is pending for multiplayer, employees/payroll, customer queue, spill/rush events, analytics, touch layout, visual store expansion, warehouse, delivery and multi-product inventory. **Production:** disabled pending user-provided production universe ID and deployment approval.

@@ -20,6 +20,7 @@ G0 was approved on 2026-10-12. The user authorized continued phase implementatio
 - [x] Resume saved shift state and start repeat shifts from the shift board.
 - [x] User confirmed the requested Studio progression and persistence tests passed.
 - [ ] Extend the upgrade catalog and customization beyond the fixed storefront style.
+- [x] Phase 66 customization increment: apply the existing allow-listed store palette to interior floors, walls, shelf accents, department signs and checkout, retaining the same preview/purchase/persistence authority. See operations/PHASE66_INTERIOR_STYLE_PALETTES.md.
 - [x] Phase 15: add a persistent, server-purchased Coastal Market storefront palette and v10 migration; see `operations/PHASE15_STOREFRONT_STYLE.md`.
 - [x] Phase 19: add a temporary preview/cancel action before the existing palette purchase; see `operations/PHASE19_STOREFRONT_PREVIEW.md`.
 
