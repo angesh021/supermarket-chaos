@@ -1,6 +1,6 @@
 # Phase 14 customer baskets verification
 
-Each checkout serves one customer with a small basket. The original two-SKU increment added deterministic preferences and atomic multi-item transactions; Phase 17 extends the patterns to Golden Apples. Current intents rotate through Citrus Pop, Berry Bites, a Citrus Pop/Golden Apples mix, double Berry Bites, and double Golden Apples. The server resolves intent against current shelf stock, uses catalog prices, and consumes included quantities in one customer sale. If a preferred item is unavailable, it is omitted; if no preferred item can be supplied but another SKU is stocked, the basket falls back to one available item. Empty shelves reject checkout without changing state.
+Each checkout serves one customer with a small basket. The original two-SKU increment added deterministic preferences and atomic multi-item transactions; later phases extended the patterns to Golden Apples and Sunrise Cereal. Current intents rotate through Citrus Pop, Berry Bites, a Citrus Pop/Sunrise Cereal mix, double Berry Bites, and a Golden Apples/Sunrise Cereal mix. The server resolves intent against current shelf stock, uses catalog prices, and consumes included quantities in one customer sale. If a preferred item is unavailable, it is omitted; if no preferred item can be supplied but another SKU is stocked, the basket falls back to one available item. Empty shelves reject checkout without changing state.
 
 The next basket is derived from saved shift sales and shelf counts. No basket field or customer identity is persisted, and the client cannot choose basket contents, quantity, or price. The customer route visits each represented product department and displays the basket as a presentation cue.
 
@@ -8,7 +8,7 @@ Roblox Studio behavior and persistence reconstruction have not been run locally.
 
 ## Acceptance criteria
 
-- The first customer requests one Citrus Pop. The second prefers one Berry Bites; the third requests Citrus Pop and Golden Apples; the last two rotate through two-unit baskets.
+- The first customer requests one Citrus Pop. The second prefers one Berry Bites; the third requests Citrus Pop and Sunrise Cereal; the fourth requests two Berry Bites; and the fifth requests Golden Apples plus Sunrise Cereal.
 - When a requested SKU is out of stock, the server safely reduces the basket or falls back to one stocked SKU. Empty inventory rejects the sale.
 - A single successful customer checkout deducts the basket's exact item quantities and credits the sum of server catalog prices exactly once.
 - Spill, outage, rush eligibility, sale count, and shift close still count customers rather than individual items. A two-item basket remains one sale/customer.

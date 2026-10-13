@@ -46,12 +46,19 @@ local ROLE_ACTIONS = {
         OrderDelivery = true,
         OrderBerryDelivery = true,
         OrderAppleDelivery = true,
+        OrderCerealDelivery = true,
         ReceiveDelivery = true,
         StockBerryBites = true,
         StockGoldenApples = true,
+        StockSunriseCereal = true,
     },
     Cashier = { Checkout = true },
-    Stocker = { Stock = true, StockBerryBites = true, StockGoldenApples = true },
+    Stocker = {
+        Stock = true,
+        StockBerryBites = true,
+        StockGoldenApples = true,
+        StockSunriseCereal = true,
+    },
     Maintenance = { Cart = true, Spill = true, RestorePower = true },
 }
 local ASSIGNABLE_ROLES = { Manager = true, Cashier = true, Stocker = true, Maintenance = true }
@@ -117,6 +124,7 @@ local function snapshot(message, recipient)
         stock = hasStoreAccess and current.stock or 0,
         berryStock = hasStoreAccess and current.berryStock or 0,
         goldenAppleStock = hasStoreAccess and current.goldenAppleStock or 0,
+        cerealStock = hasStoreAccess and current.cerealStock or 0,
         sales = hasStoreAccess and current.sales or 0,
         message = message or "",
         upgradePurchased = current.upgradePurchased,
@@ -128,6 +136,7 @@ local function snapshot(message, recipient)
         backstock = hasStoreAccess and current.backstock or 0,
         berryBackstock = hasStoreAccess and current.berryBackstock or 0,
         goldenAppleBackstock = hasStoreAccess and current.goldenAppleBackstock or 0,
+        cerealBackstock = hasStoreAccess and current.cerealBackstock or 0,
         customerRushUntil = hasStoreAccess and current.customerRushUntil or 0,
         rushRemaining = hasStoreAccess and Economy.getRemainingCustomers(current) or 0,
         rushReward = hasStoreAccess and Economy.CUSTOMER_RUSH_REWARD or 0,
@@ -582,6 +591,11 @@ function ShiftService.init(event, membershipRemotes)
             state.warehousePurchased
                 and state.goldenAppleBackstock >= Economy.GOLDEN_APPLES_STOCK_PER_RESTOCK
         )
+        world.setCerealStockVisual(state.cerealStock)
+        world.setCerealStockAvailable(
+            state.warehousePurchased
+                and state.cerealBackstock >= Economy.SUNRISE_CEREAL_STOCK_PER_RESTOCK
+        )
         world.setCustomerCount(
             Economy.getRemainingCustomers(state),
             Economy.getCustomerTarget(state)
@@ -638,6 +652,14 @@ function ShiftService.init(event, membershipRemotes)
                 state.goldenAppleBackstock >= Economy.GOLDEN_APPLES_STOCK_PER_RESTOCK
             )
             commit("goldenAppleStock")
+        end
+        broadcast(message)
+    end)
+
+    bind("StockSunriseCereal", world.cerealStockPrompt, 12, function()
+        local ok, message = Economy.stockSunriseCereal(state)
+        if ok then
+            commit("cerealStock")
         end
         broadcast(message)
     end)
@@ -762,6 +784,19 @@ function ShiftService.init(event, membershipRemotes)
         broadcast(message)
     end)
 
+    bind("OrderCerealDelivery", world.cerealDeliveryPrompt(), 12, function()
+        local ok, message = Economy.orderDelivery(state, os.time(), "sunriseCereal")
+        if ok then
+            world.setDeliveryState(
+                state.shipmentReadyAt,
+                state.shipmentQuantity,
+                state.shipmentProductId
+            )
+            commit("cerealDeliveryOrdered")
+        end
+        broadcast(message)
+    end)
+
     bind("ReceiveDelivery", world.deliveryPrompt(), 12, function()
         local ok, message = Economy.receiveDelivery(state, os.time())
         if ok then
@@ -781,6 +816,7 @@ function ShiftService.init(event, membershipRemotes)
             world.setStockVisual(0)
             world.setBerryStockVisual(0)
             world.setGoldenAppleStockVisual(0)
+            world.setCerealStockVisual(0)
             world.setCustomerVisible(false)
             world.setStage(state.stage)
             startCart()
@@ -1023,6 +1059,11 @@ function ShiftService.init(event, membershipRemotes)
             world.setStockVisual(state.stock)
             world.setBerryStockVisual(state.berryStock)
             world.setGoldenAppleStockVisual(state.goldenAppleStock)
+            world.setCerealStockVisual(state.cerealStock)
+            world.setCerealStockAvailable(
+                state.warehousePurchased
+                    and state.cerealBackstock >= Economy.SUNRISE_CEREAL_STOCK_PER_RESTOCK
+            )
             world.setBerryStockAvailable(
                 state.warehousePurchased
                     and state.berryBackstock >= Economy.BERRY_BITES_STOCK_PER_RESTOCK

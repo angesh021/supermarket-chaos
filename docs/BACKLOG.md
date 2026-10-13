@@ -37,6 +37,7 @@ G0 was approved on 2026-10-12. The user authorized continued phase implementatio
 - [x] Add a persistent cleaner role for $120; it automatically resolves the checkout spill through the normal economy transition.
 - [x] Add persistent cashier, stocker and cleaner automation pause/resume controls; see `operations/PHASE18_EMPLOYEE_AUTOMATION.md`.
 - [x] Add a warehouse-gated delivery employee who receives arrived shipments; see `operations/PHASE20_DELIVERY_WORKER.md`.
+- [x] Turn the pantry fixture into the fourth functional SKU, Sunrise Cereal, with v14 inventory migration; see `operations/PHASE21_SUNRISE_CEREAL.md`.
 - [ ] Add delivery/customer-assistant roles, departments and further customization.
 - [ ] Studio verification of cleaner hire/migration, save/rejoin, automatic cleanup and player/employee races.
 
@@ -83,4 +84,5 @@ G0 was approved on 2026-10-12. The user authorized continued phase implementatio
 - [ ] Studio verification of employee automation toggles, delayed timer cancellation, roles, v1–v11 migration and save/rejoin; see `operations/PHASE18_EMPLOYEE_AUTOMATION.md`.
 - [ ] Studio verification of the palette preview/reset, purchase, role permissions and save/rejoin; see `operations/PHASE19_STOREFRONT_PREVIEW.md`.
 - [ ] Studio verification of delivery-worker hire/migration, SKU receipts, pause/resume, player races and save/rejoin; see `operations/PHASE20_DELIVERY_WORKER.md`.
+- [ ] Studio verification of cereal stocking, order/receipt, basket math, HUD and v1–v13 migration; see `operations/PHASE21_SUNRISE_CEREAL.md`.
 - [ ] Later phases: broader economy, seasonal/live operations, production commerce and release work remain gated by the specification, Studio validation and explicit release approval.

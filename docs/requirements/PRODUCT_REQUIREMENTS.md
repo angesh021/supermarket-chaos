@@ -91,6 +91,7 @@ Instrument funnel events for first interaction, first stock, first sale, first u
 - Existing warehouse owners safely receive a bounded six-apple migration grant; non-warehouse profiles receive none. Keep the single-pending-shipment, owner/Manager purchasing and Owner/Manager/Stocker restock boundaries.
 - Display produce stock and include the product in deterministic server-side customer baskets with safe stock fallback. Manual cases are in `operations/PHASE17_GOLDEN_APPLES.md`.
 - The existing Coastal Market storefront palette has a separate Owner/Manager preview action. Preview does not charge or persist; cancel and shift restart restore the saved/default palette. Purchase remains server-priced and persists through the existing v10 upgrade flag. See `operations/PHASE19_STOREFRONT_PREVIEW.md`.
+- Add Sunrise Cereal as a fourth server-catalog product in the pantry department with separate shelf/backstock counts, bounded restocking, fixed wholesale/retail values, a tagged single shipment, customer baskets and HUD display. Schema v14 migrates existing warehouse owners with six cereal boxes when the field is absent; see `operations/PHASE21_SUNRISE_CEREAL.md`.
 
 ### Phase 4 Power Outage increment
 - After the second completed sale, trigger a bounded checkout outage with a visible breaker objective and a 30-second server recovery deadline.

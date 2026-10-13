@@ -8,7 +8,7 @@ Profile schema v13 adds a persistent delivery-worker hire flag and automation se
 
 - The delivery-worker hire action is available only on a completed shift when the profile owns a warehouse; it costs exactly `$140` and appears at the loading dock.
 - Owner and Manager can pause/resume the worker at its board. Pausing cancels a scheduled pickup; resuming with a ready shipment schedules one new pickup.
-- An enabled worker receives a shipment once, three seconds after it is ready. Citrus Pop, Berry Bites, and Golden Apples use the existing product ID, quantity, and capacity checks.
+- An enabled worker receives a shipment once, three seconds after it is ready. Citrus Pop, Berry Bites, Golden Apples, and Sunrise Cereal use the existing product ID, quantity, and capacity checks.
 - Receipt increases only the matching backstock, clears the one-pending-shipment state, updates the dock/HUD, and persists through the existing `Economy.receiveDelivery` transition.
 - Manual receipt remains available when automation is paused. A player/worker race cannot duplicate inventory.
 - Rejoin preserves the hire/automation state and shipment; a ready shipment is collected once after rejoin if automation is enabled.

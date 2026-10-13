@@ -50,7 +50,7 @@ Currency and stock changes occur only after server-side validation. Transactions
 
 ## Phase 7 multi-product increment
 - Profile schema v7 persists Berry Bites shelf and backroom counters plus a product ID for the single pending warehouse shipment. Prior profiles normalize to zero shelf stock and 12 Berry Bites backstock if they already own the warehouse; legacy untagged shipments migrate as Citrus Pop.
-- `Economy.PRODUCTS` defines server-owned Citrus Pop (`$25` sale, `$60`/24-can shipment) and Berry Bites (`$18` sale, `$45`/24-pack shipment). Berry Bites restocks in groups of four with a 24-pack shelf cap. Both SKUs share the 500-unit per-SKU backroom cap and one-pending-shipment rule.
+- `Economy.PRODUCTS` defines server-owned Citrus Pop (`$25` sale, `$60`/24-can shipment), Berry Bites (`$18` sale, `$45`/24-pack shipment), Golden Apples and Sunrise Cereal. Product stock shares the per-SKU backroom cap and one-pending-shipment rule; each SKU retains its own price, shipment size, and restock limit.
 - Checkout chooses the next SKU from server shift progress and available shelf stock, and the customer route/shelf visuals follow that choice. No client product/price argument is accepted.
 - Owner/Manager can order either SKU; Owner/Manager/Stocker can stock Berry Bites. Existing prompt checks still enforce owner profile readiness, membership, role, distance and cooldown. See `operations/PHASE11_PRODUCTS.md` for acceptance and Studio verification.
 
@@ -67,7 +67,7 @@ Currency and stock changes occur only after server-side validation. Transactions
 - See `operations/PHASE13_CUSTOMER_RUSH.md`; Studio queue, payout, timeout, automation and persistence checks remain pending.
 
 ## Phase 4 customer basket increment
-- `Economy.getNextCheckoutBasket` derives a bounded basket pattern from the next server-owned customer number and resolves it against current Citrus Pop/Berry Bites shelf quantities. It returns item names, quantities and catalog prices for display; `sellProduct` recomputes the basket and applies all deductions and credits as one customer transaction.
+- `Economy.getNextCheckoutBasket` derives a bounded basket pattern from the next server-owned customer number and resolves it against current shelf quantities for all catalog SKUs. It returns item names, quantities and catalog prices for display; `sellProduct` recomputes the basket and applies all deductions and credits as one customer transaction.
 - Each basket increments `sales` once, so customer queues and chaos thresholds remain customer-based. If a preferred SKU is unavailable, its item is omitted; when no preferred item can be supplied, one stocked SKU is used. Empty shelves reject checkout without mutation.
 - The next intent is reconstructed from the persisted sales count and current saved inventory. Profile schema v9 does not change. The world route and HUD only display the server decision and cannot control it.
 - See `operations/PHASE14_CUSTOMER_BASKETS.md`; runtime pricing, stock, routing and rejoin checks remain pending.
@@ -102,6 +102,11 @@ Currency and stock changes occur only after server-side validation. Transactions
 - The worker is gated on warehouse ownership and a completed shift. Its Owner/Manager automation toggle is saved with the other employees in profile schema v13.
 - A delayed pickup is keyed to the current shipment ready timestamp and generation token; it rechecks hire, automation, owner/session and save-lock state before using `Economy.receiveDelivery`. Manual receipt and auto-receipt converge on that same transaction.
 - The shipment remains singular and SKU-specific. See `operations/PHASE20_DELIVERY_WORKER.md`; Studio timer, race and migration checks remain pending.
+
+## Phase 7 Sunrise Cereal SKU
+- Sunrise Cereal uses the existing catalog-driven order, receipt, basket and checkout paths. Shelf stock and backstock are separate server-owned quantities; restocking moves three boxes, each worth `$16`, with an 18-box `$45` shipment.
+- Profile schema v14 validates cereal counters and warehouse ownership, adds the SKU to the single pending shipment allow-list, and migrates older warehouse profiles with six boxes when absent. The delivery worker and manual dock use the same receipt transaction.
+- The pantry shelf, customer route, order label and four-SKU HUD reflect current server state only. See `operations/PHASE21_SUNRISE_CEREAL.md`; Studio acceptance remains pending.
 
 ## Open technical decisions
 See `docs/decisions/README.md` for accepted ownership policy. Remaining decisions include multi-store/guest permissions, production Studio place configuration, analytics implementation/privacy review, and any changes to persistence recovery. Verify platform APIs against official documentation when implementation starts.

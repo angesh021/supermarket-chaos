@@ -108,6 +108,13 @@ Record decisions that change product scope, trust boundaries, persistence, depen
 - **Consequences:** Profile schema v13 adds the hire and automation flags. Existing profiles default to no worker with automation enabled. Shipment prices, IDs, quantities, backstock limits, and the one-pending-shipment rule do not change.
 - **Verification:** See `docs/operations/PHASE20_DELIVERY_WORKER.md`; Studio migration, timer and race checks remain pending.
 
+## ADR-0019 — Add Sunrise Cereal through the existing SKU pipeline
+- **Status:** Accepted — 2026-10-12.
+- **Context:** The pantry/cereal fixture was present but remained decorative, leaving the retail loop limited to three stocked products.
+- **Decision:** Add fictional Sunrise Cereal as a fourth catalog SKU, wired through bounded shelf/backstock counts, the existing one-shipment system, customer baskets and atomic catalog-priced sales.
+- **Consequences:** Profile schema v14 stores cereal quantities and allow-lists the shipment product ID. Warehouse profiles missing the new field receive six backstock boxes; non-warehouse profiles receive none. Shipment ordering remains one-at-a-time and uses the existing delivery worker/manual receipt.
+- **Verification:** See `docs/operations/PHASE21_SUNRISE_CEREAL.md`; Studio visual, migration, basket and receipt checks remain pending.
+
 ## ADR-0009 — Keep product inventory and supplier orders SKU-specific
 - **Status:** Accepted — 2026-10-12.
 - **Context:** The retail loop needs visible department variety and product-specific stock behavior while keeping stock and money authoritative.

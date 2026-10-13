@@ -4,7 +4,7 @@ local HttpService = game:GetService("HttpService")
 
 local ProfileService = {}
 
-local SCHEMA_VERSION = 13
+local SCHEMA_VERSION = 14
 local SESSION_LEASE_SECONDS = 180
 local MAX_RETRIES = 3
 local STORE_NAME = "SupermarketChaos_PlayerProfiles_v1"
@@ -34,6 +34,7 @@ local function defaultProfile()
             stock = 0,
             berryStock = 0,
             goldenAppleStock = 0,
+            cerealStock = 0,
             sales = 0,
             powerOutageUntil = 0,
             customerRushUntil = 0,
@@ -61,6 +62,7 @@ local function defaultProfile()
             citrusPop = 12,
             berryBites = 0,
             goldenApples = 0,
+            sunriseCereal = 0,
             shipmentReadyAt = 0,
             shipmentProductId = "",
         },
@@ -204,6 +206,7 @@ local function normalizeProfile(value)
             (inventory.citrusPop ~= nil and not validCounter(inventory.citrusPop))
             or (inventory.berryBites ~= nil and not validCounter(inventory.berryBites))
             or (inventory.goldenApples ~= nil and not validCounter(inventory.goldenApples))
+            or (inventory.sunriseCereal ~= nil and not validCounter(inventory.sunriseCereal))
             or (inventory.shipmentReadyAt ~= nil and not validTimestamp(inventory.shipmentReadyAt))
             or (inventory.shipmentQuantity ~= nil and not validCounter(inventory.shipmentQuantity))
             or (
@@ -212,6 +215,7 @@ local function normalizeProfile(value)
                 and inventory.shipmentProductId ~= "citrusPop"
                 and inventory.shipmentProductId ~= "berryBites"
                 and inventory.shipmentProductId ~= "goldenApples"
+                and inventory.shipmentProductId ~= "sunriseCereal"
             )
         then
             return nil, "Stored warehouse inventory contains an invalid counter."
@@ -221,14 +225,18 @@ local function normalizeProfile(value)
             nonNegativeInteger(inventory.berryBites, profile.ownedUpgrades.warehouse and 12 or 0)
         local goldenApples =
             nonNegativeInteger(inventory.goldenApples, profile.ownedUpgrades.warehouse and 6 or 0)
+        local sunriseCereal =
+            nonNegativeInteger(inventory.sunriseCereal, profile.ownedUpgrades.warehouse and 6 or 0)
         local shipmentQuantity = nonNegativeInteger(inventory.shipmentQuantity, 0)
         local shipmentReadyAt = nonNegativeInteger(inventory.shipmentReadyAt, 0)
         if
             citrusPop > 500
             or berryBites > 500
             or goldenApples > 500
+            or sunriseCereal > 500
             or (berryBites > 0 and profile.ownedUpgrades.warehouse ~= true)
             or (goldenApples > 0 and profile.ownedUpgrades.warehouse ~= true)
+            or (sunriseCereal > 0 and profile.ownedUpgrades.warehouse ~= true)
             or shipmentQuantity > 60
             or (shipmentQuantity == 0) ~= (shipmentReadyAt == 0)
         then
@@ -240,14 +248,16 @@ local function normalizeProfile(value)
         profile.warehouseInventory.citrusPop = citrusPop
         profile.warehouseInventory.berryBites = berryBites
         profile.warehouseInventory.goldenApples = goldenApples
+        profile.warehouseInventory.sunriseCereal = sunriseCereal
         profile.warehouseInventory.shipmentReadyAt = shipmentReadyAt
         profile.warehouseInventory.shipmentQuantity = shipmentQuantity
         profile.warehouseInventory.shipmentProductId = shipmentQuantity > 0
-                and (inventory.shipmentProductId == "goldenApples" and "goldenApples" or (inventory.shipmentProductId == "berryBites" and "berryBites" or "citrusPop"))
+                and (inventory.shipmentProductId == "sunriseCereal" and "sunriseCereal" or (inventory.shipmentProductId == "goldenApples" and "goldenApples" or (inventory.shipmentProductId == "berryBites" and "berryBites" or "citrusPop")))
             or ""
     elseif profile.ownedUpgrades.warehouse then
         profile.warehouseInventory.berryBites = 12
         profile.warehouseInventory.goldenApples = 6
+        profile.warehouseInventory.sunriseCereal = 6
     end
     if value.shift ~= nil and type(value.shift) ~= "table" then
         return nil, "Stored shift data is malformed."
@@ -274,6 +284,7 @@ local function normalizeProfile(value)
             not validCounter(value.shift.stock)
             or not validCounter(value.shift.berryStock)
             or not validCounter(value.shift.goldenAppleStock)
+            or not validCounter(value.shift.cerealStock)
             or not validCounter(value.shift.sales)
             or not validTimestamp(value.shift.powerOutageUntil)
             or not validTimestamp(value.shift.customerRushUntil)
@@ -285,6 +296,15 @@ local function normalizeProfile(value)
         end
         if nonNegativeInteger(value.shift.goldenAppleStock, 0) > 24 then
             return nil, "Stored Golden Apples shelf stock is outside the supported limit."
+        end
+        if nonNegativeInteger(value.shift.cerealStock, 0) > 24 then
+            return nil, "Stored Sunrise Cereal shelf stock is outside the supported limit."
+        end
+        if
+            nonNegativeInteger(value.shift.cerealStock, 0) > 0
+            and profile.ownedUpgrades.warehouse ~= true
+        then
+            return nil, "Stored Sunrise Cereal shelf stock exists without an owned warehouse."
         end
         if
             nonNegativeInteger(value.shift.goldenAppleStock, 0) > 0
@@ -311,6 +331,7 @@ local function normalizeProfile(value)
         profile.shift.stock = nonNegativeInteger(value.shift.stock, 0)
         profile.shift.berryStock = nonNegativeInteger(value.shift.berryStock, 0)
         profile.shift.goldenAppleStock = nonNegativeInteger(value.shift.goldenAppleStock, 0)
+        profile.shift.cerealStock = nonNegativeInteger(value.shift.cerealStock, 0)
         profile.shift.sales = nonNegativeInteger(value.shift.sales, 0)
         profile.shift.powerOutageUntil = nonNegativeInteger(value.shift.powerOutageUntil, 0)
         profile.shift.customerRushUntil = nonNegativeInteger(value.shift.customerRushUntil, 0)
@@ -337,6 +358,7 @@ local function copyProfile(profile)
             stock = profile.shift.stock,
             berryStock = profile.shift.berryStock,
             goldenAppleStock = profile.shift.goldenAppleStock,
+            cerealStock = profile.shift.cerealStock,
             sales = profile.shift.sales,
             powerOutageUntil = profile.shift.powerOutageUntil,
             customerRushUntil = profile.shift.customerRushUntil,
@@ -364,6 +386,7 @@ local function copyProfile(profile)
             citrusPop = profile.warehouseInventory.citrusPop,
             berryBites = profile.warehouseInventory.berryBites,
             goldenApples = profile.warehouseInventory.goldenApples,
+            sunriseCereal = profile.warehouseInventory.sunriseCereal,
             shipmentReadyAt = profile.warehouseInventory.shipmentReadyAt,
             shipmentQuantity = profile.warehouseInventory.shipmentQuantity or 0,
             shipmentProductId = profile.warehouseInventory.shipmentProductId or "",
@@ -566,6 +589,7 @@ function ProfileService.saveProgress(player, state, eventName)
     profile.shift.stock = state.stock
     profile.shift.berryStock = state.berryStock
     profile.shift.goldenAppleStock = state.goldenAppleStock
+    profile.shift.cerealStock = state.cerealStock
     profile.shift.sales = state.sales
     profile.shift.powerOutageUntil = state.powerOutageUntil
     profile.shift.customerRushUntil = state.customerRushUntil
@@ -585,6 +609,7 @@ function ProfileService.saveProgress(player, state, eventName)
     profile.warehouseInventory.citrusPop = state.backstock
     profile.warehouseInventory.berryBites = state.berryBackstock
     profile.warehouseInventory.goldenApples = state.goldenAppleBackstock
+    profile.warehouseInventory.sunriseCereal = state.cerealBackstock
     profile.warehouseInventory.shipmentReadyAt = state.shipmentReadyAt
     profile.warehouseInventory.shipmentQuantity = state.shipmentQuantity
     profile.warehouseInventory.shipmentProductId = state.shipmentProductId

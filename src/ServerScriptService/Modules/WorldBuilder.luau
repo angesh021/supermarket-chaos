@@ -642,7 +642,7 @@ function WorldBuilder.build()
         createShelf(interior, "Golden Apples Produce Shelf", -17, 0, 4, "GOLDEN APPLES")
     createShelf(interior, "Pantry Shelf", 0, -1, 6, "SNACKS")
     createShelf(interior, "Breakfast and Pantry Shelf", -10, -9, 6, "PANTRY")
-    createShelf(interior, "Cereal and Household Shelf", 0, -9, 6, "GROCERY")
+    local cerealShelf = createShelf(interior, "Sunrise Cereal Shelf", 0, -9, 6, "SUNRISE CEREAL")
     createRefrigeratedCase(interior, 9, -14.5)
     part(
         interior,
@@ -1232,6 +1232,40 @@ function WorldBuilder.build()
         end
     end
 
+    local stockedCerealBoxes = {}
+    local function setCerealStockVisual(count)
+        for _, item in ipairs(stockedCerealBoxes) do
+            item:Destroy()
+        end
+        stockedCerealBoxes = {}
+        for index = 1, count do
+            local column = (index - 1) % 8
+            local row = math.floor((index - 1) / 8)
+            local x = -2.45 + column * 0.7
+            local y = 3.75 + row * 1.3
+            local box = part(
+                interior,
+                "Stocked Sunrise Cereal Box",
+                Vector3.new(0.56, 0.82, 0.44),
+                CFrame.new(x, y, -9.55),
+                ({ COLORS.orange, COLORS.gold, COLORS.green, COLORS.blue })[((index - 1) % 4) + 1],
+                Enum.Material.SmoothPlastic
+            )
+            local labelPlate = part(
+                interior,
+                "Sunrise Cereal Package Label",
+                Vector3.new(0.4, 0.24, 0.03),
+                CFrame.new(x, y, -9.32),
+                COLORS.warmWhite,
+                Enum.Material.SmoothPlastic
+            )
+            box:SetAttribute("ProductDisplay", true)
+            labelPlate:SetAttribute("ProductDisplay", true)
+            table.insert(stockedCerealBoxes, box)
+            table.insert(stockedCerealBoxes, labelPlate)
+        end
+    end
+
     local hiringBoard = label(
         interior,
         "Staff Hiring Board",
@@ -1390,6 +1424,10 @@ function WorldBuilder.build()
     )
     goldenAppleStockPrompt.Enabled = false
     local goldenAppleStockAvailable = false
+    local cerealStockPrompt =
+        prompt(cerealShelf.PrimaryPart, "Stock Shelf", "Sunrise Cereal", "StockSunriseCereal", 9)
+    cerealStockPrompt.Enabled = false
+    local cerealStockAvailable = false
     local shiftBoard = label(
         interior,
         "Shift Board",
@@ -1702,6 +1740,7 @@ function WorldBuilder.build()
     local orderDeliveryPrompt
     local berryDeliveryOrderPrompt
     local appleDeliveryOrderPrompt
+    local cerealDeliveryOrderPrompt
     local deliveryProductId = "citrusPop"
     local deliveryReadyAt = 0
     local deliveryQuantity = 0
@@ -1739,6 +1778,9 @@ function WorldBuilder.build()
     appleDeliveryOrderPrompt =
         prompt(orderBoard, "Order Apples ($35)", "Warehouse Board", "OrderAppleDelivery", 10)
     appleDeliveryOrderPrompt.Enabled = false
+    cerealDeliveryOrderPrompt =
+        prompt(orderBoard, "Order Cereal ($45)", "Warehouse Board", "OrderCerealDelivery", 10)
+    cerealDeliveryOrderPrompt.Enabled = false
     deliveryCrate = Instance.new("Model")
     deliveryCrate.Name = "Warehouse Delivery Crate"
     deliveryCrate.Parent = exterior
@@ -1884,12 +1926,16 @@ function WorldBuilder.build()
     local function setDeliveryState(readyAt, quantity, productId)
         deliveryReadyAt = readyAt or 0
         deliveryQuantity = quantity or 0
-        deliveryProductId = productId == "goldenApples" and "goldenApples"
-            or (productId == "berryBites" and "berryBites" or "citrusPop")
+        deliveryProductId = productId == "sunriseCereal" and "sunriseCereal"
+            or (
+                productId == "goldenApples" and "goldenApples"
+                or (productId == "berryBites" and "berryBites" or "citrusPop")
+            )
         local productInfoById = {
             citrusPop = { name = "CITRUS POP", units = "CANS" },
             berryBites = { name = "BERRY BITES", units = "PACKS" },
             goldenApples = { name = "GOLDEN APPLES", units = "APPLES" },
+            sunriseCereal = { name = "SUNRISE CEREAL", units = "BOXES" },
         }
         local productInfo = productInfoById[deliveryProductId]
         if not warehousePurchased or not deliveryBoardLabel then
@@ -1905,7 +1951,7 @@ function WorldBuilder.build()
                 productInfo.units
             )
         else
-            deliveryBoardLabel.Text = "CITRUS $60 • BERRY $45\nAPPLES $35"
+            deliveryBoardLabel.Text = "CITRUS $60 • BERRY $45\nAPPLES $35 • CEREAL $45"
         end
         if crateLabel then
             local shipmentTextLabel = crateSurface
@@ -1942,6 +1988,9 @@ function WorldBuilder.build()
         end
         if appleDeliveryOrderPrompt then
             appleDeliveryOrderPrompt.Enabled = deliveryQuantity == 0
+        end
+        if cerealDeliveryOrderPrompt then
+            cerealDeliveryOrderPrompt.Enabled = deliveryQuantity == 0
         end
     end
 
@@ -2001,6 +2050,13 @@ function WorldBuilder.build()
             and stage ~= "Loading"
             and stage ~= "OwnerOffline"
             and stage ~= "PowerOutage"
+        cerealStockPrompt.Enabled = cerealStockAvailable
+            and warehousePurchased
+            and stage ~= "Cart"
+            and stage ~= "Upgrade"
+            and stage ~= "Loading"
+            and stage ~= "OwnerOffline"
+            and stage ~= "PowerOutage"
         if orderDeliveryPrompt then
             orderDeliveryPrompt.Enabled = warehousePurchased and deliveryQuantity == 0
         end
@@ -2009,6 +2065,9 @@ function WorldBuilder.build()
         end
         if appleDeliveryOrderPrompt then
             appleDeliveryOrderPrompt.Enabled = warehousePurchased and deliveryQuantity == 0
+        end
+        if cerealDeliveryOrderPrompt then
+            cerealDeliveryOrderPrompt.Enabled = warehousePurchased and deliveryQuantity == 0
         end
         if deliveryPrompt then
             deliveryPrompt.Enabled = warehousePurchased
@@ -2035,6 +2094,18 @@ function WorldBuilder.build()
         setBerryStockVisual = setBerryStockVisual,
         goldenAppleStockPrompt = goldenAppleStockPrompt,
         setGoldenAppleStockVisual = setGoldenAppleStockVisual,
+        cerealStockPrompt = cerealStockPrompt,
+        setCerealStockVisual = setCerealStockVisual,
+        setCerealStockAvailable = function(available)
+            cerealStockAvailable = available == true
+            cerealStockPrompt.Enabled = cerealStockAvailable
+                and warehousePurchased
+                and currentStage ~= "Cart"
+                and currentStage ~= "Upgrade"
+                and currentStage ~= "Loading"
+                and currentStage ~= "OwnerOffline"
+                and currentStage ~= "PowerOutage"
+        end,
         setGoldenAppleStockAvailable = function(available)
             goldenAppleStockAvailable = available == true
             goldenAppleStockPrompt.Enabled = goldenAppleStockAvailable
@@ -2055,11 +2126,17 @@ function WorldBuilder.build()
                 and currentStage ~= "OwnerOffline"
                 and currentStage ~= "PowerOutage"
         end,
+        cerealDeliveryPrompt = function()
+            return cerealDeliveryOrderPrompt
+        end,
         setCustomerProduct = function(displayName)
             customerProductName = displayName or "Citrus Pop"
             customerProductPosition = customerProductName == "Berry Bites"
                     and Vector3.new(10, 0.45, 4)
-                or Vector3.new(-10, 0.45, 4)
+                or (
+                    customerProductName == "Sunrise Cereal" and Vector3.new(0, 0.45, -9)
+                    or Vector3.new(-10, 0.45, 4)
+                )
         end,
         setCustomerBasket = function(displayName)
             customerBasketName = displayName or "Citrus Pop x1"
@@ -2072,6 +2149,9 @@ function WorldBuilder.build()
             end
             if string.find(customerBasketName, "Golden Apples", 1, true) then
                 table.insert(customerProductPositions, Vector3.new(-17, 0.45, -3))
+            end
+            if string.find(customerBasketName, "Sunrise Cereal", 1, true) then
+                table.insert(customerProductPositions, Vector3.new(0, 0.45, -9))
             end
             if #customerProductPositions == 0 then
                 table.insert(customerProductPositions, customerProductPosition)
